@@ -80,7 +80,8 @@ export default function LandingPage() {
           </span>
         </h2>
         <p className="text-gray-400 max-w-xl mx-auto mb-12">
-          All the tech muscle you need, wrapped in vibes you'll actually enjoy.
+          All the tech muscle you need, wrapped in vibes you&apos;ll actually
+          enjoy.
         </p>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
           {features.map(({ icon, title, desc }) => (
@@ -108,7 +109,7 @@ export default function LandingPage() {
 
         {submitted ? (
           <p className="text-green-300 text-lg font-medium">
-            You're in. We’ll save you a seat 💌
+            You&apos;re in. We’ll save you a seat 💌
           </p>
         ) : (
           <>
