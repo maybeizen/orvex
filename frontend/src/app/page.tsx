@@ -1,5 +1,7 @@
 "use client";
 
+import "dotenv/config";
+
 import Footer from "@/components/footer";
 import axios from "axios";
 import React, { useState } from "react";
