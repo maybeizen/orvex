@@ -9,7 +9,13 @@ const app: Express = express();
 
 db.connect().catch((e: Error) => console.error("DB Connection Error:", e));
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["https://orvex.cc", "https://www.orvex.cc"],
+    methods: ["GET", "POST", "OPTIONS"],
+    credentials: false,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
