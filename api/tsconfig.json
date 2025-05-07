@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", // Modern target for better performance
+    "module": "ESNext", // Use ESNext for better tree-shaking with tsup
+    "moduleResolution": "Node", // Resolve modules in Node.js style
+    "strict": true, // Enable strict type-checking
+    "esModuleInterop": true, // Allow default imports from CommonJS modules
+    "forceConsistentCasingInFileNames": true, // Enforce consistent file naming
+    "skipLibCheck": true, // Skip type checking of declaration files for faster builds
+    "outDir": "./dist", // Output directory for compiled files
+    "allowSyntheticDefaultImports": true, // Support synthetic default imports
+    "resolveJsonModule": true, // Allow importing JSON files
+    "types": ["node"], // Include Node.js type definitions
+    "paths": {
+      "@/db": ["../database/dist/"]
+    }
+  },
+  "include": ["src"], // Include all files in the src directory
+  "exclude": ["node_modules", "dist"] // Exclude unnecessary directories
+}
