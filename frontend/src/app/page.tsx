@@ -45,7 +45,7 @@ export default function LandingPage() {
         setSubmitted(true);
         setErrorMessage(null);
       }
-    } catch (error: any) {
+    } catch (error) {
       if (axios.isAxiosError(error) && error.response?.data?.message) {
         setErrorMessage(error.response.data.message);
       } else {
