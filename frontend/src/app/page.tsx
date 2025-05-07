@@ -74,7 +74,7 @@ export default function LandingPage() {
 
       <section className="px-6 py-24 text-center">
         <h2 className="text-4xl font-bold mb-4">
-          Why you'll{" "}
+          Why you&apos;ll{" "}
           <span className="bg-gradient-to-r from-violet-400 to-indigo-500 bg-clip-text text-transparent">
             fall for Orvex
           </span>
