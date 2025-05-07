@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 const Footer = () => {
   const year = new Date().getFullYear();
@@ -17,17 +18,21 @@ const Footer = () => {
           </div>
 
           <nav className="flex flex-wrap justify-center gap-4 sm:gap-6 text-sm">
-            <a href="/" className="text-white hover:text-violet-400 transition">
+            <Link
+              href="/"
+              target="_blank"
+              className="text-white hover:text-violet-400 transition"
+            >
               Home
-            </a>
-            <a
+            </Link>
+            <Link
               href="https://discord.gg/J8Fk6HNTDk"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white hover:text-violet-400 transition"
             >
               Discord
-            </a>
+            </Link>
             <span className="text-gray-500 opacity-30 cursor-not-allowed">
               Features
             </span>
