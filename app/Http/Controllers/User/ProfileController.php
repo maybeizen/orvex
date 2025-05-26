@@ -10,7 +10,7 @@ class ProfileController extends Controller
 {
     public function showProfile()
     {
-        return Inertia::render('user/index', [
+        return Inertia::render('client/account/index', [
             'user' => Auth::user(),
         ]);
     }

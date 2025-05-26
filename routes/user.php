@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\User\ProfileController;
+use App\Http\Controllers\User\TwoFactorController;
 use App\Http\Controllers\User\UpdateAvatarController;
 use App\Http\Controllers\User\UpdateEmailController;
 use App\Http\Controllers\User\UpdatePasswordController;
@@ -16,4 +17,8 @@ Route::middleware(['auth', 'verified'])->prefix('profile')->group(function () {
     Route::post('/avatar', [UpdateAvatarController::class, 'updateAvatar'])->name('avatar.update');
     Route::post('/avatar/gravatar', [UpdateAvatarController::class, 'useGravatar'])->name('avatar.setGravatar');
 
+    // 2fa routes
+    Route::get('/2fa/setup', [TwoFactorController::class, 'show'])->name('two-factor.setup');
+    Route::post('/2fa/enable', [TwoFactorController::class, 'enable'])->name('two-factor.enable');
+    Route::post('/2fa/disable', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
 });

@@ -30,11 +30,6 @@ export default AppLayout;
 const AppNav: React.FC = () => {
     const { auth } = usePage().props;
 
-    console.log('Avatar debug:', {
-        type: auth.user.avatar_type,
-        path: auth.user.avatar_path,
-    });
-
     return (
         <Navbar>
             <Navbar.Left>
@@ -71,7 +66,9 @@ const AppNav: React.FC = () => {
                         <DropdownItem item={{ label: 'Discord', icon: 'fab fa-discord', href: '' }} />
                         <DropdownItem item={{ label: 'Panel', icon: 'fas fa-objects-column', href: '' }} />
                         <DropdownDivider />
-                        {auth.user.role === 'admin' && <DropdownItem item={{ label: 'Admin', icon: 'fas fa-shield-halved', href: '' }} />}
+                        {auth.user.role === 'admin' && (
+                            <DropdownItem item={{ label: 'Admin', icon: 'fas fa-shield-halved', href: route('admin.dashboard') }} />
+                        )}
                         <DropdownItem item={{ label: 'Log out', icon: 'fas fa-sign-out-alt', href: route('logout') }} method="post" />
                     </Dropdown>
                 )}

@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import React from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'glass' | 'ghost' | 'text' | 'link';
+type ButtonVariant = 'primary' | 'secondary' | 'glass' | 'ghost' | 'text' | 'link' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -47,12 +47,13 @@ export const Button: React.FC<ButtonProps> = ({
     };
 
     const variantStyles = {
-        primary: 'bg-gradient-to-r from-violet-500 to-violet-700 text-white hover:pacity-90',
+        primary: 'bg-gradient-to-r from-violet-500 to-violet-700 text-white hover:opacity-90',
         secondary: 'bg-gray-700 text-white hover:bg-gray-800',
         glass: 'bg-white/10 backdrop-blur text-white border border-white/20',
         ghost: 'bg-transparent border border-white/20 text-white',
         text: 'bg-transparent text-white',
         link: 'text-indigo-400 underline hover:text-indigo-500 shadow-none active:translate-y-0',
+        danger: 'text-white bg-red-600 hover:opacity-90',
     };
 
     const iconEl = icon ? <i className={clsx(icon, iconPosition === 'right' ? 'order-2 ml-2' : 'mr-2')} /> : null;

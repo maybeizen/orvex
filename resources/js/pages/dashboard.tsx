@@ -1,12 +1,13 @@
 import Avatar from '@/components/avatar';
 import { Button } from '@/components/button';
 import AppLayout from '@/layouts/app-layout';
+import { Auth } from '@/types/global';
 import { Head, router, usePage } from '@inertiajs/react';
 import React from 'react';
 
 const Dashboard: React.FC = () => {
-    const { auth } = usePage().props;
-    const user = auth?.user;
+    const { auth } = usePage().props as unknown as { auth: Auth };
+    const user = auth.user;
 
     if (!user) return null;
 
@@ -20,8 +21,8 @@ const Dashboard: React.FC = () => {
                         <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6 shadow-md">
                             <div className="flex flex-col items-center gap-4">
                                 <Avatar
-                                    avatarType={auth.user.avatar_type}
-                                    avatarPath={auth.user.avatar_path}
+                                    avatarType={user.avatar_type}
+                                    avatarPath={user.avatar_path}
                                     email={user.email}
                                     size={96}
                                     className="h-24 w-24 rounded-full object-cover shadow"
@@ -66,7 +67,7 @@ const Dashboard: React.FC = () => {
                         <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6 shadow-md">
                             <h3 className="mb-2 text-lg font-semibold text-white">Connect Discord</h3>
                             <p className="mb-4 text-sm text-gray-400">
-                                Connected as <span className="font-medium text-indigo-400">{user.discord?.username ?? 'Not linked'}</span>
+                                Connected as <span className="font-medium text-indigo-400">{user.discord_username || 'Not linked'}</span>
                             </p>
                             <Button variant="primary" icon="fas fa-unlink" onClick={() => console.log('Disconnect Discord')}>
                                 Disconnect
