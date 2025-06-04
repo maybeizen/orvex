@@ -1,6 +1,6 @@
 import { Button } from '@/components/button';
 import { Input } from '@/components/input/input';
-import { User } from '@/types/global';
+import { RoleDescription, User, UserRole } from '@/types/global';
 import { useForm } from '@inertiajs/react';
 import React, { useState } from 'react';
 
@@ -9,14 +9,17 @@ interface ProfileTabProps {
 }
 
 const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
-    const [successMessage, setSuccessMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState<string>('');
     const { data, setData, errors, put, processing } = useForm({
         name: user.name || '',
         email: user.email || '',
-        role: user.role || 'user',
+        role: user.role || ('user' as UserRole),
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [verifyEmailLoading, setVerifyEmailLoading] = useState<boolean>(false);
+    const [unverifyEmailLoading, setUnverifyEmailLoading] = useState<boolean>(false);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         put(route('admin.users.update.profile', { id: user.id }), {
             onSuccess: () => {
@@ -26,11 +29,41 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
         });
     };
 
-    const roleDescriptions = {
+    const handleVerifyEmail = () => {
+        setVerifyEmailLoading(true);
+        put(route('admin.users.verify-email', { id: user.id }), {
+            onSuccess: () => {
+                setSuccessMessage('Email verified successfully');
+                setTimeout(() => setSuccessMessage(''), 5000);
+                setVerifyEmailLoading(false);
+            },
+            onError: () => {
+                setVerifyEmailLoading(false);
+            },
+        });
+    };
+
+    const handleUnverifyEmail = () => {
+        setUnverifyEmailLoading(true);
+        put(route('admin.users.unverify-email', { id: user.id }), {
+            onSuccess: () => {
+                setSuccessMessage('Email verification removed');
+                setTimeout(() => setSuccessMessage(''), 5000);
+                setUnverifyEmailLoading(false);
+            },
+            onError: () => {
+                setUnverifyEmailLoading(false);
+            },
+        });
+    };
+
+    const roleDescriptions: RoleDescription = {
         admin: 'Full access to all features and user management',
         client: "Limited access focused on using the platform's services",
         user: 'Standard user permissions',
     };
+
+    const isEmailVerified = !!user.email_verified_at;
 
     return (
         <form onSubmit={handleSubmit}>
@@ -53,17 +86,62 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
                     </div>
 
                     <div>
-                        <Input
-                            id="email"
-                            name="email"
-                            label="Email Address"
-                            type="email"
-                            value={data.email}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData('email', e.target.value)}
-                            className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-white transition-colors focus:border-violet-500 focus:outline-none"
-                            placeholder="Enter user's email address"
-                            error={errors.email}
-                        />
+                        <div className="space-y-1">
+                            <Input
+                                id="email"
+                                name="email"
+                                label="Email Address"
+                                type="email"
+                                value={data.email}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setData('email', e.target.value)}
+                                className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-white transition-colors focus:border-violet-500 focus:outline-none"
+                                placeholder="Enter user's email address"
+                                error={errors.email}
+                            />
+                            <div className="mt-3 flex items-center justify-between rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-3">
+                                <div className="flex items-center space-x-2 text-sm">
+                                    {isEmailVerified ? (
+                                        <span className="flex items-center text-green-400">
+                                            <i className="fas fa-check-circle mr-2" />
+                                            Email is verified
+                                        </span>
+                                    ) : (
+                                        <span className="flex items-center text-amber-400">
+                                            <i className="fas fa-exclamation-triangle mr-2" />
+                                            Email is not verified
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div>
+                                    {!isEmailVerified ? (
+                                        <Button
+                                            type="button"
+                                            variant="success"
+                                            size="sm"
+                                            onClick={handleVerifyEmail}
+                                            loading={verifyEmailLoading}
+                                            className="flex items-center space-x-2"
+                                            icon="fas fa-check-circle"
+                                        >
+                                            Verify
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            variant="danger"
+                                            size="sm"
+                                            onClick={handleUnverifyEmail}
+                                            loading={unverifyEmailLoading}
+                                            className="flex items-center space-x-2"
+                                            icon="fas fa-times-circle"
+                                        >
+                                            Unverify
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -90,7 +168,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
                     <select
                         id="role"
                         value={data.role}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setData('role', e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setData('role', e.target.value as UserRole)}
                         className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-white transition-colors focus:border-violet-500 focus:outline-none"
                     >
                         <option value="admin">Administrator</option>

@@ -8,6 +8,7 @@ interface User {
     id: number;
     name: string;
     email: string;
+    email_verified_at: string | null;
     role: string;
     avatar_type: 'upload' | 'gravatar' | 'default';
     avatar_path: string | null;
@@ -76,6 +77,7 @@ const AdminUsers: React.FC = () => {
                                 {filteredUsers.length > 0 ? (
                                     filteredUsers.map((user) => {
                                         const isCurrentUser = user.id === auth.user.id;
+                                        const isEmailVerified = !!user.email_verified_at;
                                         return (
                                             <tr key={user.id}>
                                                 <td className="px-6 py-4 text-sm whitespace-nowrap text-neutral-300">
@@ -83,7 +85,19 @@ const AdminUsers: React.FC = () => {
                                                     {isCurrentUser && <i className="fas fa-star ml-1 text-yellow-500" title="This is you" />}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-white">{user.name}</td>
-                                                <td className="px-6 py-4 text-sm whitespace-nowrap text-neutral-300">{user.email}</td>
+                                                <td className="px-6 py-4 text-sm whitespace-nowrap text-neutral-300">
+                                                    <div className="flex items-center">
+                                                        {user.email}
+                                                        {isEmailVerified ? (
+                                                            <i className="fas fa-check-circle ml-1 text-green-400" title="Email verified"></i>
+                                                        ) : (
+                                                            <i
+                                                                className="fas fa-exclamation-circle ml-1 text-amber-400"
+                                                                title="Email not verified"
+                                                            ></i>
+                                                        )}
+                                                    </div>
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span
                                                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
@@ -120,6 +134,7 @@ const AdminUsers: React.FC = () => {
                                                                 router.visit(route('admin.users.edit', { id: user.id }));
                                                             }}
                                                             title="Edit user"
+                                                            type="button"
                                                         >
                                                             <i className="fas fa-edit" />
                                                         </Button>
@@ -128,6 +143,7 @@ const AdminUsers: React.FC = () => {
                                                             size="sm"
                                                             onClick={() => handleDeleteUser(user.id, user.name)}
                                                             title="Delete user"
+                                                            type="button"
                                                         >
                                                             <i className="fas fa-trash" />
                                                         </Button>

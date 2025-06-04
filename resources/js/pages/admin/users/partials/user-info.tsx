@@ -1,13 +1,42 @@
 import Avatar from '@/components/avatar';
 import { Button } from '@/components/button';
-import { User } from '@/types/global';
+import { User, UserRole } from '@/types/global';
 import React from 'react';
 
 interface UserInfoProps {
     user: User;
 }
 
+type RoleStyle = {
+    [key in UserRole]: {
+        bgColor: string;
+        textColor: string;
+        icon: string;
+    };
+};
+
 const UserInfo: React.FC<UserInfoProps> = ({ user }) => {
+    const roleStyles: RoleStyle = {
+        admin: {
+            bgColor: 'bg-red-900/30',
+            textColor: 'text-red-400',
+            icon: 'crown',
+        },
+        client: {
+            bgColor: 'bg-blue-900/30',
+            textColor: 'text-blue-400',
+            icon: 'briefcase',
+        },
+        user: {
+            bgColor: 'bg-blue-900/30',
+            textColor: 'text-blue-400',
+            icon: 'user',
+        },
+    };
+
+    const currentRoleStyle = roleStyles[user.role];
+    const isEmailVerified = !!user.email_verified_at;
+
     return (
         <div className="overflow-hidden rounded-xl bg-neutral-900 shadow-lg">
             <div className="p-6 text-center">
@@ -22,19 +51,20 @@ const UserInfo: React.FC<UserInfoProps> = ({ user }) => {
                 </div>
 
                 <h2 className="mt-4 text-xl font-bold text-white">{user.name}</h2>
-                <p className="text-sm text-neutral-400">{user.email}</p>
+                <div className="flex items-center justify-center gap-2">
+                    <p className="text-sm text-neutral-400">{user.email}</p>
+                    {isEmailVerified ? (
+                        <i className="fas fa-check-circle text-xs text-green-400" title="Email verified"></i>
+                    ) : (
+                        <i className="fas fa-exclamation-circle text-xs text-amber-400" title="Email not verified"></i>
+                    )}
+                </div>
 
                 <div className="mt-3">
                     <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-                            user.role === 'admin'
-                                ? 'bg-red-900/30 text-red-400'
-                                : user.role === 'moderator'
-                                  ? 'bg-amber-900/30 text-amber-400'
-                                  : 'bg-blue-900/30 text-blue-400'
-                        }`}
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${currentRoleStyle.bgColor} ${currentRoleStyle.textColor}`}
                     >
-                        <i className={`fas fa-${user.role === 'admin' ? 'crown' : 'user'} mr-1`}></i>
+                        <i className={`fas fa-${currentRoleStyle.icon} mr-1`}></i>
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </span>
                 </div>
@@ -56,7 +86,7 @@ const UserInfo: React.FC<UserInfoProps> = ({ user }) => {
             <div className="border-t border-neutral-800 p-4">
                 <h3 className="mb-2 text-sm font-medium text-neutral-400">Quick Actions</h3>
                 <div className="space-y-2">
-                    <Button variant="danger" className="w-full justify-start" onClick={() => console.log('Suspend user')}>
+                    <Button variant="danger" className="w-full justify-start" onClick={() => console.log('Suspend user')} type="button">
                         <i className="fas fa-ban mr-2"></i>
                         Suspend Account
                     </Button>

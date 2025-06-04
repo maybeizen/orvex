@@ -1,10 +1,5 @@
+import { Tab } from '@/types/global';
 import React from 'react';
-
-interface Tab {
-    id: string;
-    label: string;
-    icon: string;
-}
 
 interface TabSelectorProps {
     tabs: Tab[];
@@ -23,6 +18,7 @@ const TabSelector: React.FC<TabSelectorProps> = ({ tabs, activeTab, setActiveTab
                             activeTab === tab.id ? 'border-b-2 border-violet-500 text-white' : 'text-neutral-400 hover:text-white'
                         }`}
                         onClick={() => setActiveTab(tab.id)}
+                        type="button"
                     >
                         <i className={`fas ${tab.icon} mr-2`}></i>
                         {tab.label}

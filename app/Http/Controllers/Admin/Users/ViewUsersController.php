@@ -11,7 +11,7 @@ class ViewUsersController extends Controller
     public function index()
     {
         $users = User::query()
-            ->select(['id', 'name', 'email', 'role', 'avatar_type', 'avatar_path', 'two_factor_enabled', 'created_at'])
+            ->select(['id', 'name', 'email', 'email_verified_at', 'role', 'avatar_type', 'avatar_path', 'two_factor_enabled', 'created_at'])
             ->orderBy('id', 'asc')
             ->get();
 

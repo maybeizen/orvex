@@ -1,6 +1,6 @@
 import { Button } from '@/components/button';
 import { Input } from '@/components/input/input';
-import { User } from '@/types/global';
+import { BalanceAction, User } from '@/types/global';
 import { useForm } from '@inertiajs/react';
 import React, { useState } from 'react';
 
@@ -9,15 +9,15 @@ interface BillingTabProps {
 }
 
 const BillingTab: React.FC<BillingTabProps> = ({ user }) => {
-    const [successMessage, setSuccessMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState<string>('');
 
     const { data, setData, errors, post, processing } = useForm({
         amount: '0.00',
-        action: 'add',
+        action: 'add' as BalanceAction,
         note: '',
     });
 
-    const handleBalanceAdjustment = (e: React.FormEvent) => {
+    const handleBalanceAdjustment = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         post(route('admin.users.adjust-balance', { id: user.id }), {
             onSuccess: () => {
@@ -50,10 +50,10 @@ const BillingTab: React.FC<BillingTabProps> = ({ user }) => {
                         </div>
 
                         <div>
-                            <label className="mb-1 block text-sm font-medium text-neutral-400">Action</label>
+                            <label className="mb-1 block text-sm font-medium text-white">Action</label>
                             <select
                                 value={data.action}
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setData('action', e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setData('action', e.target.value as BalanceAction)}
                                 className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-white transition-colors focus:border-violet-500 focus:outline-none"
                             >
                                 <option value="add">Add Credit</option>
