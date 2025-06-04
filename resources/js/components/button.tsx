@@ -54,6 +54,7 @@ export const Button: React.FC<ButtonProps> = ({
         text: 'bg-transparent text-white',
         link: 'text-indigo-400 underline hover:text-indigo-500 shadow-none active:translate-y-0',
         danger: 'text-white bg-red-600 hover:opacity-90',
+        success: 'text-white bg-green-600 hover:opacity-90',
     };
 
     const iconEl = icon ? <i className={clsx(icon, iconPosition === 'right' ? 'order-2 ml-2' : 'mr-2')} /> : null;

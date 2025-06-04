@@ -5,26 +5,11 @@ namespace App\Http\Controllers\Admin\Users;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-class ActionController extends Controller
+
+class UpdateProfileController extends Controller
 {
-    public function delete(Request $request, User $user)
-    {
-        $user->delete();
 
-        return redirect()->route('admin.users.index')->with('success', 'User deleted successfully');
-    }
-
-    public function edit(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-        return Inertia::render('admin/users/edit', [
-            'user' => $user,
-        ]);
-    }
-
-    public function update(Request $request, $id)
+    public function __invoke(Request $request, $id)
     {
         $user = User::findOrFail($id);
         
@@ -43,6 +28,6 @@ class ActionController extends Controller
             $user->save();
         }
         
-        return redirect()->route('admin.users.index')->with('success', 'User updated successfully');
+        return back()->with('success', 'User profile updated successfully');
     }
-}
+} 

@@ -6,10 +6,20 @@ import { Head, router, usePage } from '@inertiajs/react';
 import React from 'react';
 
 const Dashboard: React.FC = () => {
-    const { auth } = usePage().props as unknown as { auth: Auth };
+    const { auth, flash } = usePage().props as unknown as {
+        auth: Auth;
+        flash: {
+            success?: string;
+            error?: string;
+        };
+    };
     const user = auth.user;
 
     if (!user) return null;
+
+    const disconnectDiscord = () => {
+        router.post(route('discord.disconnect'));
+    };
 
     return (
         <>
@@ -67,11 +77,21 @@ const Dashboard: React.FC = () => {
                         <div className="rounded-2xl border border-white/10 bg-neutral-900 p-6 shadow-md">
                             <h3 className="mb-2 text-lg font-semibold text-white">Connect Discord</h3>
                             <p className="mb-4 text-sm text-gray-400">
-                                Connected as <span className="font-medium text-indigo-400">{user.discord_username || 'Not linked'}</span>
+                                {user.discord_username ? (
+                                    <span className="font-medium text-indigo-400">Connected as {user.discord_username}</span>
+                                ) : (
+                                    <span className="text-red-400">Your Discord account is not linked</span>
+                                )}
                             </p>
-                            <Button variant="primary" icon="fas fa-unlink" onClick={() => console.log('Disconnect Discord')}>
-                                Disconnect
-                            </Button>
+                            {user.discord_username ? (
+                                <Button variant="danger" icon="fas fa-unlink" onClick={disconnectDiscord}>
+                                    Disconnect
+                                </Button>
+                            ) : (
+                                <Button variant="primary" icon="fab fa-discord" onClick={() => (window.location.href = route('discord.connect'))}>
+                                    Connect
+                                </Button>
+                            )}
                         </div>
                     </aside>
 

@@ -21,13 +21,17 @@ class User extends Authenticatable
         'email',
         'password',
         'role', // 'admin', 'user', or 'client'
+        'balance',
+        'is_banned',
+
         'discord_id',
         'discord_username',
         'discord_access_token',
         'discord_refresh_token',
-        'discord_avatar',
+
         'avatar_path',
         'avatar_type',
+
         'two_factor_enabled',
         'two_factor_secret',
     ];
@@ -42,7 +46,7 @@ class User extends Authenticatable
         'remember_token',
         'discord_access_token',
         'discord_refresh_token',
-        'two_factor_secret', // usually good to hide this too
+        'two_factor_secret'
     ];
 
     /**

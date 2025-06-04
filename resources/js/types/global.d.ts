@@ -22,7 +22,8 @@ export interface User {
     name: string;
     email: string;
     role: string;
-    discord?: string | null;
+    discord_id?: string | null;
+    discord_username?: string | null;
     avatar_type: 'upload' | 'gravatar' | 'default';
     avatar_path?: string | null;
     email_verified_at: string | null;
