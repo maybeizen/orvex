@@ -62,7 +62,7 @@ class TwoFactorChallengeController extends Controller
         }
 
         $google2fa = new Google2FA();
-        $isValid = $google2fa->verifyKey($secret, $request->code);
+        $isValid = $google2fa->verifyKey($secret, $request->code, 1);
 
         Log::debug('[2FA] Code verification result', [
             'user_id' => $user->id,
@@ -73,7 +73,6 @@ class TwoFactorChallengeController extends Controller
             return back()->withErrors(['code' => 'Invalid authentication code.']);
         }
 
-        // Pass the check: log the user in
         Auth::login($user);
         Session::forget('2fa:user:id');
         Session::put('2fa_verified', true);

@@ -68,7 +68,7 @@ class TwoFactorController extends Controller
         }
 
         $secret = Crypt::decryptString($user->two_factor_secret);
-        if (!$this->google2fa->verifyKey($secret, $request->code)) {
+        if (!$this->google2fa->verifyKey($secret, $request->code, 1)) {
             return back()->withErrors(['code' => 'Invalid two-factor code.']);
         }
 
