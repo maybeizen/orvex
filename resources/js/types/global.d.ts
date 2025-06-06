@@ -23,8 +23,13 @@ export interface User {
     balance: string | number;
     discord_id?: string | null;
     discord_username?: string | null;
+    discord_avatar?: string | null;
+    discord_linked_at?: string | null;
+    discord_shared_servers?: number;
     avatar_type: AvatarType;
     avatar_path?: string | null;
+    two_factor_enabled: boolean;
+    last_login_at?: string | null;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;
@@ -52,4 +57,5 @@ export interface Tab {
     id: string;
     label: string;
     icon: string;
+    tooltip?: string;
 }

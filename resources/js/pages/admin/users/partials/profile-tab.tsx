@@ -6,9 +6,10 @@ import React, { useState } from 'react';
 
 interface ProfileTabProps {
     user: User;
+    confirmAction?: (title: string, message: string, action: () => void) => void;
 }
 
-const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
+const ProfileTab: React.FC<ProfileTabProps> = ({ user, confirmAction }) => {
     const [successMessage, setSuccessMessage] = useState<string>('');
     const { data, setData, errors, put, processing } = useForm({
         name: user.name || '',
@@ -21,6 +22,19 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        if (data.role !== user.role && confirmAction) {
+            confirmAction(
+                'Change User Role',
+                `Are you sure you want to change ${user.name}'s role from ${user.role} to ${data.role}? This will modify their permissions and access level.`,
+                () => submitProfileUpdate(),
+            );
+        } else {
+            submitProfileUpdate();
+        }
+    };
+
+    const submitProfileUpdate = () => {
         put(route('admin.users.update.profile', { id: user.id }), {
             onSuccess: () => {
                 setSuccessMessage('User updated successfully');
@@ -44,17 +58,37 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
     };
 
     const handleUnverifyEmail = () => {
-        setUnverifyEmailLoading(true);
-        put(route('admin.users.unverify-email', { id: user.id }), {
-            onSuccess: () => {
-                setSuccessMessage('Email verification removed');
-                setTimeout(() => setSuccessMessage(''), 5000);
-                setUnverifyEmailLoading(false);
-            },
-            onError: () => {
-                setUnverifyEmailLoading(false);
-            },
-        });
+        if (confirmAction) {
+            confirmAction(
+                'Remove Email Verification',
+                `Are you sure you want to remove verification status from ${user.email}? This could affect the user's ability to access certain features.`,
+                () => {
+                    setUnverifyEmailLoading(true);
+                    put(route('admin.users.unverify-email', { id: user.id }), {
+                        onSuccess: () => {
+                            setSuccessMessage('Email verification removed');
+                            setTimeout(() => setSuccessMessage(''), 5000);
+                            setUnverifyEmailLoading(false);
+                        },
+                        onError: () => {
+                            setUnverifyEmailLoading(false);
+                        },
+                    });
+                },
+            );
+        } else {
+            setUnverifyEmailLoading(true);
+            put(route('admin.users.unverify-email', { id: user.id }), {
+                onSuccess: () => {
+                    setSuccessMessage('Email verification removed');
+                    setTimeout(() => setSuccessMessage(''), 5000);
+                    setUnverifyEmailLoading(false);
+                },
+                onError: () => {
+                    setUnverifyEmailLoading(false);
+                },
+            });
+        }
     };
 
     const roleDescriptions: RoleDescription = {

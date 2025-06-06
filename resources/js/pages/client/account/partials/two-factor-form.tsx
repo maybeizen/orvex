@@ -15,21 +15,6 @@ export default function TwoFactorForm() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-start justify-between">
-                <div>
-                    <h2 className="text-xl font-semibold text-white">Two-Factor Authentication (2FA)</h2>
-                    <p className="text-sm text-gray-400">Add an extra layer of security to your account.</p>
-                </div>
-                <div
-                    className={`flex h-7 items-center rounded-full px-3 ${
-                        is2FAEnabled ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-                    }`}
-                >
-                    <i className={`fas fa-${is2FAEnabled ? 'shield-alt' : 'exclamation-triangle'} mr-2 text-xs`} />
-                    <span className="text-xs font-semibold">{is2FAEnabled ? 'Enabled' : 'Disabled'}</span>
-                </div>
-            </div>
-
             <div className="rounded-xl border border-white/10 bg-neutral-800/50 p-5">
                 <div className="flex items-start gap-4">
                     <div className="hidden sm:block">

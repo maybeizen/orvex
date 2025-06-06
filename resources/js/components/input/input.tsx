@@ -8,9 +8,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     error?: string;
     text?: string;
     showPasswordToggle?: boolean;
+    leftIcon?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, name, error, text, className, showPasswordToggle = false, type, ...props }) => {
+export const Input: React.FC<InputProps> = ({ label, name, error, text, className, showPasswordToggle = false, leftIcon, type, ...props }) => {
     const [visible, setVisible] = useState(false);
     const inputType = showPasswordToggle && type === 'password' ? (visible ? 'text' : 'password') : type;
 
@@ -18,13 +19,18 @@ export const Input: React.FC<InputProps> = ({ label, name, error, text, classNam
         <div className="mb-4">
             <InputLabel htmlFor={name}>{label}</InputLabel>
             <div className="relative">
+                {leftIcon && (
+                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-neutral-400">
+                        <i className={leftIcon}></i>
+                    </div>
+                )}
                 <input
                     id={name}
                     name={name}
                     type={inputType}
                     defaultValue={text}
                     aria-invalid={!!error}
-                    className={`w-full rounded-md border px-3 py-2 pr-12 focus:outline-none ${
+                    className={`w-full rounded-md border px-3 py-2 ${leftIcon ? 'pl-9' : ''} ${showPasswordToggle ? 'pr-12' : ''} focus:outline-none ${
                         error ? 'border-red-500' : 'border-neutral-800 focus:border-neutral-700'
                     } ${className ?? ''}`}
                     {...props}

@@ -5,6 +5,7 @@ import React from 'react';
 
 interface UserInfoProps {
     user: User;
+    confirmAction?: (title: string, message: string, action: () => void) => void;
 }
 
 type RoleStyle = {
@@ -15,7 +16,7 @@ type RoleStyle = {
     };
 };
 
-const UserInfo: React.FC<UserInfoProps> = ({ user }) => {
+const UserInfo: React.FC<UserInfoProps> = ({ user, confirmAction }) => {
     const roleStyles: RoleStyle = {
         admin: {
             bgColor: 'bg-red-900/30',
@@ -36,6 +37,22 @@ const UserInfo: React.FC<UserInfoProps> = ({ user }) => {
 
     const currentRoleStyle = roleStyles[user.role];
     const isEmailVerified = !!user.email_verified_at;
+
+    const handleSuspendUser = () => {
+        if (confirmAction) {
+            confirmAction(
+                'Suspend User Account',
+                `Are you sure you want to suspend ${user.name}'s account? They will no longer be able to log in or access any services.`,
+                () => {
+                    console.log('Suspending user', user.id);
+                },
+            );
+        } else {
+            if (confirm(`Are you sure you want to suspend ${user.name}'s account?`)) {
+                console.log('Suspending user', user.id);
+            }
+        }
+    };
 
     return (
         <div className="overflow-hidden rounded-xl bg-neutral-900 shadow-lg">
@@ -84,9 +101,19 @@ const UserInfo: React.FC<UserInfoProps> = ({ user }) => {
             </div>
 
             <div className="border-t border-neutral-800 p-4">
+                <h3 className="mb-2 text-sm font-medium text-neutral-400">User Activity</h3>
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-lg bg-neutral-800 p-3">
+                        <span className="text-sm text-neutral-400">Account Status</span>
+                        <span className="rounded-full bg-green-500/20 px-2 py-1 text-xs font-medium text-green-400">Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="border-t border-neutral-800 p-4">
                 <h3 className="mb-2 text-sm font-medium text-neutral-400">Quick Actions</h3>
                 <div className="space-y-2">
-                    <Button variant="danger" className="w-full justify-start" onClick={() => console.log('Suspend user')} type="button">
+                    <Button variant="danger" className="w-full justify-start" onClick={handleSuspendUser} type="button">
                         <i className="fas fa-ban mr-2"></i>
                         Suspend Account
                     </Button>

@@ -6,9 +6,10 @@ import React, { useState } from 'react';
 
 interface BillingTabProps {
     user: User;
+    confirmAction?: (title: string, message: string, action: () => void) => void;
 }
 
-const BillingTab: React.FC<BillingTabProps> = ({ user }) => {
+const BillingTab: React.FC<BillingTabProps> = ({ user, confirmAction }) => {
     const [successMessage, setSuccessMessage] = useState<string>('');
 
     const { data, setData, errors, post, processing } = useForm({
@@ -19,6 +20,27 @@ const BillingTab: React.FC<BillingTabProps> = ({ user }) => {
 
     const handleBalanceAdjustment = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        const amount = parseFloat(data.amount);
+        if (isNaN(amount) || amount <= 0) {
+            setData('amount', '0.00');
+            return;
+        }
+
+        const formattedAmount = `$${amount.toFixed(2)}`;
+
+        if (confirmAction) {
+            confirmAction(
+                `${data.action === 'add' ? 'Add' : 'Deduct'} Balance`,
+                `Are you sure you want to ${data.action === 'add' ? 'add' : 'deduct'} ${formattedAmount} ${data.action === 'add' ? 'to' : 'from'} ${user.name}'s account?${data.note ? ` Note: ${data.note}` : ''}`,
+                () => submitBalanceAdjustment(),
+            );
+        } else {
+            submitBalanceAdjustment();
+        }
+    };
+
+    const submitBalanceAdjustment = () => {
         post(route('admin.users.adjust-balance', { id: user.id }), {
             onSuccess: () => {
                 setSuccessMessage(`Balance ${data.action === 'add' ? 'added' : 'deducted'} successfully`);
@@ -29,8 +51,20 @@ const BillingTab: React.FC<BillingTabProps> = ({ user }) => {
         });
     };
 
+    const formatBalance = (balance: string | number) => {
+        const num = typeof balance === 'string' ? parseFloat(balance) : balance;
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
+    };
+
     return (
         <div className="space-y-6">
+            <div className="mb-6 rounded-lg bg-neutral-800 p-4">
+                <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-semibold text-white">Current Balance</h4>
+                    <span className="text-xl font-bold text-green-400">{formatBalance(user.balance)}</span>
+                </div>
+            </div>
+
             <div className="mb-6">
                 <h3 className="mb-4 text-lg font-bold text-white">Balance Management</h3>
 
