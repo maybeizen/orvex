@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\Users\BalanceController;
 use App\Http\Controllers\Admin\Users\DeleteUserController;
+use App\Http\Controllers\Admin\Users\StoreUserController;
 use App\Http\Controllers\Admin\Users\UpdateProfileController;
 use App\Http\Controllers\Admin\Users\VerifyEmailController;
 use App\Http\Controllers\Admin\Users\ViewUserController;
@@ -16,6 +17,7 @@ Route::middleware(['auth', 'verified', '2fa', 'admin'])->prefix('admin')->group(
 
     // User management routes
     Route::get('/users', [ViewUsersController::class, 'index'])->name('admin.users.index');
+    Route::post('/users', StoreUserController::class)->name('admin.users.store');
     
     // Single user routes
     Route::get('/users/{id}/edit', ViewUserController::class)->name('admin.users.edit');

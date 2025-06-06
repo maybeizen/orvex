@@ -3,6 +3,7 @@ import { Input } from '@/components/input/input';
 import AdminLayout from '@/layouts/admin-layout';
 import { Head, router, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
+import UserForm from './partials/user-form';
 
 interface User {
     id: number;
@@ -24,6 +25,7 @@ const AdminUsers: React.FC = () => {
     const [activeFilter, setActiveFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('id');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [isUserFormOpen, setIsUserFormOpen] = useState(false);
 
     const filterOptions = [
         { value: 'all', label: 'All Users', icon: 'users' },
@@ -135,7 +137,7 @@ const AdminUsers: React.FC = () => {
                         <h1 className="text-2xl font-bold text-white">Users Management</h1>
                         <p className="text-sm text-neutral-400">Manage and view all users in the system</p>
                     </div>
-                    <Button variant="primary" size="md" icon="fas fa-plus mr-2" onClick={() => router.visit(route('admin.users.create'))}>
+                    <Button variant="primary" size="md" icon="fas fa-plus mr-2" onClick={() => setIsUserFormOpen(true)}>
                         <span>Add New User</span>
                     </Button>
                 </div>
@@ -409,6 +411,8 @@ const AdminUsers: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            <UserForm isOpen={isUserFormOpen} onClose={() => setIsUserFormOpen(false)} />
         </AdminLayout>
     );
 };
