@@ -74,3 +74,55 @@ pnpm dev --filter=@orvex/frontend
 pnpm dev --filter=@orvex/api
 pnpm dev --filter=@orvex/agent
 ```
+
+## Supabase
+
+Local CLI wrappers (requires Docker for the stack):
+
+```sh
+pnpm db:start
+pnpm db:stop
+pnpm db:reset
+pnpm db:lint
+```
+
+Studio is at `http://localhost:54323` after `pnpm db:start`. Local MCP is `http://localhost:54321/mcp`.
+
+Typegen writes `@orvex/types` `Database` into `packages/types/src/database.ts`:
+
+```sh
+pnpm gen:types
+```
+
+If Docker is down and the project is linked, use `pnpm gen:types:linked`. CLI 2.115 writes types to stdout, so both scripts redirect into that file. This repo's first types were generated with Supabase MCP `generate_typescript_types` for `qatzqxffkwspwcqrzmkm` because the CLI was not logged in and Docker was not running.
+
+### One-time CLI login
+
+`supabase link` / `db pull` / `--linked` typegen need a human login. Do not write the access token into the repo.
+
+```sh
+pnpm supabase login
+pnpm supabase link --project-ref qatzqxffkwspwcqrzmkm
+pnpm supabase db pull
+pnpm supabase migration list
+```
+
+Hosted `public` currently has no custom tables or migrations; do not invent placeholder SQL.
+
+### GitHub Integration (dashboard)
+
+Complete these in the Supabase and GitHub dashboards after this branch is on `main`:
+
+1. Project Settings → Integrations → GitHub: working directory `.`
+2. Enable **Automatic branching**
+3. Enable **Supabase changes only**
+4. Enable **Deploy to production** (applies new migrations, declared Edge Functions, declared buckets on merge to `main`)
+5. GitHub repo Settings → Branches → require status check **Supabase Preview** before merging to `main`
+
+If the GitHub app is already linked, only the three toggles plus the required check remain.
+
+### Agentic loop
+
+Migration file → PR that touches `supabase/**` → wait for **Supabase Preview** → merge to `main`. No dashboard SQL on production. After schema changes, run `pnpm gen:types` and commit types with the migration.
+
+Branching is a paid Supabase feature. If preview branches fail to create, stop — do not invent a custom deploy Action as a substitute.
