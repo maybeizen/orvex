@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -51,6 +52,41 @@ func TestParseExampleConfig(t *testing.T) {
 	}
 	if cfg.Token != "" {
 		t.Fatal("example config must not embed a token")
+	}
+}
+
+func TestWriteFileRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "agent.yml")
+	want := config.Config{
+		Mode:      config.ModeDaemon,
+		APIURL:    "https://api.orvex.test",
+		AgentID:   "mon-1",
+		Token:     "issued-at-install",
+		RunAsRoot: false,
+		Interval:  config.DefaultInterval,
+	}
+
+	if err := config.WriteFile(path, want); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("perm = %o, want 0600", info.Mode().Perm())
+	}
+
+	got, err := config.Load(path, func(string) string { return "" })
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if got.Token != want.Token || got.AgentID != want.AgentID || got.APIURL != want.APIURL || got.Mode != want.Mode {
+		t.Fatalf("got %+v, want %+v", got, want)
 	}
 }
 

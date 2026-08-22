@@ -47,9 +47,6 @@ pnpm install
 | `AWS_S3_BUCKET` | storage | when `s3` | |
 | `AWS_ACCESS_KEY_ID` | storage | when `s3` | |
 | `AWS_SECRET_ACCESS_KEY` | storage | when `s3` | |
-| `ORVEX_API_URL` | agent | yes | Heartbeat API base URL |
-| `ORVEX_AGENT_ID` | agent | yes | Agent identifier |
-| `ORVEX_AGENT_TOKEN` | agent | yes | Agent auth token |
 | `VITE_API_URL` | frontend | no | Defaults to `http://localhost:3001` |
 | `VITE_SUPABASE_URL` | frontend | for login | Browser Supabase URL |
 | `VITE_SUPABASE_ANON_KEY` | frontend | for login | Browser Supabase anon key |
@@ -60,6 +57,7 @@ Root scripts delegate to Turbo:
 
 ```sh
 pnpm dev
+pnpm dev:agent
 pnpm build
 pnpm lint
 pnpm typecheck
@@ -72,7 +70,14 @@ Filter a workspace:
 ```sh
 pnpm dev --filter=@orvex/frontend
 pnpm dev --filter=@orvex/api
-pnpm dev --filter=@orvex/agent
+pnpm dev:agent
+```
+
+`pnpm dev` starts the API, frontend, and package watchers. It does **not** run the Go agent. Each heartbeat monitor gets its own token at install time; that token is written to a local `agent.yml` (gitignored), never committed, and never stored in the monorepo `.env`.
+
+```sh
+go run ./cmd/agent install -token "$TOKEN" -id "$AGENT_ID" -api-url http://localhost:3001
+pnpm dev:agent
 ```
 
 ## Supabase
@@ -108,6 +113,15 @@ pnpm db:list
 
 `pnpm db:list` talks to the linked project over the API and does not need Docker. Hosted `public` currently has no custom tables or migrations; skip `pnpm supabase db pull` until you have schema to capture.
 
+`db pull` (and `db:start`) start a local Postgres container. They fail with `failed to connect to the docker API at unix:///var/run/docker.sock` if the Docker daemon is stopped. Start it, then retry:
+
+```sh
+sudo systemctl start docker
+pnpm supabase db pull
+```
+
+Only `supabase/migrations/<timestamp>_name.sql` files are migrations. Do not put `.gitkeep` or other names in that directory.
+
 ### GitHub Integration (dashboard)
 
 GitHub is already linked. Finish these toggles in [Integrations](https://supabase.com/dashboard/project/qatzqxffkwspwcqrzmkm/settings/integrations) — they do not turn on from the CLI.
@@ -125,5 +139,3 @@ Branching is a paid feature. Preview environments show up at [Branches](https://
 ### Agentic loop
 
 Migration file → PR that touches `supabase/**` → wait for **Supabase Preview** → merge to `main`. No dashboard SQL on production. After schema changes, run `pnpm gen:types` and commit types with the migration.
-
-Branching is a paid Supabase feature. If preview branches fail to create, stop — do not invent a custom deploy Action as a substitute.
