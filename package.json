@@ -17,7 +17,9 @@
     "db:start": "pnpm supabase start",
     "db:stop": "pnpm supabase stop",
     "db:reset": "pnpm supabase db reset",
-    "db:lint": "pnpm supabase db lint"
+    "db:lint": "pnpm supabase db lint",
+    "gen:types": "pnpm supabase gen types typescript --local > packages/types/src/database.ts",
+    "gen:types:linked": "pnpm supabase gen types typescript --linked > packages/types/src/database.ts"
   },
   "devDependencies": {
     "prettier": "catalog:",
