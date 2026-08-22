@@ -7,15 +7,25 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=!@orvex/agent",
+    "dev:agent": "turbo run dev --filter=@orvex/agent",
     "build": "NODE_ENV=production turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "supabase": "supabase",
+    "db:start": "pnpm supabase start",
+    "db:stop": "pnpm supabase stop",
+    "db:reset": "pnpm supabase db reset",
+    "db:lint": "pnpm supabase db lint",
+    "db:list": "pnpm supabase migration list --linked",
+    "gen:types": "pnpm supabase gen types typescript --local > packages/types/src/database.ts",
+    "gen:types:linked": "pnpm supabase gen types typescript --linked > packages/types/src/database.ts"
   },
   "devDependencies": {
     "prettier": "catalog:",
+    "supabase": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
     "typescript-native": "catalog:"

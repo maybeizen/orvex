@@ -14,3 +14,6 @@ coverage/
 .remember/
 *.local
 docs/
+apps/agent/agent.yml
+supabase/.temp
+supabase/.branches

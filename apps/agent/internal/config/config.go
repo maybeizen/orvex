@@ -23,7 +23,7 @@ const (
 	EnvAPIURL = "ORVEX_API_URL"
 	EnvID     = "ORVEX_AGENT_ID"
 
-	DefaultConfigPath = "configs/agent.example.yml"
+	DefaultConfigPath = "agent.yml"
 	DefaultInterval   = 30 * time.Second
 )
 
@@ -199,4 +199,25 @@ func Load(path string, getenv func(string) string) (Config, error) {
 		return Config{}, err
 	}
 	return cfg, nil
+}
+
+func WriteFile(path string, cfg Config) error {
+	if cfg.Interval <= 0 {
+		cfg.Interval = DefaultInterval
+	}
+	if err := cfg.Validate(); err != nil {
+		return err
+	}
+	body := fmt.Sprintf(
+		"mode: %s\napi_url: %s\nagent_id: %s\ntoken: %s\nrun_as_root: %t\n",
+		cfg.Mode,
+		cfg.APIURL,
+		cfg.AgentID,
+		cfg.Token,
+		cfg.RunAsRoot,
+	)
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		return fmt.Errorf("config: write %s: %w", path, err)
+	}
+	return nil
 }

@@ -11,12 +11,21 @@ import (
 	"github.com/orvex/agent/internal/collectors"
 	"github.com/orvex/agent/internal/config"
 	"github.com/orvex/agent/internal/heartbeat"
+	"github.com/orvex/agent/internal/install"
 	"github.com/orvex/agent/internal/security"
 )
 
 const version = "0.0.0"
 
 func main() {
+	if len(os.Args) >= 2 && os.Args[1] == "install" {
+		if err := install.Run(os.Args[2:]); err != nil {
+			slog.Error("install failed", "err", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if err := run(os.Args[1:]); err != nil {
 		slog.Error("agent exited", "err", err)
 		os.Exit(1)
