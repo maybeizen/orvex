@@ -1,0 +1,9 @@
+{
+  "extends": "@orvex/config/tsconfig/node.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "noEmit": true
+  },
+  "include": ["src", "tsdown.config.ts", "vitest.config.ts"]
+}
