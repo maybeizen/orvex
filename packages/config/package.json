@@ -1,0 +1,62 @@
+{
+  "name": "@orvex/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint/base": {
+      "types": "./dist/eslint/base.d.ts",
+      "import": "./dist/eslint/base.js"
+    },
+    "./eslint/node": {
+      "types": "./dist/eslint/node.d.ts",
+      "import": "./dist/eslint/node.js"
+    },
+    "./eslint/react": {
+      "types": "./dist/eslint/react.d.ts",
+      "import": "./dist/eslint/react.js"
+    },
+    "./prettier": {
+      "types": "./dist/prettier.d.ts",
+      "import": "./dist/prettier.js"
+    },
+    "./tsdown/node": {
+      "types": "./dist/tsdown/node.d.ts",
+      "import": "./dist/tsdown/node.js"
+    },
+    "./tsconfig/base.json": "./tsconfig/base.json",
+    "./tsconfig/node.json": "./tsconfig/node.json",
+    "./tsconfig/react.json": "./tsconfig/react.json"
+  },
+  "bin": {
+    "orvex-tsc": "./bin/orvex-tsc.mjs"
+  },
+  "files": ["dist", "tsconfig", "bin"],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "dev": "tsdown --watch",
+    "build": "pnpm clean && tsdown",
+    "lint": "eslint .",
+    "typecheck": "node ./bin/orvex-tsc.mjs --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@eslint/js": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "eslint-plugin-unicorn": "catalog:",
+    "eslint-plugin-unused-imports": "catalog:",
+    "globals": "catalog:",
+    "jiti": "catalog:",
+    "prettier": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "typescript-native": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "vitest": "catalog:"
+  }
+}
