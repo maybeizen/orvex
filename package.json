@@ -12,10 +12,16 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "supabase": "supabase",
+    "db:start": "pnpm supabase start",
+    "db:stop": "pnpm supabase stop",
+    "db:reset": "pnpm supabase db reset",
+    "db:lint": "pnpm supabase db lint"
   },
   "devDependencies": {
     "prettier": "catalog:",
+    "supabase": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
     "typescript-native": "catalog:"

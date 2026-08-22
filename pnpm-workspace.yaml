@@ -4,6 +4,7 @@ packages:
 
 allowBuilds:
   esbuild: true
+  supabase: true
 
 catalog:
   typescript: npm:@typescript/typescript6@6.0.2
@@ -59,6 +60,7 @@ catalog:
   chalk: ^6.0.0
   ioredis: ^6.0.0
   "@supabase/supabase-js": ^2.112.3
+  supabase: ^2.115.0
   nodemailer: ^9.0.5
   "@types/nodemailer": ^8.0.1
   "@aws-sdk/client-s3": ^3.1116.0
