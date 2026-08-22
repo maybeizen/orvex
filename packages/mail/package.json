@@ -1,0 +1,35 @@
+{
+  "name": "@orvex/mail",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "templates"],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "dev": "tsdown --watch",
+    "build": "pnpm clean && tsdown",
+    "lint": "eslint .",
+    "typecheck": "orvex-tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@orvex/logger": "workspace:*",
+    "@orvex/types": "workspace:*",
+    "nodemailer": "catalog:"
+  },
+  "devDependencies": {
+    "@orvex/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/nodemailer": "catalog:",
+    "eslint": "catalog:",
+    "jiti": "catalog:",
+    "tsdown": "catalog:",
+    "vitest": "catalog:"
+  }
+}
