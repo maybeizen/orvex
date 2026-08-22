@@ -98,28 +98,29 @@ If Docker is down and the project is linked, use `pnpm gen:types:linked`. CLI 2.
 
 ### One-time CLI login
 
-`supabase link` / `db pull` / `--linked` typegen need a human login. Do not write the access token into the repo.
+`supabase link`, `pnpm db:list`, and `--linked` typegen need a human login. Do not write the access token into the repo.
 
 ```sh
 pnpm supabase login
 pnpm supabase link --project-ref qatzqxffkwspwcqrzmkm
-pnpm supabase db pull
-pnpm supabase migration list
+pnpm db:list
 ```
 
-Hosted `public` currently has no custom tables or migrations; do not invent placeholder SQL.
+`pnpm db:list` talks to the linked project over the API and does not need Docker. Hosted `public` currently has no custom tables or migrations; skip `pnpm supabase db pull` until you have schema to capture.
 
 ### GitHub Integration (dashboard)
 
-Complete these in the Supabase and GitHub dashboards after this branch is on `main`:
+GitHub is already linked. Finish these toggles in [Integrations](https://supabase.com/dashboard/project/qatzqxffkwspwcqrzmkm/settings/integrations) — they do not turn on from the CLI.
 
-1. Project Settings → Integrations → GitHub: working directory `.`
-2. Enable **Automatic branching**
-3. Enable **Supabase changes only**
-4. Enable **Deploy to production** (applies new migrations, declared Edge Functions, declared buckets on merge to `main`)
-5. GitHub repo Settings → Branches → require status check **Supabase Preview** before merging to `main`
+1. **Working directory:** `.` (`supabase/` is at the repo root)
+2. Production git branch: `main`
+3. Enable **Automatic branching**
+4. Enable **Supabase changes only** (preview branches only for PRs that touch `supabase/**`)
+5. Enable **Deploy to production** (new migrations, declared Edge Functions, and declared buckets on merge to `main`)
 
-If the GitHub app is already linked, only the three toggles plus the required check remain.
+Then in GitHub: [Branches](https://github.com/maybeizen/orvex/settings/branches) → protect `main` → require status check **Supabase Preview**. GitHub only lists that check after it has run once, so do this after the first preview PR.
+
+Branching is a paid feature. Preview environments show up at [Branches](https://supabase.com/dashboard/project/qatzqxffkwspwcqrzmkm/branches). If they fail to create, stop — do not invent a custom deploy Action as a substitute.
 
 ### Agentic loop
 
