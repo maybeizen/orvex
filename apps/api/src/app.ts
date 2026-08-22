@@ -1,4 +1,4 @@
-import { createServerAuth } from "@orvex/auth";
+import { createServerAuth } from "@orvex/auth/server";
 import { createCache, type CacheClient } from "@orvex/cache";
 import { createServiceSupabaseClient } from "@orvex/db/server";
 import { createLogger, type OrvexLogger } from "@orvex/logger";

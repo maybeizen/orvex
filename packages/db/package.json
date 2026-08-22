@@ -23,7 +23,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@orvex/logger": "workspace:*",
     "@orvex/types": "workspace:*",
     "@supabase/supabase-js": "catalog:"
   },

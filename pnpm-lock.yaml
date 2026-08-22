@@ -492,9 +492,6 @@ importers:
 
   packages/db:
     dependencies:
-      '@orvex/logger':
-        specifier: workspace:*
-        version: link:../logger
       '@orvex/types':
         specifier: workspace:*
         version: link:../types
