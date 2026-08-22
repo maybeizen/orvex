@@ -1,0 +1,4 @@
+mode: cron
+api_url: http://example.test
+agent_id: agent-cron
+run_as_root: false

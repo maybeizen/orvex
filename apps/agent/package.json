@@ -1,0 +1,13 @@
+{
+  "name": "@orvex/agent",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "go run ./cmd/agent",
+    "build": "go build -trimpath -ldflags=\"-s -w\" -o dist/orvex-agent ./cmd/agent",
+    "lint": "go vet ./...",
+    "typecheck": "go test ./... -count=0",
+    "test": "go test ./...",
+    "clean": "rm -rf dist"
+  }
+}

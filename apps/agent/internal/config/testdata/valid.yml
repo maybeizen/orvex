@@ -1,0 +1,5 @@
+mode: daemon
+api_url: http://example.test
+agent_id: agent-1
+token: secret-from-file
+run_as_root: false

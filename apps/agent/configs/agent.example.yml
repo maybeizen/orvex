@@ -1,0 +1,4 @@
+mode: cron
+api_url: http://localhost:3001
+agent_id: local-dev
+run_as_root: false
