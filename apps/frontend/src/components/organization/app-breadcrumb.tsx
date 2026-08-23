@@ -16,8 +16,8 @@ export function AppBreadcrumb() {
   const organization = useOrgStore(selectActiveOrganization);
 
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
+    <Breadcrumb className="min-w-0">
+      <BreadcrumbList className="flex-nowrap">
         {organization === null ? null : (
           <>
             <BreadcrumbItem>
