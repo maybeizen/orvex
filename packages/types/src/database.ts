@@ -7,12 +7,156 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.15"
   }
-  public: {
+  graphql_public: {
     Tables: {
       [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      organization_members: {
+        Row: {
+          created_at: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          billing_status: string
+          created_at: string
+          created_by: string
+          icon_path: string | null
+          id: string
+          kind: string
+          name: string
+          plan_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          billing_status: string
+          created_at?: string
+          created_by: string
+          icon_path?: string | null
+          id?: string
+          kind: string
+          name: string
+          plan_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          billing_status?: string
+          created_at?: string
+          created_by?: string
+          icon_path?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          plan_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          active_organization_id: string | null
+          avatar_path: string | null
+          avatar_source: string
+          created_at: string
+          first_name: string
+          last_name: string
+          marketing_opt_in: boolean
+          tos_accepted_at: string | null
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          active_organization_id?: string | null
+          avatar_path?: string | null
+          avatar_source?: string
+          created_at?: string
+          first_name: string
+          last_name: string
+          marketing_opt_in?: boolean
+          tos_accepted_at?: string | null
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          active_organization_id?: string | null
+          avatar_path?: string | null
+          avatar_source?: string
+          created_at?: string
+          first_name?: string
+          last_name?: string
+          marketing_opt_in?: boolean
+          tos_accepted_at?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_active_organization_id_fkey"
+            columns: ["active_organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -147,6 +291,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

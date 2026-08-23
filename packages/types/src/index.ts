@@ -1,7 +1,13 @@
 export type { Result } from "./result.js";
 export type { AuthUser } from "./auth.js";
 export type { User } from "./user.js";
-export type { Organization } from "./organization.js";
+export type {
+  Organization,
+  OrganizationBillingStatus,
+  OrganizationKind,
+  OrganizationPlanId,
+  OrganizationRole,
+} from "./organization.js";
 export type { MonitorType } from "./monitor.js";
 export type {
   AgentMode,
