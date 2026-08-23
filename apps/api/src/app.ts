@@ -8,6 +8,8 @@ import helmet from "helmet";
 import { createCorsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error.js";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
+import { createOrganizationIconRouter } from "./modules/organization/icon-routes.js";
+import { createAvatarRouter } from "./modules/profile/avatar-routes.js";
 import { createContext } from "./trpc/context.js";
 import { appRouter } from "./trpc/router.js";
 import type { Env } from "./validators/env.js";
@@ -35,8 +37,24 @@ export function createApp(env: Env): CreatedApp {
     "/trpc",
     createExpressMiddleware({
       router: appRouter,
-      createContext: createContext(auth),
+      createContext: createContext({ auth, supabase }),
     }),
+  );
+  app.use(
+    "/v1/profile",
+    createRateLimitMiddleware(cache, {
+      limit: 20,
+      prefix: "rl:avatar:",
+    }),
+    createAvatarRouter({ auth, supabase }),
+  );
+  app.use(
+    "/v1/organizations",
+    createRateLimitMiddleware(cache, {
+      limit: 20,
+      prefix: "rl:org-icon:",
+    }),
+    createOrganizationIconRouter({ auth, supabase }),
   );
   app.use(errorHandler);
 
