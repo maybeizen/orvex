@@ -34,7 +34,6 @@
   "files": ["dist", "tsconfig", "bin"],
   "scripts": {
     "clean": "rm -rf dist",
-    "dev": "tsdown --watch",
     "build": "pnpm clean && tsdown",
     "lint": "eslint .",
     "typecheck": "node ./bin/orvex-tsc.mjs --noEmit -p tsconfig.json",

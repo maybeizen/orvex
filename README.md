@@ -82,60 +82,20 @@ pnpm dev:agent
 
 ## Supabase
 
-Local CLI wrappers (requires Docker for the stack):
+Dev uses the hosted project. Put its URL and keys in the repo-root `.env` (`SUPABASE_URL`, `VITE_SUPABASE_URL`, anon and service role). There is no local Docker stack.
 
-```sh
-pnpm db:start
-pnpm db:stop
-pnpm db:reset
-pnpm db:lint
-```
-
-Studio is at `http://localhost:54323` after `pnpm db:start`. Local MCP is `http://localhost:54321/mcp`.
-
-Typegen writes `@orvex/types` `Database` into `packages/types/src/database.ts`:
-
-```sh
-pnpm gen:types
-```
-
-If Docker is down and the project is linked, use `pnpm gen:types:linked`. CLI 2.115 writes types to stdout, so both scripts redirect into that file. This repo's first types were generated with Supabase MCP `generate_typescript_types` for `qatzqxffkwspwcqrzmkm` because the CLI was not logged in and Docker was not running.
-
-### One-time CLI login
-
-`supabase link`, `pnpm db:list`, and `--linked` typegen need a human login. Do not write the access token into the repo.
+One-time CLI login (do not write the access token into the repo):
 
 ```sh
 pnpm supabase login
 pnpm supabase link --project-ref qatzqxffkwspwcqrzmkm
-pnpm db:list
 ```
-
-`pnpm db:list` talks to the linked project over the API and does not need Docker. Hosted `public` currently has no custom tables or migrations; skip `pnpm supabase db pull` until you have schema to capture.
-
-`db pull` (and `db:start`) start a local Postgres container. They fail with `failed to connect to the docker API at unix:///var/run/docker.sock` if the Docker daemon is stopped. Start it, then retry:
 
 ```sh
-sudo systemctl start docker
-pnpm supabase db pull
+pnpm db:push
+pnpm db:list
+pnpm db:lint
+pnpm gen:types
 ```
 
-Only `supabase/migrations/<timestamp>_name.sql` files are migrations. Do not put `.gitkeep` or other names in that directory.
-
-### GitHub Integration (dashboard)
-
-GitHub is already linked. Finish these toggles in [Integrations](https://supabase.com/dashboard/project/qatzqxffkwspwcqrzmkm/settings/integrations) — they do not turn on from the CLI.
-
-1. **Working directory:** `.` (`supabase/` is at the repo root)
-2. Production git branch: `main`
-3. Enable **Automatic branching**
-4. Enable **Supabase changes only** (preview branches only for PRs that touch `supabase/**`)
-5. Enable **Deploy to production** (new migrations, declared Edge Functions, and declared buckets on merge to `main`)
-
-Then in GitHub: [Branches](https://github.com/maybeizen/orvex/settings/branches) → protect `main` → require status check **Supabase Preview**. GitHub only lists that check after it has run once, so do this after the first preview PR.
-
-Branching is a paid feature. Preview environments show up at [Branches](https://supabase.com/dashboard/project/qatzqxffkwspwcqrzmkm/branches). If they fail to create, stop — do not invent a custom deploy Action as a substitute.
-
-### Agentic loop
-
-Migration file → PR that touches `supabase/**` → wait for **Supabase Preview** → merge to `main`. No dashboard SQL on production. After schema changes, run `pnpm gen:types` and commit types with the migration.
+Schema lives in `supabase/migrations/<timestamp>_name.sql`. `pnpm db:push` applies pending files to the linked project. `pnpm gen:types` writes `@orvex/types` `Database` from that remote.

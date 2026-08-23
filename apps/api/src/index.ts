@@ -1,8 +1,9 @@
 import { createApp } from "./app.js";
-import { loadEnv } from "./validators/env.js";
+import { applyEnvFiles, loadEnv } from "./validators/env.js";
 
 export type { AppRouter } from "./trpc/router.js";
 
+applyEnvFiles();
 const env = loadEnv(process.env);
 const { app, logger } = createApp(env);
 

@@ -17,13 +17,17 @@ test("loadEnv parses required fields and port", () => {
   expect(env.FRONTEND_ORIGIN).toEqual("http://localhost:5173");
 });
 
-test("loadEnv defaults port and drops empty redis url", () => {
+test("loadEnv defaults port when PORT is omitted", () => {
+  const { PORT: _port, ...rest } = valid;
+  const env = loadEnv(rest);
+  expect(env.PORT).toEqual(3001);
+});
+
+test("loadEnv drops an empty redis url", () => {
   const env = loadEnv({
     ...valid,
-    PORT: undefined,
     REDIS_URL: "",
   });
-  expect(env.PORT).toEqual(3001);
   expect(env.REDIS_URL).toBeUndefined();
 });
 

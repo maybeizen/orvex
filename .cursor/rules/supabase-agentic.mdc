@@ -1,12 +1,13 @@
 ---
-description: Supabase schema changes go through git migrations and preview branches, never production apply_migration
+description: Use the hosted Supabase project. Schema changes are git migrations applied to that remote.
 alwaysApply: true
 ---
 
 # Supabase agentic workflow
 
-- Schema changes: `pnpm supabase migration new <name>` then SQL in `supabase/migrations/`. Never `apply_migration` on production (`qatzqxffkwspwcqrzmkm`).
-- Preview: open a PR that includes `supabase/**`. GitHub Integration creates the preview. Wait for the **Supabase Preview** check.
-- Inspect production with project MCP (read-only). Iterate locally with `pnpm db:start` and `http://localhost:54321/mcp`.
-- After a schema change: `pnpm gen:types` (or `pnpm gen:types:linked` if Docker is down and the project is linked). Commit types with the migration.
+This repo uses the hosted project `qatzqxffkwspwcqrzmkm` as the database. Do not start Docker, `pnpm db:start`, or a local Supabase stack.
+
+- Put the hosted URL and keys in the repo-root `.env` (`SUPABASE_URL`, `VITE_SUPABASE_URL`, anon and service role keys).
+- Schema changes: `pnpm supabase migration new <name>` then SQL in `supabase/migrations/`. Apply with `pnpm db:push` (linked remote). Do not invent a local Docker workflow.
+- Inspect with the project MCP. After a schema change: `pnpm gen:types` (linked) and commit types with the migration.
 - Do not add domain tables unless the current plan asks for them.

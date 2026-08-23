@@ -31,6 +31,12 @@ test("requireUser uses supabase getUser", async () => {
     id: "user-1",
     email: "ada@orvex.dev",
     emailConfirmedAt: null,
+    newEmail: null,
+    firstName: null,
+    lastName: null,
+    username: null,
+    displayName: "ada",
+    avatarUrl: null,
   });
 });
 

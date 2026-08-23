@@ -1,36 +1,40 @@
-import { Activity } from "lucide-react";
 import { Link } from "react-router";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { HeroChecksPanel } from "@/components/marketing/hero-checks-panel";
 import { Button } from "@/components/ui/button";
 
 export function LandingHero() {
   return (
-    <div className="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-6">
-      <header className="flex items-center justify-between py-6">
-        <div className="flex items-center gap-2">
-          <Activity className="size-5 text-primary" />
-          <span className="font-heading text-sm font-medium">Orvex Monitor</span>
+    <section className="relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 marketing-hero-surface" />
+      <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-6xl items-center gap-16 px-6 py-24 md:py-28 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-20">
+        <div className="flex flex-col gap-8">
+          <p className="font-mono text-xs tracking-[0.22em] text-primary uppercase">
+            Uptime monitoring
+          </p>
+          <h1 className="font-heading max-w-xl text-4xl leading-[1.1] tracking-tight text-balance md:text-5xl lg:text-[3.25rem]">
+            See every outage before your users do.
+          </h1>
+          <p className="max-w-lg text-base text-muted-foreground text-pretty">
+            HTTP, TLS, keyword, and heartbeat checks from six regions. A Go
+            agent for hosts the public internet cannot reach. One timeline when
+            something fails.
+          </p>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Button size="lg" asChild>
+              <Link to="/register">Get started</Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild>
+              <a href="#pricing">View pricing</a>
+            </Button>
+          </div>
         </div>
-        <ThemeToggle />
-      </header>
-      <section className="flex flex-1 flex-col justify-center gap-6 pb-24">
-        <p className="text-sm font-medium text-primary">Uptime and infrastructure</p>
-        <h1 className="font-heading text-4xl leading-tight tracking-tight text-balance">
-          Watch every endpoint, heartbeat, and host from one shell.
-        </h1>
-        <p className="max-w-xl text-muted-foreground text-pretty">
-          Orvex Monitor is a typed monitoring workspace. This scaffold ships the
-          theme, auth, and API client — checks and collectors come next.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link to="/login">Sign in</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="/dashboard">Open dashboard</Link>
-          </Button>
+        <div className="flex flex-col gap-3">
+          <HeroChecksPanel />
+          <p className="font-mono text-[0.65rem] tracking-[0.16em] text-muted-foreground uppercase">
+            IAD · FRA · LHR · SIN · SJC · SYD
+          </p>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
