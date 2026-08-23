@@ -8,6 +8,7 @@ import { LandingPage } from "@/routes/landing-page";
 import { LoginPage } from "@/routes/login-page";
 import { OnboardingCheckoutPage } from "@/routes/onboarding-checkout-page";
 import { OnboardingPage } from "@/routes/onboarding-page";
+import { ProfilePage } from "@/routes/profile-page";
 import { RegisterPage } from "@/routes/register-page";
 import { ResetPasswordPage } from "@/routes/reset-password-page";
 import { SettingsPage } from "@/routes/settings-page";
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
         ),
         children: [
           { path: "/dashboard", element: <DashboardPage /> },
+          { path: "/profile", element: <ProfilePage /> },
           { path: "/settings", element: <SettingsPage /> },
         ],
       },

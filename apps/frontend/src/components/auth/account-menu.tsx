@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
+  UserRound,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -119,6 +120,12 @@ export function AccountMenu({
             <Link to="/dashboard">
               <LayoutDashboard />
               Dashboard
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/profile">
+              <UserRound />
+              Profile
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>

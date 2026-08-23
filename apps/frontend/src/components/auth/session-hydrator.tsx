@@ -1,19 +1,9 @@
 import type { AuthUser } from "@orvex/types";
 import { useEffect } from "react";
-import { hydrateOrganizations } from "@/lib/post-auth";
+import { hydrateSessionUser } from "@/lib/post-auth";
 import { getBrowserAuth, isAuthConfigured } from "@/lib/supabase";
 import { useOrgStore } from "@/stores/org-store";
 import { useSessionStore } from "@/stores/session-store";
-
-async function hydrateUser(user: AuthUser): Promise<AuthUser> {
-  useOrgStore.getState().markLoading();
-  try {
-    await hydrateOrganizations();
-  } catch {
-    useOrgStore.getState().hydrate([], null);
-  }
-  return user;
-}
 
 export function SessionHydrator() {
   const setSession = useSessionStore((state) => state.setSession);
@@ -38,7 +28,7 @@ export function SessionHydrator() {
         }
         return;
       }
-      const next = await hydrateUser(user);
+      const next = await hydrateSessionUser(user);
       if (alive.current) {
         setSession(next);
       }

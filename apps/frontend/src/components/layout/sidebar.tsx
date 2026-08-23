@@ -4,6 +4,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
+  UserRound,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router";
 import { AuthNavCluster } from "@/components/auth/auth-nav-cluster";
@@ -14,6 +15,7 @@ import { useSidebarStore } from "@/stores/sidebar-store";
 
 const links = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/profile", label: "Profile", icon: UserRound },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 

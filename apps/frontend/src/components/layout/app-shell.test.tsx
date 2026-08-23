@@ -46,6 +46,7 @@ function renderShell(path = "/dashboard") {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/dashboard" element={<p>Dashboard body</p>} />
+          <Route path="/profile" element={<p>Profile body</p>} />
           <Route path="/settings" element={<p>Settings body</p>} />
         </Route>
       </Routes>
@@ -78,6 +79,9 @@ test("sidebar collapses to icons and keeps accessible names", () => {
     within(sidebar as HTMLElement).getByRole("link", { name: "Dashboard" }),
   ).toBeInTheDocument();
   expect(
+    within(sidebar as HTMLElement).getByRole("link", { name: "Profile" }),
+  ).toBeInTheDocument();
+  expect(
     within(sidebar as HTMLElement).getByRole("link", { name: "Settings" }),
   ).toBeInTheDocument();
   expect(
@@ -88,6 +92,17 @@ test("sidebar collapses to icons and keeps accessible names", () => {
 });
 
 test("breadcrumb header shows the organization and current page", () => {
+  renderShell("/profile");
+
+  expect(
+    screen.getByRole("navigation", { name: "breadcrumb" }),
+  ).toHaveTextContent("Acme Desk");
+  expect(
+    screen.getByRole("navigation", { name: "breadcrumb" }),
+  ).toHaveTextContent("Profile");
+});
+
+test("breadcrumb header shows settings", () => {
   renderShell("/settings");
 
   expect(

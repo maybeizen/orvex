@@ -1,3 +1,4 @@
+import type { AuthUser } from "@orvex/types";
 import { createVanillaTrpcClient } from "@/lib/trpc";
 import { useOrgStore } from "@/stores/org-store";
 
@@ -8,6 +9,19 @@ export async function hydrateOrganizations(): Promise<{
   const result = await createVanillaTrpcClient().organization.list.query();
   useOrgStore.getState().hydrate(result.items, result.activeOrganizationId);
   return result;
+}
+
+export async function hydrateSessionUser(user: AuthUser): Promise<AuthUser> {
+  useOrgStore.getState().markLoading();
+  const [nextUser] = await Promise.all([
+    createVanillaTrpcClient()
+      .auth.me.query()
+      .catch(() => user),
+    hydrateOrganizations().catch(() => {
+      useOrgStore.getState().hydrate([], null);
+    }),
+  ]);
+  return nextUser;
 }
 
 export async function pathAfterAuth(intended = "/dashboard"): Promise<string> {
