@@ -73,3 +73,39 @@ test("free plan is in the shared catalog", () => {
   expect(free.limits.sso).toBeNull();
 });
 
+test("paid plan limits stay unchanged", () => {
+  expect(getPlan("probe").limits).toEqual({
+    monitors: "20",
+    seats: "1",
+    interval: "60s",
+    regions: "1",
+    routing: "Email",
+    statusPage: null,
+    agent: null,
+    sso: null,
+  });
+  expect(getPlan("sentinel").limits).toEqual({
+    monitors: "100",
+    seats: "5",
+    interval: "15s",
+    regions: "3",
+    routing: "Slack, Discord",
+    statusPage: "1 page",
+    agent: null,
+    sso: null,
+  });
+  expect(getPlan("command").limits).toEqual({
+    monitors: "500",
+    seats: "15",
+    interval: "5s",
+    regions: "All 6",
+    routing: "All destinations",
+    statusPage: "Custom domain",
+    agent: "Included",
+    sso: "OIDC",
+  });
+  expect(getPlan("probe").monthlyUsd).toBe(12);
+  expect(getPlan("sentinel").monthlyUsd).toBe(36);
+  expect(getPlan("command").monthlyUsd).toBe(96);
+});
+

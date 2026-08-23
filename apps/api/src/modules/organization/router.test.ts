@@ -75,6 +75,36 @@ test("organization.create rejects sentinel with single", async () => {
   expect(memory.organizations).toHaveLength(0);
 });
 
+test("organization.create rejects command with single", async () => {
+  const memory = createOrganizationMemory();
+  const error = await caller(memory.supabase)
+    .organization.create({
+      ...createFreeInput,
+      slug: "ada-command",
+      planId: "command",
+    })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("BAD_REQUEST");
+  expect(memory.organizations).toHaveLength(0);
+});
+
+test("organization.create stores paid orgs as pending checkout", async () => {
+  const memory = createOrganizationMemory();
+  const created = await caller(memory.supabase).organization.create({
+    ...createFreeInput,
+    slug: "ada-probe",
+    planId: "probe",
+  });
+
+  expect(created.planId).toBe("probe");
+  expect(created.kind).toBe("single");
+  expect(created.billingStatus).toBe("pending_checkout");
+  expect(created.role).toBe("owner");
+  expect(memory.profiles[0]?.active_organization_id).toBe(created.id);
+});
+
 test("organization.create maps slug collisions", async () => {
   const memory = createOrganizationMemory({
     organizations: [organizationRow()],

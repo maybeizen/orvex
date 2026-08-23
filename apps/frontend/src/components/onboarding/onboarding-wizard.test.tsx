@@ -104,6 +104,21 @@ test("wizard submits a free organization payload", async () => {
   expect(useOrgStore.getState().activeOrganizationId).toBe("org-9");
 });
 
+test("single workspaces cannot select sentinel", async () => {
+  renderWizard();
+
+  fireEvent.change(screen.getByLabelText("Organization name"), {
+    target: { value: "Acme Desk" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+  await screen.findByText("Just you. You cannot invite anyone.");
+  fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+  const sentinel = await screen.findByRole("button", { name: /^Sentinel/ });
+  expect(sentinel).toBeDisabled();
+  expect(sentinel).toHaveTextContent("Sentinel needs a team workspace.");
+});
+
 test("paid plan continues to the checkout stub", async () => {
   createMutate.mockResolvedValue({
     ...created,

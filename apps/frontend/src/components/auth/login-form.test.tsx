@@ -121,3 +121,25 @@ test("passkey sign-in goes to onboarding when the user has no organization", asy
 
   expect(await screen.findByText("Onboarding page")).toBeInTheDocument();
 });
+
+test("password sign-in goes to onboarding when the user has no organization", async () => {
+  pathAfterAuth.mockResolvedValue("/onboarding");
+  mockAuth.signInWithPassword.mockResolvedValue({
+    user: ada,
+    accessToken: "token",
+    mfaRequired: false,
+    factorId: null,
+  });
+  renderLogin();
+
+  fireEvent.change(screen.getByLabelText("Email"), {
+    target: { value: ada.email },
+  });
+  fireEvent.change(screen.getByLabelText("Password"), {
+    target: { value: "secret-password" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+  expect(await screen.findByText("Onboarding page")).toBeInTheDocument();
+  expect(pathAfterAuth).toHaveBeenCalledOnce();
+});
