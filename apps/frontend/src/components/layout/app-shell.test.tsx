@@ -1,10 +1,11 @@
 /** @vitest-environment jsdom */
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { expect, test } from "vitest";
+import { beforeEach, expect, test } from "vitest";
 import { AppShell } from "./app-shell.js";
 import { useOrgStore } from "@/stores/org-store";
 import { useSessionStore } from "@/stores/session-store";
+import { useSidebarStore } from "@/stores/sidebar-store";
 
 const ada = {
   id: "user-1",
@@ -28,6 +29,10 @@ const acme = {
   billingStatus: "active" as const,
   role: "owner" as const,
 };
+
+beforeEach(() => {
+  useSidebarStore.setState({ collapsed: false });
+});
 
 function renderShell(path = "/dashboard") {
   useSessionStore.setState({ status: "ready", user: ada });

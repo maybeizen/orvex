@@ -9,7 +9,6 @@ import { NavLink, useLocation } from "react-router";
 import { AuthNavCluster } from "@/components/auth/auth-nav-cluster";
 import { SidebarTooltip } from "@/components/layout/sidebar-tooltip";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
 import { useSidebarStore } from "@/stores/sidebar-store";
@@ -40,39 +39,27 @@ export function Sidebar() {
             collapsed ? "justify-center gap-0 px-2" : "gap-2 px-3",
           )}
         >
-          <SidebarTooltip label="Orvex Monitor" enabled={collapsed}>
-            <div
-              className={cn(
-                "flex items-center gap-2",
-                collapsed && "size-9 justify-center",
-              )}
-            >
+          {collapsed ? null : (
+            <div className="flex items-center gap-2">
               <Activity className="size-5 shrink-0 text-primary" />
-              <span
-                className={cn(
-                  "font-heading text-sm font-medium",
-                  collapsed && "sr-only",
-                )}
-              >
+              <span className="font-heading text-sm font-medium">
                 Orvex Monitor
               </span>
             </div>
-          </SidebarTooltip>
-          {collapsed ? null : (
-            <SidebarTooltip label={collapseLabel} enabled>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="ml-auto"
-                aria-label={collapseLabel}
-                aria-expanded={!collapsed}
-                onClick={toggleCollapsed}
-              >
-                <PanelLeftClose />
-              </Button>
-            </SidebarTooltip>
           )}
+          <SidebarTooltip label={collapseLabel} enabled={collapsed}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className={cn(!collapsed && "ml-auto")}
+              aria-label={collapseLabel}
+              aria-expanded={!collapsed}
+              onClick={toggleCollapsed}
+            >
+              {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+            </Button>
+          </SidebarTooltip>
         </div>
         <nav
           className={cn(
