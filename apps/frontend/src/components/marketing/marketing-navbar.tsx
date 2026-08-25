@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { AuthNavCluster } from "@/components/auth/auth-nav-cluster";
 import { BrandMark } from "@/components/marketing/brand-mark";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { ThemeMenuButton } from "@/components/theme/theme-menu-button";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -46,11 +46,11 @@ export function MarketingNavbar() {
           ))}
         </nav>
         <div className="ml-auto hidden items-center gap-3 md:flex">
-          {user === null ? <ThemeToggle /> : null}
+          {user === null ? <ThemeMenuButton /> : null}
           <AuthNavCluster />
         </div>
         <div className="ml-auto flex items-center gap-2 md:hidden">
-          {user === null ? <ThemeToggle /> : null}
+          {user === null ? <ThemeMenuButton /> : null}
           {user === null ? null : <AccountMenu user={user} />}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
