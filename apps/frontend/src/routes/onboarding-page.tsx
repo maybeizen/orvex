@@ -37,7 +37,7 @@ export function OnboardingPage() {
               Already have a workspace?{" "}
               <Link
                 className="text-foreground underline-offset-4 hover:underline"
-                to="/dashboard"
+                to="/organizations"
               >
                 Go to the dashboard
               </Link>

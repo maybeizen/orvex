@@ -9,7 +9,9 @@ const { mockAuth, pathAfterAuth } = vi.hoisted(() => ({
   mockAuth: {
     signUp: vi.fn(),
   },
-  pathAfterAuth: vi.fn((intended = "/dashboard") => Promise.resolve(intended)),
+  pathAfterAuth: vi.fn((intended = "/organizations") =>
+    Promise.resolve(intended),
+  ),
 }));
 
 vi.mock("@/lib/post-auth", () => ({
@@ -40,7 +42,7 @@ function renderRegister() {
       <Routes>
         <Route path="/register" element={<RegisterForm />} />
         <Route path="/login" element={<p>Login page</p>} />
-        <Route path="/dashboard" element={<p>Dashboard page</p>} />
+        <Route path="/organizations" element={<p>Organizations page</p>} />
         <Route path="/onboarding" element={<p>Onboarding page</p>} />
       </Routes>
     </MemoryRouter>,
@@ -49,7 +51,7 @@ function renderRegister() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  pathAfterAuth.mockImplementation((intended = "/dashboard") =>
+  pathAfterAuth.mockImplementation((intended = "/organizations") =>
     Promise.resolve(intended),
   );
 });

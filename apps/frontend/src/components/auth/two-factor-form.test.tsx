@@ -9,7 +9,9 @@ const { mockAuth, pathAfterAuth } = vi.hoisted(() => ({
   mockAuth: {
     verifyTotp: vi.fn(),
   },
-  pathAfterAuth: vi.fn((intended = "/dashboard") => Promise.resolve(intended)),
+  pathAfterAuth: vi.fn((intended = "/organizations") =>
+    Promise.resolve(intended),
+  ),
 }));
 
 vi.mock("@/lib/post-auth", () => ({
@@ -40,7 +42,7 @@ function renderTwoFactor() {
       <Routes>
         <Route path="/login/2fa" element={<TwoFactorForm />} />
         <Route path="/login" element={<p>Login page</p>} />
-        <Route path="/dashboard" element={<p>Dashboard page</p>} />
+        <Route path="/organizations" element={<p>Organizations page</p>} />
         <Route path="/onboarding" element={<p>Onboarding page</p>} />
       </Routes>
     </MemoryRouter>,
@@ -51,7 +53,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
   sessionStorage.setItem("orvex.mfa.factorId", "factor-9");
-  pathAfterAuth.mockImplementation((intended = "/dashboard") =>
+  pathAfterAuth.mockImplementation((intended = "/organizations") =>
     Promise.resolve(intended),
   );
 });

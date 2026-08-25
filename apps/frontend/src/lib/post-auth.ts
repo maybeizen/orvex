@@ -1,6 +1,7 @@
 import type { AuthUser } from "@orvex/types";
 import { createVanillaTrpcClient } from "@/lib/trpc";
 import { useOrgStore } from "@/stores/org-store";
+import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 
 export async function hydrateOrganizations(): Promise<{
   items: { id: string }[];
@@ -24,7 +25,9 @@ export async function hydrateSessionUser(user: AuthUser): Promise<AuthUser> {
   return nextUser;
 }
 
-export async function pathAfterAuth(intended = "/dashboard"): Promise<string> {
+export async function pathAfterAuth(
+  intended = ORGANIZATIONS_HOME,
+): Promise<string> {
   try {
     const list = await hydrateOrganizations();
     if (intended === "/reset-password") {

@@ -1,8 +1,8 @@
 import type { Organization } from "@orvex/types";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDown, LayoutGrid, Plus } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { OrgAvatar, orgPlanLabel } from "@/components/organization/org-avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,24 +14,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { activateOrganization } from "@/lib/activate-organization";
 import { cn } from "@/lib/cn";
-import { createVanillaTrpcClient } from "@/lib/trpc";
+import { ORGANIZATIONS_HOME, switchOrgPath } from "@/lib/org-paths";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
-async function activateOrganization(organization: Organization): Promise<void> {
-  const result = await createVanillaTrpcClient().organization.setActive.mutate({
-    organizationId: organization.id,
-  });
-  useOrgStore.getState().hydrate(result.items, result.activeOrganizationId);
-  toast.success(`Switched to ${organization.name}`);
-}
-
 function handleSwitch(organization: Organization): void {
-  void activateOrganization(organization).catch((error: unknown) => {
-    const message =
-      error instanceof Error ? error.message : "Unable to switch organization";
-    toast.error(message);
-  });
+  void activateOrganization(organization)
+    .then(() => {
+      toast.success(`Switched to ${organization.name}`);
+    })
+    .catch((error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to switch organization";
+      toast.error(message);
+    });
 }
 
 function OrgRow({
@@ -146,16 +145,37 @@ export function AccountOrgSwitcher() {
   );
 }
 
-export function HeaderOrgControl() {
+export function HeaderOrgControl({
+  defaultOpen = false,
+}: {
+  defaultOpen?: boolean;
+} = {}) {
   const items = useOrgStore((state) => state.items);
   const active = useOrgStore(selectActiveOrganization);
+  const pathname = useLocation().pathname;
+  const navigate = useNavigate();
 
   if (active === null) {
     return null;
   }
 
+  function switchTo(organization: Organization): void {
+    void activateOrganization(organization)
+      .then(() => {
+        toast.success(`Switched to ${organization.name}`);
+        void navigate(switchOrgPath(pathname, organization.slug));
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to switch organization";
+        toast.error(message);
+      });
+  }
+
   return (
-    <DropdownMenu>
+    <DropdownMenu defaultOpen={defaultOpen}>
       <DropdownMenuTrigger
         className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden hover:bg-accent hover:text-accent-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         aria-label={`Organization ${active.name}`}
@@ -172,7 +192,7 @@ export function HeaderOrgControl() {
               disabled={organization.id === active.id}
               onSelect={() => {
                 if (organization.id !== active.id) {
-                  handleSwitch(organization);
+                  switchTo(organization);
                 }
               }}
             >
@@ -185,6 +205,12 @@ export function HeaderOrgControl() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+          <DropdownMenuItem asChild>
+            <Link to={ORGANIZATIONS_HOME}>
+              <LayoutGrid />
+              All organizations
+            </Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to="/onboarding">
               <Plus />

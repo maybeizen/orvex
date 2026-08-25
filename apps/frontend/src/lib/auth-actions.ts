@@ -1,6 +1,7 @@
 import type { AuthSessionResult, OAuthProvider } from "@orvex/auth";
 import { toast } from "sonner";
 import { callbackUrl, setMfaFactorId } from "@/lib/auth-redirect";
+import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 import { getBrowserAuth, isAuthConfigured } from "@/lib/supabase";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -14,7 +15,7 @@ export function guardAuthConfigured(): boolean {
 
 export async function startOAuth(
   provider: OAuthProvider,
-  next = "/dashboard",
+  next = ORGANIZATIONS_HOME,
 ): Promise<boolean> {
   if (!guardAuthConfigured()) {
     return false;
