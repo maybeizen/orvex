@@ -1,7 +1,7 @@
 import type { AuthUser } from "@orvex/types";
 import {
   ChevronDown,
-  LayoutDashboard,
+  LayoutGrid,
   LogOut,
   Settings,
   UserRound,
@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { accountHandle, userInitials } from "@/lib/user-display";
+import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 import { cn } from "@/lib/cn";
 import { getBrowserAuth } from "@/lib/supabase";
 import { useSidebarStore } from "@/stores/sidebar-store";
@@ -117,9 +118,9 @@ export function AccountMenu({
         <AccountOrgSwitcher />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link to="/dashboard">
-              <LayoutDashboard />
-              Dashboard
+            <Link to={ORGANIZATIONS_HOME}>
+              <LayoutGrid />
+              Organizations
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>

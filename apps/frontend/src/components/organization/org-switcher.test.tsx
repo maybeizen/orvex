@@ -3,7 +3,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { beforeEach, expect, test, vi } from "vitest";
 import { AppBreadcrumb } from "@/components/organization/app-breadcrumb";
-import { AccountOrgSwitcher } from "@/components/organization/org-switcher";
+import {
+  AccountOrgSwitcher,
+  HeaderOrgControl,
+} from "@/components/organization/org-switcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,7 +86,7 @@ test("account menu switcher lists other organizations and selects one", async ()
 
 test("breadcrumb compact control shows the active organization name", () => {
   render(
-    <MemoryRouter initialEntries={["/dashboard"]}>
+    <MemoryRouter initialEntries={["/organizations/acme/dashboard"]}>
       <AppBreadcrumb />
     </MemoryRouter>,
   );
@@ -94,4 +97,16 @@ test("breadcrumb compact control shows the active organization name", () => {
   expect(
     screen.getByRole("navigation", { name: "breadcrumb" }),
   ).toHaveTextContent("Dashboard");
+});
+
+test("header org control includes all organizations", () => {
+  render(
+    <MemoryRouter initialEntries={["/organizations/acme/monitors"]}>
+      <HeaderOrgControl defaultOpen />
+    </MemoryRouter>,
+  );
+
+  expect(
+    screen.getByRole("menuitem", { name: "All organizations" }),
+  ).toHaveAttribute("href", "/organizations");
 });
