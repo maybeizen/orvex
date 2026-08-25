@@ -41,7 +41,11 @@ test("mapAuthUser reads username from user_name metadata", () => {
   const user = mapAuthUser({
     id: "user-1",
     email: "ada@orvex.dev",
-    user_metadata: { user_name: "ada", first_name: "Ada", last_name: "Lovelace" },
+    user_metadata: {
+      user_name: "ada",
+      first_name: "Ada",
+      last_name: "Lovelace",
+    },
   });
   expect(user?.username).toBe("ada");
   expect(user?.displayName).toBe("Ada Lovelace");

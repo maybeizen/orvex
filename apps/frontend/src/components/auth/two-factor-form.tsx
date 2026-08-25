@@ -2,7 +2,12 @@ import { useEffect, useState, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import {
   InputOTP,
   InputOTPGroup,
@@ -53,8 +58,7 @@ export function TwoFactorForm() {
       toast.success("Signed in");
       void navigate(await pathAfterAuth());
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Invalid code";
+      const message = error instanceof Error ? error.message : "Invalid code";
       toast.error(message);
     } finally {
       setPending(false);

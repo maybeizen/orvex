@@ -69,13 +69,25 @@ export function MarketingFooter() {
             © 2026 Orvex
           </p>
           <div className="flex items-center gap-3">
-            <a href="#" aria-label="GitHub" className="text-muted-foreground hover:text-foreground">
+            <a
+              href="#"
+              aria-label="GitHub"
+              className="text-muted-foreground hover:text-foreground"
+            >
               <Code2 className="size-4" />
             </a>
-            <a href="#" aria-label="LinkedIn" className="text-muted-foreground hover:text-foreground">
+            <a
+              href="#"
+              aria-label="LinkedIn"
+              className="text-muted-foreground hover:text-foreground"
+            >
               <Users className="size-4" />
             </a>
-            <a href="#" aria-label="Feed" className="text-muted-foreground hover:text-foreground">
+            <a
+              href="#"
+              aria-label="Feed"
+              className="text-muted-foreground hover:text-foreground"
+            >
               <Rss className="size-4" />
             </a>
           </div>

@@ -23,7 +23,10 @@ function readMeta(
   return trimmed.length === 0 ? null : trimmed;
 }
 
-function splitName(fullName: string): { firstName: string; lastName: string | null } {
+function splitName(fullName: string): {
+  firstName: string;
+  lastName: string | null;
+} {
   const parts = fullName.split(/\s+/).filter((part) => part.length > 0);
   const first = parts[0];
   if (first === undefined) {
@@ -50,9 +53,7 @@ export function mapAuthUser(user: AuthUserSource): AuthUser | null {
     readMeta(metadata, "family_name") ??
     null;
   const fullName =
-    readMeta(metadata, "full_name") ??
-    readMeta(metadata, "name") ??
-    null;
+    readMeta(metadata, "full_name") ?? readMeta(metadata, "name") ?? null;
 
   let resolvedFirst = firstName;
   let resolvedLast = lastName;
@@ -78,8 +79,7 @@ export function mapAuthUser(user: AuthUserSource): AuthUser | null {
     readMeta(metadata, "avatar");
 
   const username =
-    readMeta(metadata, "user_name") ??
-    readMeta(metadata, "preferred_username");
+    readMeta(metadata, "user_name") ?? readMeta(metadata, "preferred_username");
 
   return {
     id: user.id,

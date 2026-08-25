@@ -3,10 +3,7 @@ export type OrganizationKind = "single" | "team";
 export type OrganizationPlanId = "free" | "probe" | "sentinel" | "command";
 
 export type OrganizationBillingStatus =
-  | "active"
-  | "pending_checkout"
-  | "past_due"
-  | "canceled";
+  "active" | "pending_checkout" | "past_due" | "canceled";
 
 export type OrganizationRole = "owner" | "admin" | "member";
 

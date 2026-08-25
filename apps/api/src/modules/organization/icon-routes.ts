@@ -2,7 +2,10 @@ import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import type { ServerAuth } from "../../trpc/context.js";
 import { HttpError } from "../../utils/http-error.js";
-import { InvalidAvatarError, processAvatar } from "../profile/process-avatar.js";
+import {
+  InvalidAvatarError,
+  processAvatar,
+} from "../profile/process-avatar.js";
 import { requireBearerUser } from "../profile/require-user.js";
 import type { OrganizationClient } from "./organization-dto.js";
 import {

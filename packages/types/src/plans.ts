@@ -1,7 +1,4 @@
-import type {
-  OrganizationKind,
-  OrganizationPlanId,
-} from "./organization.js";
+import type { OrganizationKind, OrganizationPlanId } from "./organization.js";
 
 export type BillingCycle = "monthly" | "quarterly" | "yearly";
 

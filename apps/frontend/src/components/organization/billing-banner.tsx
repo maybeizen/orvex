@@ -2,7 +2,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { orgPlanLabel } from "@/components/organization/org-avatar";
 import type { Organization } from "@orvex/types";
 
-export function BillingBanner({ organization }: { organization: Organization }) {
+export function BillingBanner({
+  organization,
+}: {
+  organization: Organization;
+}) {
   if (organization.billingStatus !== "pending_checkout") {
     return null;
   }

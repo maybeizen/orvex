@@ -198,11 +198,14 @@ test("single orgs cannot add a second member", async () => {
     members: [memberRow()],
   });
 
-  const { error } = await memory.supabase.from("organization_members").insert({
-    organization_id: org.id,
-    user_id: otherUserId,
-    role: "member",
-  }).single();
+  const { error } = await memory.supabase
+    .from("organization_members")
+    .insert({
+      organization_id: org.id,
+      user_id: otherUserId,
+      role: "member",
+    })
+    .single();
 
   expect(error?.code).toBe("P0001");
   expect(memory.members).toHaveLength(1);

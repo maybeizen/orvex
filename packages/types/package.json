@@ -13,7 +13,9 @@
       "import": "./dist/plans.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "dev": "tsdown --watch",

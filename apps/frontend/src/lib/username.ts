@@ -4,7 +4,10 @@ export function normalizeUsername(value: string): string {
   return value.trim().toLowerCase();
 }
 
-export function usernameHint(username: string, current: string | null): string | null {
+export function usernameHint(
+  username: string,
+  current: string | null,
+): string | null {
   if (username.length === 0) {
     return "3–24 characters. Letters, numbers, and underscores.";
   }

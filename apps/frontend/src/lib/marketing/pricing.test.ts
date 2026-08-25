@@ -108,4 +108,3 @@ test("paid plan limits stay unchanged", () => {
   expect(getPlan("sentinel").monthlyUsd).toBe(36);
   expect(getPlan("command").monthlyUsd).toBe(96);
 });
-

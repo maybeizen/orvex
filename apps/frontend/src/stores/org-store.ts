@@ -8,10 +8,7 @@ type OrgState = {
   items: Organization[];
   activeOrganizationId: string | null;
   markLoading: () => void;
-  hydrate: (
-    items: Organization[],
-    activeOrganizationId: string | null,
-  ) => void;
+  hydrate: (items: Organization[], activeOrganizationId: string | null) => void;
   upsert: (organization: Organization) => void;
   reset: () => void;
 };

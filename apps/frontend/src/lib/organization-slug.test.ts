@@ -1,9 +1,5 @@
 import { expect, test } from "vitest";
-import {
-  isValidOrgSlug,
-  slugFromName,
-  slugHint,
-} from "./organization-slug.js";
+import { isValidOrgSlug, slugFromName, slugHint } from "./organization-slug.js";
 
 test("slugFromName lowercases and hyphenates", () => {
   expect(slugFromName("Acme Robotics")).toBe("acme-robotics");

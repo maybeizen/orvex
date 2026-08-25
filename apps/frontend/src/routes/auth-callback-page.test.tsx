@@ -14,7 +14,8 @@ const { mockAuth, pathAfterAuth } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/post-auth", () => ({
-  pathAfterAuth: (intended?: string): Promise<string> => pathAfterAuth(intended),
+  pathAfterAuth: (intended?: string): Promise<string> =>
+    pathAfterAuth(intended),
 }));
 
 vi.mock("@/lib/supabase", () => ({

@@ -11,11 +11,13 @@ test("landing page renders chrome, plans, probes, and footer columns", () => {
     </MemoryRouter>,
   );
 
-  expect(screen.getByRole("navigation", { name: "Primary" })).toBeInTheDocument();
   expect(
-    screen.getAllByRole("link", { name: "Get started" }).every((link) =>
-      link.getAttribute("href") === "/register",
-    ),
+    screen.getByRole("navigation", { name: "Primary" }),
+  ).toBeInTheDocument();
+  expect(
+    screen
+      .getAllByRole("link", { name: "Get started" })
+      .every((link) => link.getAttribute("href") === "/register"),
   ).toBe(true);
   expect(screen.getAllByText("Probe").length).toBeGreaterThan(0);
   expect(screen.getByText("Sentinel")).toBeInTheDocument();

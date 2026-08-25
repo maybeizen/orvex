@@ -12,8 +12,7 @@ export type SmtpConfig = {
 };
 
 export type MailSendResult =
-  | { skipped: true }
-  | { skipped: false; messageId: string };
+  { skipped: true } | { skipped: false; messageId: string };
 
 export type Mailer = {
   send(message: MailMessage): Promise<MailSendResult>;

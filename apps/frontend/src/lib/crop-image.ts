@@ -5,7 +5,11 @@ export type CropPixels = {
   height: number;
 };
 
-export const AVATAR_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+export const AVATAR_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 export function isAllowedAvatarFile(file: File): boolean {
   return AVATAR_MIME_TYPES.has(file.type);

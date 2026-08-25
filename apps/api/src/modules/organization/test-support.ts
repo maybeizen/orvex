@@ -111,9 +111,7 @@ export function createOrganizationMemory(initial?: {
   members: OrganizationMemberRow[];
   uploads: { bucket: string; path: string; body: Buffer }[];
 } {
-  const profiles = [
-    ...(initial?.profiles ?? [profileFixture()]),
-  ];
+  const profiles = [...(initial?.profiles ?? [profileFixture()])];
   const organizations = [...(initial?.organizations ?? [])];
   const members = [...(initial?.members ?? [])];
   const uploads: { bucket: string; path: string; body: Buffer }[] = [];
@@ -178,8 +176,7 @@ export function createOrganizationMemory(initial?: {
           plan_id: planId,
           billing_status: readString(body, "billing_status", "active"),
           created_by: readString(body, "created_by", orgTestUser.id),
-          icon_path:
-            typeof body.icon_path === "string" ? body.icon_path : null,
+          icon_path: typeof body.icon_path === "string" ? body.icon_path : null,
         });
         organizations.push(row);
         return { data: row, error: null };
@@ -205,7 +202,9 @@ export function createOrganizationMemory(initial?: {
               : null,
           };
         }
-        Object.assign(target, payload, { updated_at: new Date().toISOString() });
+        Object.assign(target, payload, {
+          updated_at: new Date().toISOString(),
+        });
         return { data: target, error: null };
       }
       if (asList) {
@@ -215,7 +214,9 @@ export function createOrganizationMemory(initial?: {
       if (expectOne && first === null) {
         return {
           data: null,
-          error: { message: "Cannot coerce the result to a single JSON object" },
+          error: {
+            message: "Cannot coerce the result to a single JSON object",
+          },
         };
       }
       return { data: first, error: null };
@@ -312,7 +313,9 @@ export function createOrganizationMemory(initial?: {
       if (expectOne && first === null) {
         return {
           data: null,
-          error: { message: "Cannot coerce the result to a single JSON object" },
+          error: {
+            message: "Cannot coerce the result to a single JSON object",
+          },
         };
       }
       return { data: first, error: null };
@@ -372,14 +375,18 @@ export function createOrganizationMemory(initial?: {
               : null,
           };
         }
-        Object.assign(target, payload, { updated_at: new Date().toISOString() });
+        Object.assign(target, payload, {
+          updated_at: new Date().toISOString(),
+        });
         return { data: target, error: null };
       }
       const first = found[0] ?? null;
       if (expectOne && first === null) {
         return {
           data: null,
-          error: { message: "Cannot coerce the result to a single JSON object" },
+          error: {
+            message: "Cannot coerce the result to a single JSON object",
+          },
         };
       }
       return { data: first, error: null };

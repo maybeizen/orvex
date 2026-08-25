@@ -60,13 +60,7 @@ function PlanLimits({ plan }: { plan: PricingPlan }) {
   );
 }
 
-function PlanCard({
-  plan,
-  cycle,
-}: {
-  plan: PricingPlan;
-  cycle: BillingCycle;
-}) {
+function PlanCard({ plan, cycle }: { plan: PricingPlan; cycle: BillingCycle }) {
   const total = periodTotalUsd(plan.monthlyUsd, cycle);
   const monthlyEquivalent = equivalentMonthlyUsd(plan.monthlyUsd, cycle);
 

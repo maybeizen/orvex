@@ -6,7 +6,9 @@ test("requireUser rejects missing token", async () => {
   const getUser = vi.fn();
   const client = { auth: { getUser } };
 
-  const error = await requireUser("", client).catch((caught: unknown) => caught);
+  const error = await requireUser("", client).catch(
+    (caught: unknown) => caught,
+  );
   expect(error).toBeInstanceOf(AuthError);
   expect((error as AuthError).code).toEqual("UNAUTHORIZED");
   expect(getUser).not.toHaveBeenCalled();
@@ -46,7 +48,7 @@ test("requireUser rejects invalid jwt", async () => {
     error: { message: "invalid" },
   });
 
-  await expect(requireUser("bad", { auth: { getUser } })).rejects.toBeInstanceOf(
-    AuthError,
-  );
+  await expect(
+    requireUser("bad", { auth: { getUser } }),
+  ).rejects.toBeInstanceOf(AuthError);
 });

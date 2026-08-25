@@ -80,8 +80,8 @@ export function OnboardingWizard() {
 
     setPending(true);
     try {
-      const organization = await createVanillaTrpcClient().organization.create.mutate(
-        {
+      const organization =
+        await createVanillaTrpcClient().organization.create.mutate({
           name: draft.name.trim(),
           slug: draft.slug,
           kind: draft.kind,
@@ -89,8 +89,7 @@ export function OnboardingWizard() {
           billingCycle: draft.billingCycle,
           tosAccepted: true,
           marketingOptIn: draft.marketingOptIn,
-        },
-      );
+        });
       let next = organization;
       if (draft.iconBlob !== null) {
         try {
@@ -114,7 +113,9 @@ export function OnboardingWizard() {
       void navigate("/dashboard");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Unable to create organization";
+        error instanceof Error
+          ? error.message
+          : "Unable to create organization";
       toast.error(message);
     } finally {
       setPending(false);

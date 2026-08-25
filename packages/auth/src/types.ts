@@ -99,9 +99,7 @@ export type MfaVerifyData = {
 
 export type BrowserAuthClient = {
   auth: {
-    signInWithPassword: (
-      credentials: PasswordCredentials,
-    ) => Promise<{
+    signInWithPassword: (credentials: PasswordCredentials) => Promise<{
       data: {
         user: AuthUserSource | null;
         session: AuthTokenSession | null;

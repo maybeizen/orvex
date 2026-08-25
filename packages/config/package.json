@@ -31,7 +31,11 @@
   "bin": {
     "orvex-tsc": "./bin/orvex-tsc.mjs"
   },
-  "files": ["dist", "tsconfig", "bin"],
+  "files": [
+    "dist",
+    "tsconfig",
+    "bin"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "build": "pnpm clean && tsdown",

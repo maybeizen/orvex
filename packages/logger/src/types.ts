@@ -1,9 +1,7 @@
 export type LogPrimitive = string | number | boolean | null;
 
 export type LogValue =
-  | LogPrimitive
-  | readonly LogValue[]
-  | { readonly [key: string]: LogValue };
+  LogPrimitive | readonly LogValue[] | { readonly [key: string]: LogValue };
 
 export type LogMeta = { readonly [key: string]: LogValue };
 

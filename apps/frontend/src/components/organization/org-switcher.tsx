@@ -4,10 +4,7 @@ import { Check, ChevronDown, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import {
-  OrgAvatar,
-  orgPlanLabel,
-} from "@/components/organization/org-avatar";
+import { OrgAvatar, orgPlanLabel } from "@/components/organization/org-avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -19,10 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/cn";
 import { createVanillaTrpcClient } from "@/lib/trpc";
-import {
-  selectActiveOrganization,
-  useOrgStore,
-} from "@/stores/org-store";
+import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
 async function activateOrganization(organization: Organization): Promise<void> {
   const result = await createVanillaTrpcClient().organization.setActive.mutate({
@@ -124,22 +118,22 @@ export function AccountOrgSwitcher() {
               >
                 <div className="min-h-0 overflow-hidden">
                   <div className="flex flex-col gap-0.5 pt-1">
-                  {others.map((organization) => (
-                    <DropdownMenuItem
-                      key={organization.id}
-                      onSelect={() => {
-                        handleSwitch(organization);
-                      }}
-                    >
-                      <OrgRow organization={organization} />
+                    {others.map((organization) => (
+                      <DropdownMenuItem
+                        key={organization.id}
+                        onSelect={() => {
+                          handleSwitch(organization);
+                        }}
+                      >
+                        <OrgRow organization={organization} />
+                      </DropdownMenuItem>
+                    ))}
+                    <DropdownMenuItem asChild>
+                      <Link to="/onboarding">
+                        <Plus />
+                        New organization
+                      </Link>
                     </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuItem asChild>
-                    <Link to="/onboarding">
-                      <Plus />
-                      New organization
-                    </Link>
-                  </DropdownMenuItem>
                   </div>
                 </div>
               </motion.div>

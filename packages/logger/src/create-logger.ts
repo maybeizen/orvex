@@ -1,4 +1,8 @@
-import { createLogger as createWinstonLogger, format, transports } from "winston";
+import {
+  createLogger as createWinstonLogger,
+  format,
+  transports,
+} from "winston";
 import type { Logger } from "winston";
 import { applyRedaction, formatLogLine } from "./format.js";
 import type { LogMeta, LoggerOptions, OrvexLogger } from "./types.js";

@@ -20,12 +20,16 @@ export function LandingPipeline() {
           {PIPELINE_STEPS.map((step, index) => (
             <li key={step.id} className="flex flex-col gap-3">
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs text-primary">{step.id}</span>
+                <span className="font-mono text-xs text-primary">
+                  {step.id}
+                </span>
                 {index < PIPELINE_STEPS.length - 1 ? (
                   <span className="hidden h-px flex-1 bg-border md:block" />
                 ) : null}
               </div>
-              <h3 className="font-heading text-lg tracking-tight">{step.title}</h3>
+              <h3 className="font-heading text-lg tracking-tight">
+                {step.title}
+              </h3>
               <p className="text-sm text-muted-foreground text-pretty">
                 {step.body}
               </p>

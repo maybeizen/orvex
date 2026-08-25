@@ -130,9 +130,7 @@ export function PlanStep({
               <Card
                 className={cn(
                   "h-full gap-0 py-0 text-left",
-                  selected
-                    ? "bg-card ring-2 ring-primary"
-                    : "bg-card/70",
+                  selected ? "bg-card ring-2 ring-primary" : "bg-card/70",
                   plan.featured && allowed ? "ring-primary/40" : null,
                   !allowed && "opacity-60",
                 )}

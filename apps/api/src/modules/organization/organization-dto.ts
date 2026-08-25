@@ -8,7 +8,8 @@ import type {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlanId } from "@orvex/types/plans";
 
-export type OrganizationRow = Database["public"]["Tables"]["organizations"]["Row"];
+export type OrganizationRow =
+  Database["public"]["Tables"]["organizations"]["Row"];
 export type OrganizationMemberRow =
   Database["public"]["Tables"]["organization_members"]["Row"];
 

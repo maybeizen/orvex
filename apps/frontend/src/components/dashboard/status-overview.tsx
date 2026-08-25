@@ -45,7 +45,9 @@ export function StatusOverview() {
       <Card>
         <CardHeader>
           <CardTitle>Latency</CardTitle>
-          <CardDescription>Placeholder series. Live checks come later.</CardDescription>
+          <CardDescription>
+            Placeholder series. Live checks come later.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Suspense fallback={<ChartFallback />}>

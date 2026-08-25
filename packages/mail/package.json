@@ -9,7 +9,10 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "templates"],
+  "files": [
+    "dist",
+    "templates"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "dev": "tsdown --watch",

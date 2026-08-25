@@ -155,93 +155,93 @@ export function PasskeySettings({ framed = true }: { framed?: boolean }) {
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-            {passkeys.map((passkey) => {
-              const renaming = renamingId === passkey.id;
-              const label = passkey.friendlyName ?? "Unnamed passkey";
-              return (
-                <li
-                  key={passkey.id}
-                  className="flex flex-col gap-3 rounded-lg border border-border px-3 py-3"
-                >
-                  {renaming ? (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                      <Field className="flex-1">
-                        <FieldLabel htmlFor={`passkey-name-${passkey.id}`}>
-                          Name
-                        </FieldLabel>
-                        <Input
-                          id={`passkey-name-${passkey.id}`}
-                          value={renameValue}
-                          autoComplete="off"
-                          onChange={(event) => {
-                            setRenameValue(event.target.value);
-                          }}
-                        />
-                      </Field>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={pending}
-                          onClick={() => {
-                            void saveRename(passkey.id);
-                          }}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={pending}
-                          onClick={() => {
-                            setRenamingId(null);
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
+          {passkeys.map((passkey) => {
+            const renaming = renamingId === passkey.id;
+            const label = passkey.friendlyName ?? "Unnamed passkey";
+            return (
+              <li
+                key={passkey.id}
+                className="flex flex-col gap-3 rounded-lg border border-border px-3 py-3"
+              >
+                {renaming ? (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <Field className="flex-1">
+                      <FieldLabel htmlFor={`passkey-name-${passkey.id}`}>
+                        Name
+                      </FieldLabel>
+                      <Input
+                        id={`passkey-name-${passkey.id}`}
+                        value={renameValue}
+                        autoComplete="off"
+                        onChange={(event) => {
+                          setRenameValue(event.target.value);
+                        }}
+                      />
+                    </Field>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={pending}
+                        onClick={() => {
+                          void saveRename(passkey.id);
+                        }}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={pending}
+                        onClick={() => {
+                          setRenamingId(null);
+                        }}
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  ) : (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex min-w-0 flex-col gap-1">
-                        <p className="truncate font-medium">{label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Added {formatAuthTimestamp(passkey.createdAt)} · Last
-                          used {formatAuthTimestamp(passkey.lastUsedAt)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={pending}
-                          onClick={() => {
-                            startRename(passkey);
-                          }}
-                        >
-                          Rename
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          disabled={pending}
-                          onClick={() => {
-                            setRevokeTarget(passkey);
-                          }}
-                        >
-                          Revoke
-                        </Button>
-                      </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p className="truncate font-medium">{label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Added {formatAuthTimestamp(passkey.createdAt)} · Last
+                        used {formatAuthTimestamp(passkey.lastUsedAt)}
+                      </p>
                     </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={pending}
+                        onClick={() => {
+                          startRename(passkey);
+                        }}
+                      >
+                        Rename
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        disabled={pending}
+                        onClick={() => {
+                          setRevokeTarget(passkey);
+                        }}
+                      >
+                        Revoke
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <AlertDialog
         open={revokeTarget !== null}
         onOpenChange={(open) => {

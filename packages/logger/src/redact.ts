@@ -50,9 +50,9 @@ export function redactMeta(meta: LogMeta): LogMeta {
   return redactRecord(meta, new WeakSet());
 }
 
-export function redactLogRecord(
-  record: { readonly [key: string]: LogValue },
-): { [key: string]: LogValue } {
+export function redactLogRecord(record: { readonly [key: string]: LogValue }): {
+  [key: string]: LogValue;
+} {
   const result: { [key: string]: LogValue } = {};
   const seen = new WeakSet();
 

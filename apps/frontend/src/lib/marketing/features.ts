@@ -1,12 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import {
-  Globe,
-  Lock,
-  Cpu,
-  Bell,
-  PanelTop,
-  MapPinned,
-} from "lucide-react";
+import { Globe, Lock, Cpu, Bell, PanelTop, MapPinned } from "lucide-react";
 
 export type FeatureCard = {
   title: string;

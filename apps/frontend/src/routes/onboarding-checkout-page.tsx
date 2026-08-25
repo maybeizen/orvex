@@ -52,8 +52,9 @@ export function OnboardingCheckoutPage() {
               Checkout is not live yet
             </CardTitle>
             <CardDescription>
-              {organization.name} is saved on {orgPlanLabel(organization.planId)}.
-              Stripe will land in a later slice.
+              {organization.name} is saved on{" "}
+              {orgPlanLabel(organization.planId)}. Stripe will land in a later
+              slice.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
