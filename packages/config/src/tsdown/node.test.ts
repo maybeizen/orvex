@@ -6,7 +6,7 @@ test("nodeLibrary emits an esm node library with dts", () => {
   expect(nodeLibrary.platform).toBe("node");
   expect(nodeLibrary.format).toEqual(["esm"]);
   expect(nodeLibrary.dts).toBe(true);
-  expect(nodeLibrary.clean).toBe(true);
+  expect(nodeLibrary.clean).toBe(false);
   expect(nodeLibrary.sourcemap).toBe(true);
   expect(nodeLibrary.treeshake).toBe(true);
   expect(nodeLibrary.fixedExtension).toBe(false);
