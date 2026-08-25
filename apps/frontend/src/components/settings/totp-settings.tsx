@@ -44,7 +44,10 @@ export function TotpSettings({ framed = true }: { framed?: boolean }) {
   const [pending, setPending] = useState(false);
   const enrollmentRef = useRef<TotpEnrollment | null>(null);
   const skipDiscardRef = useRef(false);
-  enrollmentRef.current = enrollment;
+
+  useEffect(() => {
+    enrollmentRef.current = enrollment;
+  }, [enrollment]);
 
   const enabled = verifiedFactors(factors).length > 0;
 

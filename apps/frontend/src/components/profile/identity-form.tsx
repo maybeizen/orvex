@@ -20,32 +20,39 @@ import { useSessionStore } from "@/stores/session-store";
 
 export function IdentityForm() {
   const user = useSessionStore((state) => state.user);
-  const [firstName, setFirstName] = useState(user?.firstName ?? "");
-  const [lastName, setLastName] = useState(user?.lastName ?? "");
-  const [username, setUsername] = useState(user?.username ?? "");
+  const serverFirst = user?.firstName ?? "";
+  const serverLast = user?.lastName ?? "";
+  const serverUsername = user?.username ?? "";
+  const serverKey = `${serverFirst}\0${serverLast}\0${serverUsername}`;
+  const [firstName, setFirstName] = useState(serverFirst);
+  const [lastName, setLastName] = useState(serverLast);
+  const [username, setUsername] = useState(serverUsername);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
+  const [syncedKey, setSyncedKey] = useState(serverKey);
+
+  if (syncedKey !== serverKey) {
+    setSyncedKey(serverKey);
+    setFirstName(serverFirst);
+    setLastName(serverLast);
+    setUsername(serverUsername);
+    setAvailable(null);
+  }
+
+  const nextUsername = normalizeUsername(username);
+  const skipAvailability =
+    nextUsername.length === 0 ||
+    !USERNAME_PATTERN.test(nextUsername) ||
+    nextUsername === user?.username;
 
   useEffect(() => {
-    setFirstName(user?.firstName ?? "");
-    setLastName(user?.lastName ?? "");
-    setUsername(user?.username ?? "");
-  }, [user?.firstName, user?.lastName, user?.username]);
-
-  useEffect(() => {
-    const next = normalizeUsername(username);
-    if (
-      next.length === 0 ||
-      !USERNAME_PATTERN.test(next) ||
-      next === user?.username
-    ) {
-      setAvailable(null);
+    if (skipAvailability) {
       return;
     }
 
     const handle = window.setTimeout(() => {
       void createVanillaTrpcClient()
-        .profile.usernameAvailable.query({ username: next })
+        .profile.usernameAvailable.query({ username: nextUsername })
         .then((ok) => {
           setAvailable(ok);
         })
@@ -57,14 +64,15 @@ export function IdentityForm() {
     return () => {
       window.clearTimeout(handle);
     };
-  }, [username, user?.username]);
+  }, [nextUsername, skipAvailability]);
 
   if (user === null) {
     return null;
   }
 
-  const hint = usernameHint(normalizeUsername(username), user.username);
-  const taken = available === false;
+  const hint = usernameHint(nextUsername, user.username);
+  const shownAvailable = skipAvailability ? null : available;
+  const taken = shownAvailable === false;
 
   async function submit() {
     const nextUsername = normalizeUsername(username);
@@ -85,13 +93,12 @@ export function IdentityForm() {
 
     setPending(true);
     try {
-      const profile = await createVanillaTrpcClient().profile.updateIdentity.mutate(
-        {
+      const profile =
+        await createVanillaTrpcClient().profile.updateIdentity.mutate({
           username: nextUsername,
           firstName: nextFirst,
           lastName: nextLast,
-        },
-      );
+        });
       applyProfileToSession(profile);
       toast.success("Profile saved");
     } catch (error) {
@@ -142,7 +149,14 @@ export function IdentityForm() {
             />
           </Field>
         </div>
-        <Field data-invalid={taken || (hint !== null && username.length > 0 && !USERNAME_PATTERN.test(normalizeUsername(username)))}>
+        <Field
+          data-invalid={
+            taken ||
+            (hint !== null &&
+              username.length > 0 &&
+              !USERNAME_PATTERN.test(normalizeUsername(username)))
+          }
+        >
           <FieldLabel htmlFor="profile-username">Username</FieldLabel>
           <div className="flex">
             <span className="inline-flex items-center rounded-l-lg border border-r-0 border-input bg-muted/50 px-3 text-sm text-muted-foreground">
@@ -163,9 +177,10 @@ export function IdentityForm() {
           <FieldDescription>
             {taken
               ? "That username is taken."
-              : available === true
+              : shownAvailable === true
                 ? "Available."
-                : (hint ?? "3–24 characters. Letters, numbers, and underscores.")}
+                : (hint ??
+                  "3–24 characters. Letters, numbers, and underscores.")}
           </FieldDescription>
         </Field>
       </FieldGroup>

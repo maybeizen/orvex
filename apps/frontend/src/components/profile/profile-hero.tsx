@@ -5,7 +5,7 @@ import { AvatarCropDialog } from "@/components/profile/avatar-crop-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { removeAvatar, useGravatarAvatar } from "@/lib/avatar-api";
+import { applyGravatarAvatar, removeAvatar } from "@/lib/avatar-api";
 import { isAllowedAvatarFile } from "@/lib/crop-image";
 import { applyProfileToSession } from "@/lib/session-profile";
 import { userInitials } from "@/lib/user-display";
@@ -50,7 +50,7 @@ export function ProfileHero() {
   async function gravatar() {
     setPending(true);
     try {
-      const profile = await useGravatarAvatar();
+      const profile = await applyGravatarAvatar();
       applyProfileToSession(profile);
       toast.success("Using your Gravatar");
     } catch (error) {

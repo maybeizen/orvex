@@ -19,7 +19,7 @@ function SweepTape() {
     <div className="hidden items-end gap-[3px] sm:flex" aria-hidden>
       {HERO_SWEEP.map((status, index) => (
         <span
-          key={`${status}-${index}`}
+          key={`${status}-${String(index)}`}
           className={cn(
             "w-0.5",
             status === "up" && "h-2.5 bg-primary/80",
@@ -116,7 +116,9 @@ export function HeroChecksPanel() {
         <p className="flex flex-wrap items-center gap-x-2 font-mono text-[0.65rem] tracking-wide uppercase">
           <span className="text-primary tabular-nums">{counts.up} up</span>
           <span className="text-border">·</span>
-          <span className="text-destructive tabular-nums">{counts.down} fail</span>
+          <span className="text-destructive tabular-nums">
+            {counts.down} fail
+          </span>
           <span className="text-border">·</span>
           <span className="text-muted-foreground tabular-nums">
             {counts.warn} warn

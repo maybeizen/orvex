@@ -39,7 +39,7 @@ vi.mock("@/lib/passkeys", () => ({
 vi.mock("@/lib/supabase", () => ({
   isAuthConfigured: () => true,
   getBrowserAuth: () => mockAuth,
-  getAccessToken: async () => "token",
+  getAccessToken: () => Promise.resolve("token"),
 }));
 
 vi.mock("@/lib/trpc", () => ({

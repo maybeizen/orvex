@@ -70,7 +70,11 @@ test("register page can reveal a password", () => {
 
   const password = screen.getByLabelText("Password");
   expect(password).toHaveAttribute("type", "password");
-  fireEvent.click(screen.getAllByRole("button", { name: "Show password" })[0]!);
+  const showPassword = screen.getAllByRole("button", {
+    name: "Show password",
+  })[0];
+  expect(showPassword).toBeDefined();
+  fireEvent.click(showPassword as HTMLElement);
   expect(password).toHaveAttribute("type", "text");
   fireEvent.click(screen.getByRole("button", { name: "Hide password" }));
   expect(password).toHaveAttribute("type", "password");

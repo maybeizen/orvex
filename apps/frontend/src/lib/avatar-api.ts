@@ -25,7 +25,9 @@ async function profileRequest(
     ...init,
     headers,
   });
-  const body = (await response.json().catch(() => null)) as ProfilePayload | null;
+  const body = (await response
+    .json()
+    .catch(() => null)) as ProfilePayload | null;
   if (!response.ok) {
     throw new Error(body?.error ?? "Unable to update photo");
   }
@@ -50,7 +52,7 @@ export async function uploadAvatar(blob: Blob): Promise<SessionProfile> {
   });
 }
 
-export async function useGravatarAvatar(): Promise<SessionProfile> {
+export async function applyGravatarAvatar(): Promise<SessionProfile> {
   return profileRequest("/v1/profile/avatar/gravatar", { method: "POST" });
 }
 
