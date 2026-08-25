@@ -12,7 +12,7 @@ import {
   PanelLeftOpen,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { NavLink, useLocation, useParams } from "react-router";
 import { AuthNavCluster } from "@/components/auth/auth-nav-cluster";
 import { OrgAvatar } from "@/components/organization/org-avatar";
@@ -164,13 +164,8 @@ export function Sidebar() {
   const collapsed = useSidebarStore((state) => state.collapsed);
   const { slug = "" } = useParams();
   const inSupport = location.pathname.includes("/support/");
-  const [supportOpen, setSupportOpen] = useState(inSupport);
-
-  useEffect(() => {
-    if (inSupport) {
-      setSupportOpen(true);
-    }
-  }, [inSupport]);
+  const [supportExpanded, setSupportExpanded] = useState(false);
+  const supportOpen = inSupport || supportExpanded;
 
   return (
     <aside
@@ -199,7 +194,7 @@ export function Sidebar() {
               aria-expanded={supportOpen}
               aria-label="Support"
               onClick={() => {
-                setSupportOpen((value) => !value);
+                setSupportExpanded((value) => !value);
               }}
               className={cn(
                 "flex items-center rounded-lg text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent/70 hover:text-foreground",
