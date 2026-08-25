@@ -110,7 +110,7 @@ export function OnboardingWizard() {
         return;
       }
       toast.success("Organization ready");
-      void navigate("/dashboard");
+      void navigate("/organizations");
     } catch (error) {
       const message =
         error instanceof Error

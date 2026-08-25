@@ -67,7 +67,7 @@ test("hydrateOrganizations writes memberships into the org store", async () => {
 test("pathAfterAuth sends empty memberships to onboarding", async () => {
   listQuery.mockResolvedValue({ items: [], activeOrganizationId: null });
   expect(await pathAfterAuth()).toBe("/onboarding");
-  expect(await pathAfterAuth("/dashboard")).toBe("/onboarding");
+  expect(await pathAfterAuth("/organizations")).toBe("/onboarding");
 });
 
 test("pathAfterAuth keeps the intended path when memberships exist", async () => {
@@ -75,7 +75,8 @@ test("pathAfterAuth keeps the intended path when memberships exist", async () =>
     items: [acme],
     activeOrganizationId: acme.id,
   });
-  expect(await pathAfterAuth("/dashboard")).toBe("/dashboard");
+  expect(await pathAfterAuth()).toBe("/organizations");
+  expect(await pathAfterAuth("/organizations")).toBe("/organizations");
   expect(await pathAfterAuth("/profile")).toBe("/profile");
 });
 
@@ -86,7 +87,7 @@ test("pathAfterAuth never hijacks password recovery", async () => {
 
 test("pathAfterAuth falls back to the intended path when list fails", async () => {
   listQuery.mockRejectedValue(new Error("offline"));
-  expect(await pathAfterAuth("/dashboard")).toBe("/dashboard");
+  expect(await pathAfterAuth("/organizations")).toBe("/organizations");
 });
 
 test("hydrateSessionUser merges username and avatar from auth.me", async () => {

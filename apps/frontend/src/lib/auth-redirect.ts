@@ -1,3 +1,5 @@
+import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
+
 export function callbackUrl(next: string): string {
   const url = new URL("/auth/callback", window.location.origin);
   url.searchParams.set("next", next);
@@ -14,13 +16,13 @@ export function callbackNextPath(
       ? "/reset-password"
       : type === "email_change"
         ? "/settings"
-        : "/dashboard";
+        : ORGANIZATIONS_HOME;
   return safeInternalPath(search.get("next") ?? hash.get("next"), fallback);
 }
 
 export function safeInternalPath(
   value: string | null,
-  fallback = "/dashboard",
+  fallback = ORGANIZATIONS_HOME,
 ): string {
   if (
     value === null ||

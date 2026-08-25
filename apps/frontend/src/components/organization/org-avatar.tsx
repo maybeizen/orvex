@@ -1,4 +1,5 @@
 import { isPlanId, getPlan } from "@/lib/marketing/pricing";
+import type { OrganizationKind } from "@orvex/types";
 import { userInitials } from "@/lib/user-display";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -43,4 +44,8 @@ export function orgPlanLabel(planId: string): string {
     return getPlan(planId).name;
   }
   return planId;
+}
+
+export function orgKindLabel(kind: OrganizationKind): string {
+  return kind === "team" ? "Team" : "Single";
 }

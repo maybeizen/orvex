@@ -38,7 +38,7 @@ function renderWizard() {
       <Routes>
         <Route path="/onboarding" element={<OnboardingWizard />} />
         <Route path="/onboarding/checkout" element={<p>Checkout stub</p>} />
-        <Route path="/dashboard" element={<p>Dashboard page</p>} />
+        <Route path="/organizations" element={<p>Organizations page</p>} />
         <Route path="/terms" element={<p>Terms page</p>} />
       </Routes>
     </MemoryRouter>,
@@ -91,7 +91,7 @@ test("wizard submits a free organization payload", async () => {
   fireEvent.click(screen.getByLabelText("I agree to the Terms of Service"));
   fireEvent.click(screen.getByRole("button", { name: "Create organization" }));
 
-  expect(await screen.findByText("Dashboard page")).toBeInTheDocument();
+  expect(await screen.findByText("Organizations page")).toBeInTheDocument();
   expect(createMutate).toHaveBeenCalledWith({
     name: "Acme Desk",
     slug: "acme-desk",

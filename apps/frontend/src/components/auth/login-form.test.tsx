@@ -12,7 +12,9 @@ const { mockAuth, passkeysEnabled, pathAfterAuth } = vi.hoisted(() => ({
     signInWithOAuth: vi.fn(),
   },
   passkeysEnabled: { value: true },
-  pathAfterAuth: vi.fn((intended = "/dashboard") => Promise.resolve(intended)),
+  pathAfterAuth: vi.fn((intended = "/organizations") =>
+    Promise.resolve(intended),
+  ),
 }));
 
 vi.mock("@/lib/passkeys", () => ({
@@ -47,7 +49,7 @@ function renderLogin() {
       <Routes>
         <Route path="/login" element={<LoginForm />} />
         <Route path="/login/2fa" element={<p>Two-factor page</p>} />
-        <Route path="/dashboard" element={<p>Dashboard page</p>} />
+        <Route path="/organizations" element={<p>Organizations page</p>} />
         <Route path="/onboarding" element={<p>Onboarding page</p>} />
       </Routes>
     </MemoryRouter>,
@@ -58,7 +60,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
   passkeysEnabled.value = true;
-  pathAfterAuth.mockImplementation((intended = "/dashboard") =>
+  pathAfterAuth.mockImplementation((intended = "/organizations") =>
     Promise.resolve(intended),
   );
 });
@@ -78,7 +80,7 @@ test("passkey button is hidden when passkeys are unavailable", () => {
   ).not.toBeInTheDocument();
 });
 
-test("passkey sign-in goes to the dashboard", async () => {
+test("passkey sign-in goes to organizations", async () => {
   mockAuth.signInWithPasskey.mockResolvedValue({
     user: ada,
     accessToken: "token",
@@ -89,7 +91,7 @@ test("passkey sign-in goes to the dashboard", async () => {
 
   fireEvent.click(screen.getByRole("button", { name: "Sign in with passkey" }));
 
-  expect(await screen.findByText("Dashboard page")).toBeInTheDocument();
+  expect(await screen.findByText("Organizations page")).toBeInTheDocument();
   expect(mockAuth.signInWithPasskey).toHaveBeenCalledOnce();
 });
 

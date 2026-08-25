@@ -10,7 +10,9 @@ const { mockAuth, pathAfterAuth } = vi.hoisted(() => ({
     exchangeCodeForSession: vi.fn(),
     getBrowserSession: vi.fn(),
   },
-  pathAfterAuth: vi.fn((intended = "/dashboard") => Promise.resolve(intended)),
+  pathAfterAuth: vi.fn((intended = "/organizations") =>
+    Promise.resolve(intended),
+  ),
 }));
 
 vi.mock("@/lib/post-auth", () => ({
@@ -41,7 +43,7 @@ function renderCallback(search: string) {
       <Routes>
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/onboarding" element={<p>Onboarding page</p>} />
-        <Route path="/dashboard" element={<p>Dashboard page</p>} />
+        <Route path="/organizations" element={<p>Organizations page</p>} />
         <Route path="/reset-password" element={<p>Reset password page</p>} />
       </Routes>
     </MemoryRouter>,
@@ -51,7 +53,7 @@ function renderCallback(search: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   window.location.hash = "";
-  pathAfterAuth.mockImplementation((intended = "/dashboard") =>
+  pathAfterAuth.mockImplementation((intended = "/organizations") =>
     Promise.resolve(intended),
   );
   mockAuth.exchangeCodeForSession.mockResolvedValue({
@@ -72,7 +74,7 @@ test("auth callback sends empty memberships to onboarding", async () => {
   renderCallback("?code=org-callback-1");
 
   expect(await screen.findByText("Onboarding page")).toBeInTheDocument();
-  expect(pathAfterAuth).toHaveBeenCalledWith("/dashboard");
+  expect(pathAfterAuth).toHaveBeenCalledWith("/organizations");
 });
 
 test("auth callback recovery skips the organization gate", async () => {

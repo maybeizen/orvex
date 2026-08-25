@@ -48,7 +48,7 @@ export function ResetPasswordForm() {
     try {
       await getBrowserAuth().updatePassword(password);
       toast.success("Password updated");
-      void navigate("/dashboard");
+      void navigate("/organizations");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to update password";
