@@ -34,7 +34,7 @@ test("account shell has header chrome without product nav", () => {
     screen.getByRole("button", { name: "Account menu for @ada" }),
   ).toBeInTheDocument();
   expect(
-    screen.queryByRole("link", { name: "Uptime monitors" }),
+    screen.queryByRole("link", { name: "Uptime Monitors" }),
   ).not.toBeInTheDocument();
   expect(
     screen.queryByRole("link", { name: "Settings" }),

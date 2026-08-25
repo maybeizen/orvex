@@ -12,8 +12,8 @@ test("orgWorkspacePath builds a slug-scoped product path", () => {
   expect(orgWorkspacePath("acme", "monitors")).toBe(
     "/organizations/acme/monitors",
   );
-  expect(orgWorkspacePath("acme", "support/docs")).toBe(
-    "/organizations/acme/support/docs",
+  expect(orgWorkspacePath("acme", "contact-lists")).toBe(
+    "/organizations/acme/contact-lists",
   );
 });
 
@@ -21,8 +21,8 @@ test("switchOrgPath keeps the rest of the org page when possible", () => {
   expect(switchOrgPath("/organizations/acme/monitors", "globex")).toBe(
     "/organizations/globex/monitors",
   );
-  expect(switchOrgPath("/organizations/acme/support/docs", "globex")).toBe(
-    "/organizations/globex/support/docs",
+  expect(switchOrgPath("/organizations/acme/changelog", "globex")).toBe(
+    "/organizations/globex/changelog",
   );
   expect(switchOrgPath("/organizations", "globex")).toBe(
     "/organizations/globex/dashboard",
