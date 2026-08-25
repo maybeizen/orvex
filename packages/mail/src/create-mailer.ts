@@ -4,7 +4,9 @@ import type { MailMessage } from "@orvex/types";
 import { loadTemplate, renderTemplate } from "./template.js";
 import type { MailSendResult, Mailer, SmtpConfig } from "./types.js";
 
-function isConfigured(config: SmtpConfig): config is SmtpConfig & { host: string } {
+function isConfigured(
+  config: SmtpConfig,
+): config is SmtpConfig & { host: string } {
   return config.host !== undefined && config.host.length > 0;
 }
 

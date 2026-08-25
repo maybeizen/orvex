@@ -23,9 +23,7 @@ function isLogValue(value: unknown): value is LogValue {
     return false;
   }
 
-  return Object.keys(value).every((key) =>
-    isLogValue(Reflect.get(value, key)),
-  );
+  return Object.keys(value).every((key) => isLogValue(Reflect.get(value, key)));
 }
 
 function readString(

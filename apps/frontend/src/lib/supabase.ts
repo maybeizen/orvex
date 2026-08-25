@@ -1,5 +1,6 @@
 import { createBrowserAuth } from "@orvex/auth";
 import { createBrowserSupabaseClient } from "@orvex/db";
+import { isPasskeysEnabled } from "./passkeys";
 
 type BrowserEnv = {
   url: string;
@@ -21,10 +22,7 @@ function readSupabaseEnv(): BrowserEnv | null {
   return { url, anonKey };
 }
 
-let auth:
-  | ReturnType<typeof createBrowserAuth>
-  | null
-  | undefined;
+let auth: ReturnType<typeof createBrowserAuth> | null | undefined;
 
 export function isAuthConfigured(): boolean {
   return readSupabaseEnv() !== null;
@@ -34,7 +32,14 @@ export function getBrowserAuth(): ReturnType<typeof createBrowserAuth> {
   if (auth === undefined) {
     const env = readSupabaseEnv();
     auth =
-      env === null ? null : createBrowserAuth(createBrowserSupabaseClient(env));
+      env === null
+        ? null
+        : createBrowserAuth(
+            createBrowserSupabaseClient({
+              ...env,
+              passkeys: isPasskeysEnabled(),
+            }),
+          );
   }
 
   if (auth === null) {

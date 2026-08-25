@@ -6,7 +6,4 @@ export {
   getUserFromAccessToken,
   requireUser,
 } from "./server-auth.js";
-export type {
-  AuthSessionResult,
-  ServerAuthClient,
-} from "./types.js";
+export type { AuthSessionResult, ServerAuthClient } from "./types.js";

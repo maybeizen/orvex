@@ -7,9 +7,9 @@ export type ServiceSupabaseEnv = {
   serviceRoleKey: string;
 };
 
-export function createServiceSupabaseClient<
-  Schema extends Database = Database,
->(env: ServiceSupabaseEnv): SupabaseClient<Schema> {
+export function createServiceSupabaseClient<Schema extends Database = Database>(
+  env: ServiceSupabaseEnv,
+): SupabaseClient<Schema> {
   return createClient<Schema>(
     requireConfigValue(env.url, "url"),
     requireConfigValue(env.serviceRoleKey, "serviceRoleKey"),

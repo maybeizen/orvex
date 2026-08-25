@@ -1,11 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { CryptoError, toError } from "./errors.js";
-import {
-  ALGORITHM,
-  IV_LENGTH,
-  TAG_LENGTH,
-  keyBuffer,
-} from "./keys.js";
+import { ALGORITHM, IV_LENGTH, TAG_LENGTH, keyBuffer } from "./keys.js";
 
 export function encrypt(plaintext: string, key: Uint8Array): string {
   try {

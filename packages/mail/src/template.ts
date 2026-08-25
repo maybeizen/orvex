@@ -9,7 +9,9 @@ export function renderTemplate(
   variables: Record<string, string>,
 ): string {
   return html.replaceAll(/\{\{(\w+)\}\}/g, (match, key: string) => {
-    const replacement = Object.hasOwn(variables, key) ? variables[key] : undefined;
+    const replacement = Object.hasOwn(variables, key)
+      ? variables[key]
+      : undefined;
     return replacement === undefined ? match : replacement;
   });
 }

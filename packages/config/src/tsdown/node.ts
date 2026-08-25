@@ -3,7 +3,7 @@ export const nodeLibrary = {
   platform: "node" as const,
   format: ["esm" as const],
   dts: true,
-  clean: true,
+  clean: false,
   minify: process.env.NODE_ENV === "production",
   sourcemap: true,
   treeshake: true,

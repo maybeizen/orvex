@@ -1,0 +1,37 @@
+---
+description: PRs must pass unit tests, formatting, typecheck, and build before merging to main
+alwaysApply: true
+---
+
+# PR quality gates
+
+Never merge into `main` unless every gate below is green. Failures are blocking: fix, commit, re-run. Do not merge a red, skipped, or unverified PR.
+
+## Required gates
+
+From the repo root, after the last change and before merge:
+
+```
+pnpm test
+pnpm exec prettier --check .
+pnpm lint
+pnpm typecheck
+pnpm build
+```
+
+All must exit 0.
+
+- **Unit tests** (`pnpm test`): every package/app suite passes. Do not skip tests, delete assertions to go green, or use `--no-verify`.
+- **Formatting** (`pnpm exec prettier --check .` and `pnpm lint`): no prettier drift and no eslint failures. Apply `pnpm exec prettier --write .`, then lint, then commit.
+- **Types** (`pnpm typecheck`): clean typecheck.
+- **Build** (`pnpm build`): production build succeeds.
+
+If GitHub checks cover any of these (or **Supabase Preview** when `supabase/**` changed), wait until they pass. Local green does not excuse a failing required CI check.
+
+```
+# ❌ BAD — merge while a gate is red or unrun
+gh pr merge
+
+# ✅ GOOD — every command exits 0 and required CI is green, then merge
+pnpm test && pnpm exec prettier --check . && pnpm lint && pnpm typecheck && pnpm build
+```

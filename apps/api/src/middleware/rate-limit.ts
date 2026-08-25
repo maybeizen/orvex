@@ -97,9 +97,13 @@ class CacheRateLimitStore implements Store {
   }
 }
 
-export function createRateLimitMiddleware(cache: CacheClient) {
-  const windowMs = 60_000;
-  const limit = 120;
+export function createRateLimitMiddleware(
+  cache: CacheClient,
+  options?: { windowMs?: number; limit?: number; prefix?: string },
+) {
+  const windowMs = options?.windowMs ?? 60_000;
+  const limit = options?.limit ?? 120;
+  const prefix = options?.prefix ?? "rl:";
 
   if (cache instanceof RedisCache) {
     return rateLimit({
@@ -107,7 +111,7 @@ export function createRateLimitMiddleware(cache: CacheClient) {
       limit,
       standardHeaders: "draft-8",
       legacyHeaders: false,
-      store: new CacheRateLimitStore(cache),
+      store: new CacheRateLimitStore(cache, prefix),
     });
   }
 

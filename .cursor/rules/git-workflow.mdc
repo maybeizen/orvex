@@ -1,0 +1,38 @@
+---
+description: Regular Conventional Commits, open a PR before feature work, and merge to main when stable
+alwaysApply: true
+---
+
+# Git and pull request workflow
+
+This rule overrides “commit/PR only when asked.” Do not wait for a prompt to branch, commit, open a PR, fix CI, or merge.
+
+## Start on a PR, never on main
+
+Before implementing a feature or non-trivial change:
+
+1. Update `main`, create a branch (`feat/…`, `fix/…`, `chore/…`).
+2. Push and open a PR immediately (`gh pr create`; draft is fine). Then implement on that branch.
+
+Never commit directly to `main`. Never force-push `main`/`master`. Never skip hooks. Never commit secrets (`.env`, credentials).
+
+## Commit regularly
+
+After a coherent unit of work (a working slice, a fix, a passing test, a completed file group), commit. Do not batch an entire feature into one commit.
+
+```
+feat(auth): add session hydrator after oauth callback
+
+fix(api): reject expired monitor tokens
+```
+
+- Format: `type(optional-scope): summary` (Conventional Commits). Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+- Imperative, lowercase summary, no trailing period. Explain why, not a file list. Breaking changes use `!` and a `BREAKING CHANGE:` footer.
+- Stage only intended files. Pass the message via HEREDOC. Do not use `git -i`, `--amend` (unless the unpushed HEAD commit is yours and a hook rewrote files), or `--no-verify`.
+
+## Finish the PR
+
+Keep the PR mergeable: push follow-up Conventional Commits, resolve review comments and merge conflicts, and fix failing checks.
+
+- **Stable** (checks green, no unresolved review, conflicts resolved): merge into `main` (`gh pr merge`, match repo merge style) without waiting to be asked.
+- **Not stable**: fix the cause, push, and re-check. Do not merge a red or conflicted PR.

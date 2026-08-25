@@ -1,30 +1,30 @@
 import { Link } from "react-router";
 import { LoginForm } from "@/components/auth/login-form";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { isPasskeysEnabled } from "@/lib/passkeys";
 
 export function LoginPage() {
   return (
-    <div className="flex min-h-svh items-center justify-center px-6">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Sign in</CardTitle>
-          <CardDescription>
-            Use your Supabase account. Need the shell instead?{" "}
-            <Link className="text-primary underline-offset-4 hover:underline" to="/">
-              Back home
-            </Link>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LoginForm />
-        </CardContent>
-      </Card>
-    </div>
+    <AuthShell
+      title="Sign in"
+      description={
+        isPasskeysEnabled()
+          ? "Use email, a passkey, Google, or GitHub. Two-factor follows if the account requires it."
+          : "Use email, Google, or GitHub. Two-factor follows if the account requires it."
+      }
+      footer={
+        <p className="text-center text-sm text-muted-foreground">
+          No account?{" "}
+          <Link
+            className="text-foreground underline-offset-4 hover:underline"
+            to="/register"
+          >
+            Create one
+          </Link>
+        </p>
+      }
+    >
+      <LoginForm />
+    </AuthShell>
   );
 }

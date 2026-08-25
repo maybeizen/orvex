@@ -9,7 +9,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "dev": "tsx watch src/index.ts",
@@ -24,17 +26,22 @@
     "@orvex/db": "workspace:*",
     "@orvex/logger": "workspace:*",
     "@orvex/types": "workspace:*",
+    "@supabase/supabase-js": "catalog:",
     "@trpc/server": "catalog:",
     "cors": "catalog:",
     "express": "catalog:",
     "express-rate-limit": "catalog:",
+    "file-type": "^22.0.2",
     "helmet": "catalog:",
+    "multer": "^2.2.0",
+    "sharp": "^0.35.3",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@orvex/config": "workspace:*",
     "@types/cors": "catalog:",
     "@types/express": "catalog:",
+    "@types/multer": "^2.2.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "jiti": "catalog:",
