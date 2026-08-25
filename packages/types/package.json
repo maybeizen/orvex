@@ -11,6 +11,10 @@
     "./plans": {
       "types": "./dist/plans.d.ts",
       "import": "./dist/plans.js"
+    },
+    "./permissions": {
+      "types": "./dist/permissions.d.ts",
+      "import": "./dist/permissions.js"
     }
   },
   "files": [

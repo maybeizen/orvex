@@ -3,6 +3,7 @@ import { RequireOrgSlug } from "@/components/auth/require-org-slug";
 import { RequireOrganization } from "@/components/auth/require-organization";
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountShell, OrgHomeShell } from "@/components/layout/header-shell";
+import { ORG_NAV_LEGACY_SEGMENTS, orgNavSegments } from "@/lib/org-nav";
 import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 import { AuthCallbackPage } from "@/routes/auth-callback-page";
 import { DashboardPage } from "@/routes/dashboard-page";
@@ -19,14 +20,25 @@ import { SettingsPage } from "@/routes/settings-page";
 import { TermsPage } from "@/routes/terms-page";
 import { TwoFactorPage } from "@/routes/two-factor-page";
 import {
-  ChangelogPage,
-  ContactsPage,
-  DocsPage,
-  MonitorsPage,
-  SupportEmailPage,
-  WhiteLabelPage,
+  WorkspaceComingSoonPage,
+  LegacyOrgSegmentRedirect,
 } from "@/routes/workspace-pages";
 import { Providers } from "./providers";
+
+const orgWorkspaceRoutes = [
+  {
+    path: "/organizations/:slug/dashboard",
+    element: <DashboardPage />,
+  },
+  ...orgNavSegments().map((segment) => ({
+    path: `/organizations/:slug/${segment}`,
+    element: <WorkspaceComingSoonPage segment={segment} />,
+  })),
+  ...Object.entries(ORG_NAV_LEGACY_SEGMENTS).map(([from, to]) => ({
+    path: `/organizations/:slug/${from}`,
+    element: <LegacyOrgSegmentRedirect to={to} />,
+  })),
+];
 
 export const router = createBrowserRouter([
   {
@@ -62,36 +74,7 @@ export const router = createBrowserRouter([
             </RequireOrgSlug>
           </RequireOrganization>
         ),
-        children: [
-          {
-            path: "/organizations/:slug/dashboard",
-            element: <DashboardPage />,
-          },
-          {
-            path: "/organizations/:slug/monitors",
-            element: <MonitorsPage />,
-          },
-          {
-            path: "/organizations/:slug/white-label",
-            element: <WhiteLabelPage />,
-          },
-          {
-            path: "/organizations/:slug/contacts",
-            element: <ContactsPage />,
-          },
-          {
-            path: "/organizations/:slug/support/changelog",
-            element: <ChangelogPage />,
-          },
-          {
-            path: "/organizations/:slug/support/docs",
-            element: <DocsPage />,
-          },
-          {
-            path: "/organizations/:slug/support/email",
-            element: <SupportEmailPage />,
-          },
-        ],
+        children: orgWorkspaceRoutes,
       },
       {
         element: <AccountShell />,

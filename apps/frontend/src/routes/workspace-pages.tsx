@@ -1,13 +1,15 @@
+import { Navigate, useParams } from "react-router";
 import { RequireSession } from "@/components/auth/require-session";
 import { ComingSoon } from "@/components/workspace/coming-soon";
+import { findOrgNavItem, ORG_NAV_COPY } from "@/lib/org-nav";
+import { orgWorkspacePath } from "@/lib/org-paths";
 
-function WorkspaceComingSoon({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
+export function WorkspaceComingSoonPage({ segment }: { segment: string }) {
+  const item = findOrgNavItem(segment);
+  const title = item?.label ?? "Workspace";
+  const description =
+    ORG_NAV_COPY[segment] ?? "This page is not available yet.";
+
   return (
     <RequireSession title={title} description="Sign in to continue.">
       <ComingSoon title={title} description={description} />
@@ -15,56 +17,7 @@ function WorkspaceComingSoon({
   );
 }
 
-export function MonitorsPage() {
-  return (
-    <WorkspaceComingSoon
-      title="Uptime monitors"
-      description="HTTP, TLS, and heartbeat checks will live here."
-    />
-  );
-}
-
-export function WhiteLabelPage() {
-  return (
-    <WorkspaceComingSoon
-      title="White label"
-      description="A branded status page and custom domain will live here."
-    />
-  );
-}
-
-export function ContactsPage() {
-  return (
-    <WorkspaceComingSoon
-      title="Contact lists"
-      description="Notification recipient lists will live here."
-    />
-  );
-}
-
-export function ChangelogPage() {
-  return (
-    <WorkspaceComingSoon
-      title="Changelog"
-      description="Product notes will live here."
-    />
-  );
-}
-
-export function DocsPage() {
-  return (
-    <WorkspaceComingSoon
-      title="Documentation"
-      description="Docs will live here."
-    />
-  );
-}
-
-export function SupportEmailPage() {
-  return (
-    <WorkspaceComingSoon
-      title="Email"
-      description="A support address will live here. This is not a mailbox."
-    />
-  );
+export function LegacyOrgSegmentRedirect({ to }: { to: string }) {
+  const { slug = "" } = useParams();
+  return <Navigate to={orgWorkspacePath(slug, to)} replace />;
 }

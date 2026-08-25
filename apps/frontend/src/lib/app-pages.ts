@@ -1,19 +1,10 @@
 import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
+import { findOrgNavItem } from "@/lib/org-nav";
 
 const PAGE_TITLES: Record<string, string> = {
   "/profile": "Profile",
   "/settings": "Settings",
   [ORGANIZATIONS_HOME]: "Organizations",
-};
-
-const ORG_PAGE_TITLES: Record<string, string> = {
-  dashboard: "Dashboard",
-  monitors: "Uptime monitors",
-  "white-label": "White label",
-  contacts: "Contact lists",
-  "support/changelog": "Changelog",
-  "support/docs": "Documentation",
-  "support/email": "Email",
 };
 
 export function appPageTitle(pathname: string): string {
@@ -24,7 +15,11 @@ export function appPageTitle(pathname: string): string {
 
   const orgMatch = pathname.match(/^\/organizations\/[^/]+\/(.+)$/u);
   if (orgMatch !== null && orgMatch[1] !== undefined) {
-    return ORG_PAGE_TITLES[orgMatch[1]] ?? "Dashboard";
+    const segment = orgMatch[1];
+    if (segment === "dashboard") {
+      return "Dashboard";
+    }
+    return findOrgNavItem(segment)?.label ?? "Dashboard";
   }
 
   const match = Object.keys(PAGE_TITLES).find(

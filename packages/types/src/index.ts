@@ -8,6 +8,7 @@ export type {
   OrganizationPlanId,
   OrganizationRole,
 } from "./organization.js";
+export type { OrganizationPermission } from "./permissions.js";
 export type { MonitorType } from "./monitor.js";
 export type {
   AgentMode,

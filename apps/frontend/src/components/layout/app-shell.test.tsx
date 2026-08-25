@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import type { Organization } from "@orvex/types";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, expect, test } from "vitest";
@@ -19,7 +20,7 @@ const ada = {
   avatarUrl: null,
 };
 
-const acme = {
+const acme: Organization = {
   id: "org-1",
   name: "Acme Desk",
   slug: "acme-desk",
@@ -34,12 +35,15 @@ beforeEach(() => {
   useSidebarStore.setState({ collapsed: false });
 });
 
-function renderShell(path = "/organizations/acme-desk/dashboard") {
+function renderShell(
+  path = "/organizations/acme-desk/dashboard",
+  organization = acme,
+) {
   useSessionStore.setState({ status: "ready", user: ada });
   useOrgStore.setState({
     status: "ready",
-    items: [acme],
-    activeOrganizationId: acme.id,
+    items: [organization],
+    activeOrganizationId: organization.id,
   });
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -47,11 +51,16 @@ function renderShell(path = "/organizations/acme-desk/dashboard") {
         <Route path="/organizations/:slug" element={<AppShell />}>
           <Route path="dashboard" element={<p>Dashboard body</p>} />
           <Route path="monitors" element={<p>Monitors body</p>} />
+          <Route path="status-pages" element={<p>Status pages body</p>} />
+          <Route path="contact-lists" element={<p>Contact lists body</p>} />
+          <Route path="team-members" element={<p>Team body</p>} />
           <Route path="white-label" element={<p>White label body</p>} />
-          <Route path="contacts" element={<p>Contacts body</p>} />
-          <Route path="support/changelog" element={<p>Changelog body</p>} />
-          <Route path="support/docs" element={<p>Docs body</p>} />
-          <Route path="support/email" element={<p>Email body</p>} />
+          <Route path="settings" element={<p>Org settings body</p>} />
+          <Route path="logs" element={<p>Logs body</p>} />
+          <Route path="billing" element={<p>Billing body</p>} />
+          <Route path="support" element={<p>Support body</p>} />
+          <Route path="contact-us" element={<p>Contact body</p>} />
+          <Route path="changelog" element={<p>Changelog body</p>} />
         </Route>
         <Route path="/organizations" element={<p>Org home</p>} />
         <Route path="/profile" element={<p>Profile body</p>} />
@@ -72,30 +81,63 @@ test("app shell keeps the account menu in the sidebar by username", () => {
   expect(screen.queryByText("Theme")).not.toBeInTheDocument();
 });
 
-test("sidebar shows product links and support children, not profile or settings", () => {
+test("sidebar shows categorized product links, not profile", () => {
   renderShell();
 
   const sidebar = document.querySelector("aside");
   expect(sidebar).not.toBeNull();
   const nav = within(sidebar as HTMLElement);
 
-  expect(nav.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+  expect(nav.getByText("Monitoring")).toBeInTheDocument();
+  expect(nav.getByText("Alerts")).toBeInTheDocument();
+  expect(nav.getByText("Organization")).toBeInTheDocument();
+  expect(nav.getByText("Platform")).toBeInTheDocument();
+  expect(nav.getByText("Help")).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Uptime Monitors" })).toHaveAttribute(
     "href",
-    "/organizations/acme-desk/dashboard",
+    "/organizations/acme-desk/monitors",
   );
-  expect(
-    nav.getByRole("link", { name: "Uptime monitors" }),
-  ).toBeInTheDocument();
-  expect(nav.getByRole("link", { name: "White label" })).toBeInTheDocument();
-  expect(nav.getByRole("link", { name: "Contact lists" })).toBeInTheDocument();
-  expect(nav.queryByRole("link", { name: "Profile" })).not.toBeInTheDocument();
-  expect(nav.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
-
-  fireEvent.click(nav.getByRole("button", { name: "Support" }));
-
+  expect(nav.getByRole("link", { name: "Status Pages" })).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Contact Lists" })).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Team Members" })).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "White Label" })).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Settings" })).toHaveAttribute(
+    "href",
+    "/organizations/acme-desk/settings",
+  );
+  expect(nav.getByRole("link", { name: "Logs" })).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Billing" })).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Support" })).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Contact Us" })).toBeInTheDocument();
   expect(nav.getByRole("link", { name: "Changelog" })).toBeInTheDocument();
-  expect(nav.getByRole("link", { name: "Documentation" })).toBeInTheDocument();
-  expect(nav.getByRole("link", { name: "Email" })).toBeInTheDocument();
+  expect(nav.queryByRole("link", { name: "Profile" })).not.toBeInTheDocument();
+  expect(
+    nav.queryByRole("link", { name: "Dashboard" }),
+  ).not.toBeInTheDocument();
+});
+
+test("member role hides owner-only sidebar items", () => {
+  renderShell("/organizations/acme-desk/dashboard", {
+    ...acme,
+    role: "member",
+  });
+
+  const sidebar = document.querySelector("aside");
+  expect(sidebar).not.toBeNull();
+  const nav = within(sidebar as HTMLElement);
+
+  expect(
+    nav.getByRole("link", { name: "Uptime Monitors" }),
+  ).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Settings" })).toBeInTheDocument();
+  expect(
+    nav.queryByRole("link", { name: "Team Members" }),
+  ).not.toBeInTheDocument();
+  expect(
+    nav.queryByRole("link", { name: "White Label" }),
+  ).not.toBeInTheDocument();
+  expect(nav.queryByRole("link", { name: "Logs" })).not.toBeInTheDocument();
+  expect(nav.queryByRole("link", { name: "Billing" })).not.toBeInTheDocument();
 });
 
 test("sidebar collapses to icons and keeps accessible names", () => {
@@ -109,11 +151,13 @@ test("sidebar collapses to icons and keeps accessible names", () => {
   const sidebar = document.querySelector("aside");
   expect(sidebar).not.toBeNull();
   expect(
-    within(sidebar as HTMLElement).getByRole("link", { name: "Dashboard" }),
+    within(sidebar as HTMLElement).getByRole("link", {
+      name: "Uptime Monitors",
+    }),
   ).toBeInTheDocument();
   expect(
     within(sidebar as HTMLElement)
-      .getByRole("link", { name: "Dashboard" })
+      .getByRole("link", { name: "Uptime Monitors" })
       .querySelector("span"),
   ).toHaveClass("sr-only");
 });
@@ -126,7 +170,7 @@ test("breadcrumb header shows the organization and current page", () => {
   ).toHaveTextContent("Acme Desk");
   expect(
     screen.getByRole("navigation", { name: "breadcrumb" }),
-  ).toHaveTextContent("Uptime monitors");
+  ).toHaveTextContent("Uptime Monitors");
 });
 
 test("sidebar brand links back to all organizations", () => {
