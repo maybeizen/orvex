@@ -1,8 +1,7 @@
+import type { OrganizationPermission, OrganizationRole } from "@orvex/types";
 import {
   ORGANIZATION_PERMISSION_CATALOG,
-  OrganizationPermission,
   permissionsForRole,
-  type OrganizationRole,
 } from "@orvex/types/permissions";
 import { AccessError } from "./errors.js";
 
