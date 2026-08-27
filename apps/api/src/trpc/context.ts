@@ -1,8 +1,26 @@
+import type { Mailer } from "@orvex/mail";
 import type { AuthUser, Database } from "@orvex/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseBearerToken } from "../utils/bearer.js";
 
 export type DataClient = Pick<SupabaseClient<Database>, "from" | "storage">;
+
+export type StepUpVerifier = {
+  listVerifiedTotpFactorIds(userId: string): Promise<string[]>;
+  verifyTotp(
+    accessToken: string,
+    factorId: string,
+    code: string,
+  ): Promise<boolean>;
+  verifyPassword(email: string, password: string): Promise<boolean>;
+};
+
+export type AuthDirectory = {
+  getUserById(userId: string): Promise<{
+    email: string;
+    emailConfirmedAt: string | null;
+  } | null>;
+};
 
 export type ContextRequest = {
   headers: {
@@ -14,6 +32,11 @@ export type Context = {
   user: AuthUser | null;
   req: ContextRequest;
   supabase: DataClient;
+  mailer: Mailer;
+  frontendOrigin: string;
+  accessToken: string | null;
+  authDirectory: AuthDirectory;
+  stepUp: StepUpVerifier;
 };
 
 export type ServerAuth = {
@@ -23,6 +46,10 @@ export type ServerAuth = {
 export type ContextDeps = {
   auth: ServerAuth;
   supabase: DataClient;
+  mailer: Mailer;
+  frontendOrigin: string;
+  authDirectory: AuthDirectory;
+  stepUp: StepUpVerifier;
 };
 
 export function createContext(deps: ContextDeps) {
@@ -33,6 +60,15 @@ export function createContext(deps: ContextDeps) {
         ? null
         : await deps.auth.getUserFromAccessToken(accessToken);
 
-    return { user, req, supabase: deps.supabase };
+    return {
+      user,
+      req,
+      supabase: deps.supabase,
+      mailer: deps.mailer,
+      frontendOrigin: deps.frontendOrigin,
+      accessToken,
+      authDirectory: deps.authDirectory,
+      stepUp: deps.stepUp,
+    };
   };
 }

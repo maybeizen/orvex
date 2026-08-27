@@ -20,6 +20,9 @@ export type Organization = {
   planId: OrganizationPlanId;
   billingStatus: OrganizationBillingStatus;
   role: OrganizationRole;
+  permissionMask: string;
+  accessMode: OrganizationAccessMode;
+  memberStatus: OrganizationMemberStatus;
 };
 
 export type OrganizationMember = {

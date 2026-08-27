@@ -26,6 +26,7 @@
     "@orvex/cache": "workspace:*",
     "@orvex/db": "workspace:*",
     "@orvex/logger": "workspace:*",
+    "@orvex/mail": "workspace:*",
     "@orvex/types": "workspace:*",
     "@supabase/supabase-js": "catalog:",
     "@trpc/server": "catalog:",

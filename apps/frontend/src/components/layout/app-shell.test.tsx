@@ -29,6 +29,9 @@ const acme: Organization = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  permissionMask: "6356955",
+  accessMode: "preset" as const,
+  memberStatus: "active" as const,
 };
 
 beforeEach(() => {

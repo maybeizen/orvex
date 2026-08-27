@@ -229,6 +229,9 @@ importers:
       '@orvex/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@orvex/mail':
+        specifier: workspace:*
+        version: link:../../packages/mail
       '@orvex/types':
         specifier: workspace:*
         version: link:../../packages/types

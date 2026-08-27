@@ -33,6 +33,9 @@ const acme = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  permissionMask: "6356955",
+  accessMode: "preset" as const,
+  memberStatus: "active" as const,
 };
 
 const globex = {
@@ -44,6 +47,9 @@ const globex = {
   planId: "sentinel" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  permissionMask: "6356955",
+  accessMode: "preset" as const,
+  memberStatus: "active" as const,
 };
 
 beforeEach(() => {

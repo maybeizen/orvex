@@ -27,6 +27,16 @@ export const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   REDIS_URL: z.preprocess(emptyToUndefined, z.url().optional()),
   FRONTEND_ORIGIN: z.url(),
+  SMTP_HOST: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  SMTP_PORT: z.preprocess((value) => {
+    if (value === undefined || value === "") {
+      return undefined;
+    }
+    return typeof value === "number" ? value : Number(value);
+  }, z.number().int().positive().optional()),
+  SMTP_USER: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  SMTP_PASS: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  SMTP_FROM: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;
