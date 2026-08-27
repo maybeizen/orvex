@@ -21,6 +21,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@orvex/access": "workspace:*",
     "@orvex/auth": "workspace:*",
     "@orvex/cache": "workspace:*",
     "@orvex/db": "workspace:*",

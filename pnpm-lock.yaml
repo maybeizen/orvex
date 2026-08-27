@@ -214,6 +214,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@orvex/access':
+        specifier: workspace:*
+        version: link:../../packages/access
       '@orvex/auth':
         specifier: workspace:*
         version: link:../../packages/auth

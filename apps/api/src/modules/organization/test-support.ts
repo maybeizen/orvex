@@ -1,4 +1,5 @@
 import type { AuthUser, Database } from "@orvex/types";
+import { presetPermissionMask } from "@orvex/access";
 import type {
   OrganizationClient,
   OrganizationMemberRow,
@@ -67,6 +68,11 @@ export function memberRow(
     organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     user_id: orgTestUser.id,
     role: "owner",
+    permission_mask: presetPermissionMask("owner"),
+    access_mode: "preset",
+    status: "active",
+    locked_at: null,
+    locked_by: null,
     created_at: NOW,
     ...overrides,
   };
@@ -296,10 +302,21 @@ export function createOrganizationMemory(initial?: {
             };
           }
         }
+        const role = readString(body, "role", "member");
+        const presetRole =
+          role === "owner" || role === "admin" ? role : "member";
         const row = memberRow({
           organization_id: organizationId,
           user_id: readString(body, "user_id"),
-          role: readString(body, "role", "member"),
+          role,
+          permission_mask:
+            typeof body.permission_mask === "string"
+              ? body.permission_mask
+              : presetPermissionMask(presetRole),
+          access_mode: body.access_mode === "custom" ? "custom" : "preset",
+          status: body.status === "locked" ? "locked" : "active",
+          locked_at: typeof body.locked_at === "string" ? body.locked_at : null,
+          locked_by: typeof body.locked_by === "string" ? body.locked_by : null,
         });
         members.push(row);
         return { data: row, error: null };
