@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { presetPermissionMask } from "@orvex/access";
 import type { Organization } from "@orvex/types";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -29,7 +30,7 @@ const acme: Organization = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
-  permissionMask: "6356955",
+  permissionMask: presetPermissionMask("owner"),
   accessMode: "preset" as const,
   memberStatus: "active" as const,
 };
@@ -123,6 +124,7 @@ test("member role hides edit-only sidebar items", () => {
   renderShell("/organizations/acme-desk/dashboard", {
     ...acme,
     role: "member",
+    permissionMask: presetPermissionMask("member"),
   });
 
   const sidebar = document.querySelector("aside");

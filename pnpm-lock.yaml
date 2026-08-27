@@ -305,6 +305,9 @@ importers:
       '@fontsource-variable/geist-mono':
         specifier: 'catalog:'
         version: 5.3.0
+      '@orvex/access':
+        specifier: workspace:*
+        version: link:../../packages/access
       '@orvex/api':
         specifier: workspace:*
         version: link:../api

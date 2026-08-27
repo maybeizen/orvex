@@ -17,6 +17,7 @@ import { ProfilePage } from "@/routes/profile-page";
 import { RegisterPage } from "@/routes/register-page";
 import { ResetPasswordPage } from "@/routes/reset-password-page";
 import { SettingsPage } from "@/routes/settings-page";
+import { TeamMembersPage } from "@/routes/team-members-page";
 import { TermsPage } from "@/routes/terms-page";
 import { TwoFactorPage } from "@/routes/two-factor-page";
 import {
@@ -25,12 +26,20 @@ import {
 } from "@/routes/workspace-pages";
 import { Providers } from "./providers";
 
+const comingSoonSegments = orgNavSegments().filter(
+  (segment) => segment !== "team-members",
+);
+
 const orgWorkspaceRoutes = [
   {
     path: "/organizations/:slug/dashboard",
     element: <DashboardPage />,
   },
-  ...orgNavSegments().map((segment) => ({
+  {
+    path: "/organizations/:slug/team-members",
+    element: <TeamMembersPage />,
+  },
+  ...comingSoonSegments.map((segment) => ({
     path: `/organizations/:slug/${segment}`,
     element: <WorkspaceComingSoonPage segment={segment} />,
   })),
