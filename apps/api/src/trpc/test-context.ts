@@ -11,8 +11,8 @@ import type { DataClient } from "./context.js";
 const req: ContextRequest = { headers: {} };
 
 export const silentMailer: Mailer = {
-  async send() {
-    return { skipped: true };
+  send() {
+    return Promise.resolve({ skipped: true });
   },
 };
 

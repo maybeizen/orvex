@@ -4,18 +4,40 @@ import type { Database } from "@orvex/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuthDirectory, StepUpVerifier } from "../../trpc/context.js";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function verifiedTotpIds(data: unknown): string[] {
+  if (!isRecord(data)) {
+    return [];
+  }
+  const totp: unknown[] = Array.isArray(data.totp) ? data.totp : [];
+  const ids: string[] = [];
+  for (const entry of totp) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    if (entry.status === "verified" && typeof entry.id === "string") {
+      ids.push(entry.id);
+    }
+  }
+  return ids;
+}
+
 export function createAuthDirectory(
   supabase: SupabaseClient<Database>,
 ): AuthDirectory {
   return {
     async getUserById(userId) {
-      const { data, error } = await supabase.auth.admin.getUserById(userId);
-      if (error !== null || data.user === null) {
+      const result = await supabase.auth.admin.getUserById(userId);
+      const user = result.data.user;
+      if (result.error || !user) {
         return null;
       }
       return {
-        email: data.user.email ?? "",
-        emailConfirmedAt: data.user.email_confirmed_at ?? null,
+        email: user.email ?? "",
+        emailConfirmedAt: user.email_confirmed_at ?? null,
       };
     },
   };
@@ -28,15 +50,13 @@ export function createStepUpVerifier(env: {
 }): StepUpVerifier {
   return {
     async listVerifiedTotpFactorIds(userId) {
-      const { data, error } = await env.supabase.auth.admin.mfa.listFactors({
+      const result = await env.supabase.auth.admin.mfa.listFactors({
         userId,
       });
-      if (error !== null || data === null) {
+      if (result.error) {
         return [];
       }
-      return data.totp
-        .filter((factor) => factor.status === "verified")
-        .map((factor) => factor.id);
+      return verifiedTotpIds(result.data);
     },
     async verifyTotp(accessToken, factorId, code) {
       const userClient = createUserSupabaseClient({
@@ -45,7 +65,7 @@ export function createStepUpVerifier(env: {
         accessToken,
       });
       const challenge = await userClient.auth.mfa.challenge({ factorId });
-      if (challenge.error !== null || challenge.data === null) {
+      if (challenge.error) {
         return false;
       }
       const verified = await userClient.auth.mfa.verify({

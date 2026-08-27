@@ -37,9 +37,9 @@ function recordingMailer(): { mailer: Mailer; sent: MailMessage[] } {
   return {
     sent,
     mailer: {
-      async send(message) {
+      send(message) {
         sent.push(message);
-        return { skipped: true };
+        return Promise.resolve({ skipped: true as const });
       },
     },
   };
