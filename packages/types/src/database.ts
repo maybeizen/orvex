@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15";
+    PostgrestVersion: "14.17";
   };
   graphql_public: {
     Tables: {
@@ -39,23 +39,88 @@ export type Database = {
   };
   public: {
     Tables: {
+      organization_invites: {
+        Row: {
+          accepted_at: string | null;
+          access_mode: string;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string;
+          organization_id: string;
+          permission_mask: string;
+          preset_role: string | null;
+          token_hash: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          access_mode: string;
+          created_at?: string;
+          email: string;
+          expires_at: string;
+          id?: string;
+          invited_by: string;
+          organization_id: string;
+          permission_mask: string;
+          preset_role?: string | null;
+          token_hash: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          access_mode?: string;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string;
+          organization_id?: string;
+          permission_mask?: string;
+          preset_role?: string | null;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "organization_invites_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       organization_members: {
         Row: {
+          access_mode: string;
           created_at: string;
+          locked_at: string | null;
+          locked_by: string | null;
           organization_id: string;
+          permission_mask: string;
           role: string;
+          status: string;
           user_id: string;
         };
         Insert: {
+          access_mode: string;
           created_at?: string;
+          locked_at?: string | null;
+          locked_by?: string | null;
           organization_id: string;
+          permission_mask: string;
           role: string;
+          status: string;
           user_id: string;
         };
         Update: {
+          access_mode?: string;
           created_at?: string;
+          locked_at?: string | null;
+          locked_by?: string | null;
           organization_id?: string;
+          permission_mask?: string;
           role?: string;
+          status?: string;
           user_id?: string;
         };
         Relationships: [

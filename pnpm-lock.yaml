@@ -214,6 +214,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@orvex/access':
+        specifier: workspace:*
+        version: link:../../packages/access
       '@orvex/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -226,6 +229,9 @@ importers:
       '@orvex/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@orvex/mail':
+        specifier: workspace:*
+        version: link:../../packages/mail
       '@orvex/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -299,6 +305,9 @@ importers:
       '@fontsource-variable/geist-mono':
         specifier: 'catalog:'
         version: 5.3.0
+      '@orvex/access':
+        specifier: workspace:*
+        version: link:../../packages/access
       '@orvex/api':
         specifier: workspace:*
         version: link:../api
@@ -411,6 +420,31 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@22.20.1)(jsdom@26.1.0)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+
+  packages/access:
+    dependencies:
+      '@orvex/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@orvex/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.20.1
+      eslint:
+        specifier: 'catalog:'
+        version: 10.9.0(jiti@2.7.0)
+      jiti:
+        specifier: 'catalog:'
+        version: 2.7.0
+      tsdown:
+        specifier: 'catalog:'
+        version: 0.22.14(tsx@4.23.12)(typescript@7.0.2)
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@types/node@22.20.1)(jsdom@26.1.0)(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))

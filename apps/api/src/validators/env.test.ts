@@ -17,6 +17,11 @@ test("loadEnv parses required fields and port", () => {
   expect(env.FRONTEND_ORIGIN).toEqual("http://localhost:5173");
 });
 
+test("loadEnv allows omitted smtp fields", () => {
+  const env = loadEnv(valid);
+  expect(env.SMTP_HOST).toBeUndefined();
+});
+
 test("loadEnv defaults port when PORT is omitted", () => {
   const { PORT: _port, ...rest } = valid;
   const env = loadEnv(rest);

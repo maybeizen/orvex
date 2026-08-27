@@ -1,0 +1,34 @@
+{
+  "name": "@orvex/access",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "dev": "tsdown --watch",
+    "build": "pnpm clean && tsdown",
+    "lint": "eslint .",
+    "typecheck": "orvex-tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@orvex/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@orvex/config": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "jiti": "catalog:",
+    "tsdown": "catalog:",
+    "vitest": "catalog:"
+  }
+}

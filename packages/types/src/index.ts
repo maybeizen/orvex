@@ -3,8 +3,12 @@ export type { AuthUser } from "./auth.js";
 export type { User } from "./user.js";
 export type {
   Organization,
+  OrganizationAccessMode,
   OrganizationBillingStatus,
+  OrganizationInvite,
   OrganizationKind,
+  OrganizationMember,
+  OrganizationMemberStatus,
   OrganizationPlanId,
   OrganizationRole,
 } from "./organization.js";

@@ -4,11 +4,13 @@ import { useOrgStore } from "@/stores/org-store";
 
 const listQuery = vi.fn();
 const meQuery = vi.fn();
+const claimPending = vi.fn();
 
 vi.mock("@/lib/trpc", () => ({
   createVanillaTrpcClient: () => ({
     organization: {
       list: { query: listQuery },
+      invites: { claimPending: { mutate: claimPending } },
     },
     auth: {
       me: { query: meQuery },
@@ -31,6 +33,9 @@ const acme = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  permissionMask: "6356955",
+  accessMode: "preset" as const,
+  memberStatus: "active" as const,
 };
 
 const jwtUser = {
@@ -48,6 +53,8 @@ const jwtUser = {
 beforeEach(() => {
   listQuery.mockReset();
   meQuery.mockReset();
+  claimPending.mockReset();
+  claimPending.mockResolvedValue([]);
   useOrgStore.getState().reset();
 });
 
@@ -116,4 +123,21 @@ test("hydrateSessionUser keeps the jwt user when auth.me fails", async () => {
   meQuery.mockRejectedValue(new Error("offline"));
 
   await expect(hydrateSessionUser(jwtUser)).resolves.toEqual(jwtUser);
+});
+
+test("pathAfterAuth keeps invite return paths even without memberships", async () => {
+  listQuery.mockResolvedValue({ items: [], activeOrganizationId: null });
+  expect(await pathAfterAuth("/invite/tok")).toBe("/invite/tok");
+  expect(claimPending).toHaveBeenCalled();
+});
+
+test("hydrateSessionUser claims pending invites before listing orgs", async () => {
+  listQuery.mockResolvedValue({
+    items: [acme],
+    activeOrganizationId: acme.id,
+  });
+  meQuery.mockResolvedValue(jwtUser);
+  await hydrateSessionUser(jwtUser);
+  expect(claimPending).toHaveBeenCalled();
+  expect(listQuery).toHaveBeenCalled();
 });

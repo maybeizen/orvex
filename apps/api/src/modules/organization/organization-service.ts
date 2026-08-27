@@ -1,3 +1,4 @@
+import { presetPermissionMask } from "@orvex/access";
 import type { AuthUser, Organization } from "@orvex/types";
 import {
   isPaidPlan,
@@ -170,16 +171,25 @@ export async function listOrganizations(
 
   const byId = new Map(orgs.map((org) => [org.id, org]));
   const items = rows.flatMap((membership) => {
+    if (membership.status === "locked") {
+      return [];
+    }
     const org = byId.get(membership.organization_id);
     if (org === undefined) {
       return [];
     }
-    return [toOrganizationDto(supabase, org, membership.role)];
+    return [toOrganizationDto(supabase, org, membership)];
   });
+
+  const storedActive = await fetchActiveOrganizationId(supabase, user.id);
+  const activeOrganizationId =
+    storedActive !== null && items.some((item) => item.id === storedActive)
+      ? storedActive
+      : (items[0]?.id ?? null);
 
   return {
     items,
-    activeOrganizationId: await fetchActiveOrganizationId(supabase, user.id),
+    activeOrganizationId,
   };
 }
 
@@ -229,6 +239,9 @@ export async function createOrganization(
       organization_id: org.id,
       user_id: user.id,
       role: "owner",
+      permission_mask: presetPermissionMask("owner"),
+      access_mode: "preset",
+      status: "active",
     });
 
   if (memberError !== null) {
@@ -249,7 +262,12 @@ export async function createOrganization(
     throwWriteError(profileError, true);
   }
 
-  return toOrganizationDto(supabase, org, "owner");
+  return toOrganizationDto(supabase, org, {
+    role: "owner",
+    permission_mask: presetPermissionMask("owner"),
+    access_mode: "preset",
+    status: "active",
+  });
 }
 
 export async function setActiveOrganization(
@@ -258,7 +276,7 @@ export async function setActiveOrganization(
   organizationId: string,
 ): Promise<OrganizationListDto> {
   const membership = await fetchMembership(supabase, organizationId, user.id);
-  if (membership === null) {
+  if (membership === null || membership.status === "locked") {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "You are not a member of that organization",
@@ -283,7 +301,7 @@ export async function requireOrganizationManager(
   organizationId: string,
 ): Promise<OrganizationMemberRow> {
   const membership = await fetchMembership(supabase, organizationId, user.id);
-  if (membership === null) {
+  if (membership === null || membership.status === "locked") {
     throw new HttpError(403, "You are not a member of that organization");
   }
   if (!canManageOrganization(membership.role)) {
@@ -336,5 +354,5 @@ export async function setOrganizationIcon(
     throwWriteError(error, false);
   }
 
-  return toOrganizationDto(supabase, data, membership.role);
+  return toOrganizationDto(supabase, data, membership);
 }

@@ -10,6 +10,7 @@ import { OrgAvatar } from "@/components/organization/org-avatar";
 import { SidebarTooltip } from "@/components/layout/sidebar-tooltip";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { presetPermissionMask } from "@orvex/access";
 import { visibleOrgNavCategories } from "@/lib/org-nav";
 import { ORGANIZATIONS_HOME, orgWorkspacePath } from "@/lib/org-paths";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
@@ -107,7 +108,9 @@ export function Sidebar() {
   const collapsed = useSidebarStore((state) => state.collapsed);
   const { slug = "" } = useParams();
   const organization = useOrgStore(selectActiveOrganization);
-  const categories = visibleOrgNavCategories(organization?.role ?? "member");
+  const categories = visibleOrgNavCategories(
+    organization?.permissionMask ?? presetPermissionMask("member"),
+  );
 
   return (
     <aside

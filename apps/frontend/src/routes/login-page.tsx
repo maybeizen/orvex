@@ -1,9 +1,11 @@
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { LoginForm } from "@/components/auth/login-form";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { isPasskeysEnabled } from "@/lib/passkeys";
 
 export function LoginPage() {
+  const [searchParams] = useSearchParams();
+  const registerSearch = searchParams.toString();
   return (
     <AuthShell
       title="Sign in"
@@ -17,7 +19,10 @@ export function LoginPage() {
           No account?{" "}
           <Link
             className="text-foreground underline-offset-4 hover:underline"
-            to="/register"
+            to={{
+              pathname: "/register",
+              search: registerSearch,
+            }}
           >
             Create one
           </Link>

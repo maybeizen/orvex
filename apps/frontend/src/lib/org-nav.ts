@@ -1,8 +1,5 @@
-import type { OrganizationRole } from "@orvex/types";
-import {
-  OrganizationPermission,
-  roleHasPermission,
-} from "@orvex/types/permissions";
+import { permissionMaskHas } from "@orvex/access";
+import { OrganizationPermission } from "@orvex/types/permissions";
 import {
   Activity,
   Contact,
@@ -49,7 +46,7 @@ export const ORG_NAV_CATEGORIES: OrgNavCategory[] = [
         label: "Status Pages",
         segment: "status-pages",
         icon: LayoutTemplate,
-        requiredPermission: OrganizationPermission.MonitorViewAll,
+        requiredPermission: OrganizationPermission.StatusPageView,
       },
     ],
   },
@@ -155,16 +152,27 @@ export const ORG_NAV_LEGACY_SEGMENTS: Record<string, string> = {
   "support/email": "contact-us",
 };
 
+function navAllows(
+  permissionMask: string,
+  permission: OrganizationPermission | undefined,
+): boolean {
+  if (permission === undefined) {
+    return true;
+  }
+  try {
+    return permissionMaskHas(permissionMask, permission);
+  } catch {
+    return false;
+  }
+}
+
 export function visibleOrgNavCategories(
-  role: OrganizationRole,
+  permissionMask: string,
 ): OrgNavCategory[] {
   return ORG_NAV_CATEGORIES.flatMap((category) => {
-    const items = category.items.filter((item) => {
-      if (item.requiredPermission === undefined) {
-        return true;
-      }
-      return roleHasPermission(role, item.requiredPermission);
-    });
+    const items = category.items.filter((item) =>
+      navAllows(permissionMask, item.requiredPermission),
+    );
     if (items.length === 0) {
       return [];
     }

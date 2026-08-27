@@ -7,6 +7,10 @@ export type OrganizationBillingStatus =
 
 export type OrganizationRole = "owner" | "admin" | "member";
 
+export type OrganizationAccessMode = "preset" | "custom";
+
+export type OrganizationMemberStatus = "active" | "locked";
+
 export type Organization = {
   id: string;
   name: string;
@@ -16,4 +20,31 @@ export type Organization = {
   planId: OrganizationPlanId;
   billingStatus: OrganizationBillingStatus;
   role: OrganizationRole;
+  permissionMask: string;
+  accessMode: OrganizationAccessMode;
+  memberStatus: OrganizationMemberStatus;
+};
+
+export type OrganizationMember = {
+  userId: string;
+  email: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: OrganizationRole;
+  permissionMask: string;
+  accessMode: OrganizationAccessMode;
+  status: OrganizationMemberStatus;
+  lockedAt: string | null;
+  createdAt: string;
+  emailConfirmedAt: string | null;
+};
+
+export type OrganizationInvite = {
+  id: string;
+  email: string;
+  permissionMask: string;
+  accessMode: OrganizationAccessMode;
+  presetRole: OrganizationRole | null;
+  expiresAt: string;
+  createdAt: string;
 };

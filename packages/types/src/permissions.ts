@@ -8,24 +8,47 @@ export const OrganizationPermission = {
   OrgProfileView: "org.profile_view",
   OrgAuditLogsView: "org.audit_logs_view",
   OrgBillingView: "org.billing_view",
+  MonitorCreate: "monitor.create",
+  MonitorEdit: "monitor.edit",
+  MonitorDelete: "monitor.delete",
+  StatusPageView: "status_page.view",
+  StatusPageEdit: "status_page.edit",
+  AlertChannelEdit: "alert.channel_edit",
+  MemberInvite: "member.invite",
+  MemberManage: "member.manage",
+  OrgBillingManage: "org.billing_manage",
 } as const;
 
 export type OrganizationPermission =
   (typeof OrganizationPermission)[keyof typeof OrganizationPermission];
 
-const MEMBER_PERMISSIONS: ReadonlySet<OrganizationPermission> = new Set([
-  OrganizationPermission.MonitorViewAll,
-  OrganizationPermission.AlertChannelView,
-  OrganizationPermission.OrgProfileView,
-]);
+export const ORGANIZATION_PERMISSION_CATALOG = Object.values(
+  OrganizationPermission,
+) as OrganizationPermission[];
+
+export function isViewPermission(permission: OrganizationPermission): boolean {
+  return permission.includes("view");
+}
+
+export function permissionsForRole(
+  role: OrganizationRole,
+): OrganizationPermission[] {
+  if (role === "owner") {
+    return [...ORGANIZATION_PERMISSION_CATALOG];
+  }
+
+  if (role === "admin") {
+    return ORGANIZATION_PERMISSION_CATALOG.filter(
+      (permission) => permission !== OrganizationPermission.OrgBillingManage,
+    );
+  }
+
+  return ORGANIZATION_PERMISSION_CATALOG.filter(isViewPermission);
+}
 
 export function roleHasPermission(
   role: OrganizationRole,
   permission: OrganizationPermission,
 ): boolean {
-  if (role === "owner" || role === "admin") {
-    return true;
-  }
-
-  return MEMBER_PERMISSIONS.has(permission);
+  return permissionsForRole(role).includes(permission);
 }

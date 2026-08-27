@@ -1,4 +1,5 @@
 /** @vitest-environment jsdom */
+import { presetPermissionMask } from "@orvex/access";
 import type { Organization } from "@orvex/types";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
@@ -29,6 +30,9 @@ const acme: Organization = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  permissionMask: presetPermissionMask("owner"),
+  accessMode: "preset" as const,
+  memberStatus: "active" as const,
 };
 
 beforeEach(() => {
@@ -116,10 +120,11 @@ test("sidebar shows categorized product links, not profile", () => {
   ).not.toBeInTheDocument();
 });
 
-test("member role hides owner-only sidebar items", () => {
+test("member role hides edit-only sidebar items", () => {
   renderShell("/organizations/acme-desk/dashboard", {
     ...acme,
     role: "member",
+    permissionMask: presetPermissionMask("member"),
   });
 
   const sidebar = document.querySelector("aside");
@@ -129,15 +134,13 @@ test("member role hides owner-only sidebar items", () => {
   expect(
     nav.getByRole("link", { name: "Uptime Monitors" }),
   ).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Team Members" })).toBeInTheDocument();
   expect(nav.getByRole("link", { name: "Settings" })).toBeInTheDocument();
-  expect(
-    nav.queryByRole("link", { name: "Team Members" }),
-  ).not.toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Logs" })).toBeInTheDocument();
+  expect(nav.getByRole("link", { name: "Billing" })).toBeInTheDocument();
   expect(
     nav.queryByRole("link", { name: "White Label" }),
   ).not.toBeInTheDocument();
-  expect(nav.queryByRole("link", { name: "Logs" })).not.toBeInTheDocument();
-  expect(nav.queryByRole("link", { name: "Billing" })).not.toBeInTheDocument();
 });
 
 test("sidebar collapses to icons and keeps accessible names", () => {

@@ -30,6 +30,9 @@ const created = {
   planId: "free",
   billingStatus: "active",
   role: "owner",
+  permissionMask: "6356955",
+  accessMode: "preset",
+  memberStatus: "active",
 };
 
 function renderWizard() {

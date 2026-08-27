@@ -1,5 +1,5 @@
 import { useEffect, useState, type SyntheticEvent } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,12 +16,16 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { guardAuthConfigured } from "@/lib/auth-actions";
 import { clearMfaFactorId, getMfaFactorId } from "@/lib/auth-redirect";
+import { authNextPath } from "@/lib/invite-paths";
+import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 import { pathAfterAuth } from "@/lib/post-auth";
 import { getBrowserAuth } from "@/lib/supabase";
 import { useSessionStore } from "@/stores/session-store";
 
 export function TwoFactorForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextPath = authNextPath(searchParams, ORGANIZATIONS_HOME);
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
   const [factorId] = useState(() => getMfaFactorId());
@@ -56,7 +60,7 @@ export function TwoFactorForm() {
       clearMfaFactorId();
       useSessionStore.getState().setSession(result.user);
       toast.success("Signed in");
-      void navigate(await pathAfterAuth());
+      void navigate(await pathAfterAuth(nextPath));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Invalid code";
       toast.error(message);

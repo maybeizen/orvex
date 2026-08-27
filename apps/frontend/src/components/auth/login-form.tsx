@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import type { OAuthProvider } from "@orvex/auth";
 import { Fingerprint } from "lucide-react";
 import { toast } from "sonner";
@@ -22,12 +22,21 @@ import {
   startOAuth,
 } from "@/lib/auth-actions";
 import { isPasskeysEnabled } from "@/lib/passkeys";
+import {
+  authEmailLocked,
+  authNextPath,
+  authPrefillEmail,
+} from "@/lib/invite-paths";
+import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 import { pathAfterAuth } from "@/lib/post-auth";
 import { getBrowserAuth, isAuthConfigured } from "@/lib/supabase";
 
 export function LoginForm() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [searchParams] = useSearchParams();
+  const nextPath = authNextPath(searchParams, ORGANIZATIONS_HOME);
+  const emailLocked = authEmailLocked(searchParams);
+  const [email, setEmail] = useState(() => authPrefillEmail(searchParams));
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const configured = isAuthConfigured();
@@ -35,12 +44,15 @@ export function LoginForm() {
 
   async function finishSignIn(outcome: "mfa" | "signed-in" | null) {
     if (outcome === "mfa") {
-      void navigate("/login/2fa");
+      void navigate({
+        pathname: "/login/2fa",
+        search: searchParams.toString(),
+      });
       return;
     }
     if (outcome === "signed-in") {
       toast.success("Signed in");
-      void navigate(await pathAfterAuth());
+      void navigate(await pathAfterAuth(nextPath));
     }
   }
 
@@ -90,7 +102,7 @@ export function LoginForm() {
   async function onProvider(provider: OAuthProvider) {
     setPending(true);
     try {
-      const redirected = await startOAuth(provider);
+      const redirected = await startOAuth(provider, nextPath);
       if (!redirected) {
         setPending(false);
       }
@@ -143,9 +155,12 @@ export function LoginForm() {
               type="email"
               autoComplete="email"
               required
+              readOnly={emailLocked}
               value={email}
               onChange={(event) => {
-                setEmail(event.target.value);
+                if (!emailLocked) {
+                  setEmail(event.target.value);
+                }
               }}
             />
           </Field>

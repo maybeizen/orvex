@@ -7,10 +7,9 @@ import {
   profileRow,
   testUser,
 } from "../modules/profile/test-support.js";
-import type { ContextRequest } from "./context.js";
 import { appRouter } from "./router.js";
+import { testContext } from "./test-context.js";
 
-const req: ContextRequest = { headers: {} };
 const stubSupabase = {
   from: () => {
     throw new Error("supabase stub");
@@ -23,20 +22,12 @@ const stubSupabase = {
 } as unknown as SupabaseClient<Database>;
 
 test("health.live returns ok", async () => {
-  const caller = appRouter.createCaller({
-    user: null,
-    req,
-    supabase: stubSupabase,
-  });
+  const caller = appRouter.createCaller(testContext(stubSupabase, null));
   await expect(caller.health.live()).resolves.toEqual({ ok: true });
 });
 
 test("auth.me requires a user", async () => {
-  const caller = appRouter.createCaller({
-    user: null,
-    req,
-    supabase: stubSupabase,
-  });
+  const caller = appRouter.createCaller(testContext(stubSupabase, null));
   const error = await caller.auth.me().catch((caught: unknown) => caught);
   expect(error).toBeInstanceOf(TRPCError);
   expect((error as TRPCError).code).toEqual("UNAUTHORIZED");
@@ -47,11 +38,7 @@ test("auth.me returns the current user when profile lookup fails", async () => {
     ...testUser,
     username: null,
   };
-  const caller = appRouter.createCaller({
-    user,
-    req,
-    supabase: stubSupabase,
-  });
+  const caller = appRouter.createCaller(testContext(stubSupabase, user));
   await expect(caller.auth.me()).resolves.toEqual(user);
 });
 
@@ -66,11 +53,9 @@ test("auth.me merges profile fields", async () => {
       updated_at: "2026-08-22T00:00:00.000Z",
     }),
   ]);
-  const caller = appRouter.createCaller({
-    user: { ...testUser, username: null, avatarUrl: null },
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(
+    testContext(supabase, { ...testUser, username: null, avatarUrl: null }),
+  );
 
   const me = await caller.auth.me();
   expect(me.id).toBe(testUser.id);
@@ -85,11 +70,7 @@ test("auth.me merges profile fields", async () => {
 
 test("profile.get creates a missing profile", async () => {
   const { supabase, rows } = createMemorySupabase();
-  const caller = appRouter.createCaller({
-    user: testUser,
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(testContext(supabase, testUser));
 
   const profile = await caller.profile.get();
   expect(profile.username).toBe("ada");
@@ -106,11 +87,7 @@ test("profile.updateIdentity maps unique violations", async () => {
       username: "taken",
     }),
   ]);
-  const caller = appRouter.createCaller({
-    user: testUser,
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(testContext(supabase, testUser));
 
   const error = await caller.profile
     .updateIdentity({ username: "taken" })
@@ -122,11 +99,7 @@ test("profile.updateIdentity maps unique violations", async () => {
 
 test("profile.usernameAvailable excludes self", async () => {
   const { supabase } = createMemorySupabase([profileRow()]);
-  const caller = appRouter.createCaller({
-    user: testUser,
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(testContext(supabase, testUser));
 
   await expect(
     caller.profile.usernameAvailable({ username: "ada" }),
@@ -144,11 +117,7 @@ test("profile.usernameAvailable is false for another account", async () => {
       username: "taken",
     }),
   ]);
-  const caller = appRouter.createCaller({
-    user: testUser,
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(testContext(supabase, testUser));
 
   await expect(
     caller.profile.usernameAvailable({ username: "taken" }),

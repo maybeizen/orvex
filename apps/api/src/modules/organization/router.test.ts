@@ -1,7 +1,8 @@
+import { presetPermissionMask } from "@orvex/access";
 import { TRPCError } from "@trpc/server";
 import { expect, test } from "vitest";
-import type { ContextRequest } from "../../trpc/context.js";
 import { appRouter } from "../../trpc/router.js";
+import { testContext } from "../../trpc/test-context.js";
 import {
   createOrganizationMemory,
   memberRow,
@@ -11,17 +12,11 @@ import {
   profileFixture,
 } from "./test-support.js";
 
-const req: ContextRequest = { headers: {} };
-
 function caller(
   supabase: ReturnType<typeof createOrganizationMemory>["supabase"],
   user = orgTestUser,
 ) {
-  return appRouter.createCaller({
-    user,
-    req,
-    supabase,
-  });
+  return appRouter.createCaller(testContext(supabase, user));
 }
 
 const createFreeInput = {
@@ -200,11 +195,14 @@ test("single orgs cannot add a second member", async () => {
 
   const { error } = await memory.supabase
     .from("organization_members")
-    .insert({
-      organization_id: org.id,
-      user_id: otherUserId,
-      role: "member",
-    })
+    .insert(
+      memberRow({
+        organization_id: org.id,
+        user_id: otherUserId,
+        role: "member",
+        permission_mask: presetPermissionMask("member"),
+      }),
+    )
     .single();
 
   expect(error?.code).toBe("P0001");
