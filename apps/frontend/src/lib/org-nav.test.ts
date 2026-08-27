@@ -36,7 +36,7 @@ test("owners see every categorized item", () => {
   ).toEqual(orgNavSegments().map((segment) => findOrgNavItem(segment)?.id));
 });
 
-test("members keep help and view items but not billing, logs, or team", () => {
+test("members keep view items and help, but not white-label edit", () => {
   const ids = visibleOrgNavCategories("member").flatMap((category) =>
     category.items.map((item) => item.id),
   );
@@ -44,7 +44,10 @@ test("members keep help and view items but not billing, logs, or team", () => {
     "monitors",
     "status-pages",
     "contact-lists",
+    "team-members",
     "settings",
+    "logs",
+    "billing",
     "support",
     "contact-us",
     "changelog",
