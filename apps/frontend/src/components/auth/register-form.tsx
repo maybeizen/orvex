@@ -1,5 +1,5 @@
 import { useState, type SyntheticEvent } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import type { OAuthProvider } from "@orvex/auth";
 import { toast } from "sonner";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
@@ -14,15 +14,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { guardAuthConfigured, startOAuth } from "@/lib/auth-actions";
+import {
+  authEmailLocked,
+  authNextPath,
+  authPrefillEmail,
+} from "@/lib/invite-paths";
+import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 import { pathAfterAuth } from "@/lib/post-auth";
 import { getBrowserAuth, isAuthConfigured } from "@/lib/supabase";
 import { useSessionStore } from "@/stores/session-store";
 
 export function RegisterForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextPath = authNextPath(searchParams, ORGANIZATIONS_HOME);
+  const emailLocked = authEmailLocked(searchParams);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => authPrefillEmail(searchParams));
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [pending, setPending] = useState(false);
@@ -57,12 +66,12 @@ export function RegisterForm() {
       });
       if (result.user === null || result.accessToken === null) {
         toast.success("Check your email to confirm the account");
-        void navigate("/login");
+        void navigate({ pathname: "/login", search: searchParams.toString() });
         return;
       }
       toast.success("Account created");
       useSessionStore.getState().setSession(result.user);
-      void navigate(await pathAfterAuth());
+      void navigate(await pathAfterAuth(nextPath));
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to register";
@@ -80,7 +89,7 @@ export function RegisterForm() {
   async function onProvider(provider: OAuthProvider) {
     setPending(true);
     try {
-      const redirected = await startOAuth(provider);
+      const redirected = await startOAuth(provider, nextPath);
       if (!redirected) {
         setPending(false);
       }
@@ -135,9 +144,12 @@ export function RegisterForm() {
             type="email"
             autoComplete="email"
             required
+            readOnly={emailLocked}
             value={email}
             onChange={(event) => {
-              setEmail(event.target.value);
+              if (!emailLocked) {
+                setEmail(event.target.value);
+              }
             }}
           />
         </Field>

@@ -8,6 +8,7 @@ import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 import { AuthCallbackPage } from "@/routes/auth-callback-page";
 import { DashboardPage } from "@/routes/dashboard-page";
 import { ForgotPasswordPage } from "@/routes/forgot-password-page";
+import { InvitePage } from "@/routes/invite-page";
 import { LandingPage } from "@/routes/landing-page";
 import { LoginPage } from "@/routes/login-page";
 import { OnboardingCheckoutPage } from "@/routes/onboarding-checkout-page";
@@ -60,6 +61,7 @@ export const router = createBrowserRouter([
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
       { path: "/reset-password", element: <ResetPasswordPage /> },
       { path: "/auth/callback", element: <AuthCallbackPage /> },
+      { path: "/invite/:token", element: <InvitePage /> },
       { path: "/onboarding", element: <OnboardingPage /> },
       { path: "/onboarding/checkout", element: <OnboardingCheckoutPage /> },
       { path: "/terms", element: <TermsPage /> },

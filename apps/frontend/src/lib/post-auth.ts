@@ -1,10 +1,16 @@
-import type { AuthUser } from "@orvex/types";
+import type { AuthUser, Organization } from "@orvex/types";
 import { createVanillaTrpcClient } from "@/lib/trpc";
 import { useOrgStore } from "@/stores/org-store";
 import { ORGANIZATIONS_HOME } from "@/lib/org-paths";
 
+async function claimPendingInvites(): Promise<void> {
+  await createVanillaTrpcClient()
+    .organization.invites.claimPending.mutate()
+    .catch(() => undefined);
+}
+
 export async function hydrateOrganizations(): Promise<{
-  items: { id: string }[];
+  items: Organization[];
   activeOrganizationId: string | null;
 }> {
   const result = await createVanillaTrpcClient().organization.list.query();
@@ -18,9 +24,11 @@ export async function hydrateSessionUser(user: AuthUser): Promise<AuthUser> {
     createVanillaTrpcClient()
       .auth.me.query()
       .catch(() => user),
-    hydrateOrganizations().catch(() => {
-      useOrgStore.getState().hydrate([], null);
-    }),
+    claimPendingInvites().then(() =>
+      hydrateOrganizations().catch(() => {
+        useOrgStore.getState().hydrate([], null);
+      }),
+    ),
   ]);
   return nextUser;
 }
@@ -29,8 +37,12 @@ export async function pathAfterAuth(
   intended = ORGANIZATIONS_HOME,
 ): Promise<string> {
   try {
+    await claimPendingInvites();
     const list = await hydrateOrganizations();
     if (intended === "/reset-password") {
+      return intended;
+    }
+    if (intended.startsWith("/invite/")) {
       return intended;
     }
     if (list.items.length === 0) {

@@ -43,14 +43,15 @@ const ada: AuthUser = {
   avatarUrl: null,
 };
 
-function renderLogin() {
+function renderLogin(path = "/login") {
   return render(
-    <MemoryRouter initialEntries={["/login"]}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/login" element={<LoginForm />} />
         <Route path="/login/2fa" element={<p>Two-factor page</p>} />
         <Route path="/organizations" element={<p>Organizations page</p>} />
         <Route path="/onboarding" element={<p>Onboarding page</p>} />
+        <Route path="/invite/:token" element={<p>Invite page</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -145,4 +146,24 @@ test("password sign-in goes to onboarding when the user has no organization", as
 
   expect(await screen.findByText("Onboarding page")).toBeInTheDocument();
   expect(pathAfterAuth).toHaveBeenCalledOnce();
+});
+
+test("invite query prefills a locked email and returns to the invite", async () => {
+  mockAuth.signInWithPassword.mockResolvedValue({
+    user: ada,
+    accessToken: "token",
+    mfaRequired: false,
+    factorId: null,
+  });
+  renderLogin("/login?email=grace%40orvex.dev&lockEmail=1&next=/invite/tok");
+
+  expect(screen.getByLabelText("Email")).toHaveValue("grace@orvex.dev");
+  expect(screen.getByLabelText("Email")).toHaveAttribute("readOnly");
+  fireEvent.change(screen.getByLabelText("Password"), {
+    target: { value: "secret-password" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+  expect(await screen.findByText("Invite page")).toBeInTheDocument();
+  expect(pathAfterAuth).toHaveBeenCalledWith("/invite/tok");
 });
