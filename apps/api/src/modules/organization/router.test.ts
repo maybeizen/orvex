@@ -1,3 +1,4 @@
+import { presetPermissionMask } from "@orvex/access";
 import { TRPCError } from "@trpc/server";
 import { expect, test } from "vitest";
 import { appRouter } from "../../trpc/router.js";
@@ -194,11 +195,14 @@ test("single orgs cannot add a second member", async () => {
 
   const { error } = await memory.supabase
     .from("organization_members")
-    .insert({
-      organization_id: org.id,
-      user_id: otherUserId,
-      role: "member",
-    })
+    .insert(
+      memberRow({
+        organization_id: org.id,
+        user_id: otherUserId,
+        role: "member",
+        permission_mask: presetPermissionMask("member"),
+      }),
+    )
     .single();
 
   expect(error?.code).toBe("P0001");

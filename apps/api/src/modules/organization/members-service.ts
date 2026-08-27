@@ -503,7 +503,10 @@ export async function promoteOwner(
   user: AuthUser,
   organizationId: string,
   targetUserId: string,
-  proof: { totpCode?: string; password?: string },
+  proof: {
+    totpCode?: string | undefined;
+    password?: string | undefined;
+  },
   accessToken: string | null,
 ): Promise<void> {
   const { supabase, authDirectory, stepUp } = deps;
