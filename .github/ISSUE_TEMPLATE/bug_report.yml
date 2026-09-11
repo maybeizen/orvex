@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a defect in Orvex Monitor
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to file a bug. Please fill out the sections below.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: When I do X, Y happens instead of Z.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, ordered steps that reliably reproduce the issue.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - apps/frontend
+        - apps/api
+        - apps/agent
+        - packages/*
+        - supabase / database
+        - tooling / CI
+        - other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser, Node version (`node -v`), pnpm version, Go version (agent), and commit SHA.
+    validations:
+      required: false
