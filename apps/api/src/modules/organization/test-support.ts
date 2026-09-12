@@ -1,6 +1,7 @@
 import type { AuthUser, Database } from "@orvex/types";
 import type {
   OrganizationClient,
+  OrganizationInviteRow,
   OrganizationMemberRow,
   OrganizationRow,
 } from "./organization-dto.js";
@@ -72,6 +73,25 @@ export function memberRow(
   };
 }
 
+export function inviteRow(
+  overrides: Partial<OrganizationInviteRow> = {},
+): OrganizationInviteRow {
+  return {
+    id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    email: "grace@orvex.dev",
+    invited_by: orgTestUser.id,
+    permission_mask: "110947",
+    access_mode: "preset",
+    preset_role: "member",
+    token_hash: "token-hash",
+    expires_at: "2026-12-01T00:00:00.000Z",
+    accepted_at: null,
+    created_at: NOW,
+    ...overrides,
+  };
+}
+
 type QueryResult = {
   data: unknown;
   error: { code?: string; message: string } | null;
@@ -104,17 +124,31 @@ export function createOrganizationMemory(initial?: {
   profiles?: ProfileRow[];
   organizations?: OrganizationRow[];
   members?: OrganizationMemberRow[];
+  invites?: OrganizationInviteRow[];
 }): {
   supabase: OrganizationClient;
   profiles: ProfileRow[];
   organizations: OrganizationRow[];
   members: OrganizationMemberRow[];
+  invites: OrganizationInviteRow[];
   uploads: { bucket: string; path: string; body: Buffer }[];
 } {
   const profiles = [...(initial?.profiles ?? [profileFixture()])];
   const organizations = [...(initial?.organizations ?? [])];
   const members = [...(initial?.members ?? [])];
+  const invites = [...(initial?.invites ?? [])];
   const uploads: { bucket: string; path: string; body: Buffer }[] = [];
+  let inviteSeq = 0;
+
+  function occupied(organizationId: string): number {
+    return (
+      members.filter((row) => row.organization_id === organizationId).length +
+      invites.filter(
+        (row) =>
+          row.organization_id === organizationId && row.accepted_at === null,
+      ).length
+    );
+  }
   let orgSeq = 0;
 
   function nextOrgId(): string {
@@ -265,14 +299,18 @@ export function createOrganizationMemory(initial?: {
   }
 
   function membersBuilder() {
-    let action: "select" | "insert" = "select";
+    let action: "select" | "insert" | "update" | "delete" = "select";
     let payload: Record<string, unknown> | null = null;
-    const filters: Record<string, string> = {};
+    const filters: Record<string, string | string[]> = {};
 
     function matched(): OrganizationMemberRow[] {
       return members.filter((row) => {
         return Object.entries(filters).every(([column, value]) => {
-          return row[column as keyof OrganizationMemberRow] === value;
+          const current = row[column as keyof OrganizationMemberRow];
+          if (Array.isArray(value)) {
+            return value.includes(current);
+          }
+          return current === value;
         });
       });
     }
@@ -282,19 +320,17 @@ export function createOrganizationMemory(initial?: {
         const body = payload ?? {};
         const organizationId = readString(body, "organization_id");
         const org = organizations.find((row) => row.id === organizationId);
-        if (org !== undefined) {
-          const nextCount =
-            members.filter((row) => row.organization_id === organizationId)
-              .length + 1;
-          if (nextCount > seatLimit(org)) {
-            return {
-              data: null,
-              error: {
-                code: "P0001",
-                message: "organization seat limit exceeded",
-              },
-            };
-          }
+        if (
+          org !== undefined &&
+          occupied(organizationId) + 1 > seatLimit(org)
+        ) {
+          return {
+            data: null,
+            error: {
+              code: "P0001",
+              message: "organization seat limit exceeded",
+            },
+          };
         }
         const row = memberRow({
           organization_id: organizationId,
@@ -306,6 +342,21 @@ export function createOrganizationMemory(initial?: {
       }
 
       const found = matched();
+      if (action === "update") {
+        for (const row of found) {
+          Object.assign(row, payload);
+        }
+        return { data: found[0] ?? null, error: null };
+      }
+      if (action === "delete") {
+        for (const row of found) {
+          const index = members.indexOf(row);
+          if (index >= 0) {
+            members.splice(index, 1);
+          }
+        }
+        return { data: found, error: null };
+      }
       if (asList) {
         return { data: found, error: null };
       }
@@ -330,8 +381,21 @@ export function createOrganizationMemory(initial?: {
         payload = body;
         return query;
       },
+      update(body: Record<string, unknown>) {
+        action = "update";
+        payload = body;
+        return query;
+      },
+      delete() {
+        action = "delete";
+        return query;
+      },
       eq(column: string, value: string) {
         filters[column] = value;
+        return query;
+      },
+      in(column: string, values: string[]) {
+        filters[column] = values;
         return query;
       },
       maybeSingle() {
@@ -353,17 +417,21 @@ export function createOrganizationMemory(initial?: {
   function profilesBuilder() {
     let action: "select" | "update" = "select";
     let payload: Record<string, unknown> | null = null;
-    const filters: Record<string, string> = {};
+    const filters: Record<string, string | string[]> = {};
 
     function matched(): ProfileRow[] {
       return profiles.filter((row) => {
         return Object.entries(filters).every(([column, value]) => {
-          return String(row[column as keyof ProfileRow]) === value;
+          const current = row[column as keyof ProfileRow];
+          if (Array.isArray(value)) {
+            return value.includes(String(current));
+          }
+          return String(current) === value;
         });
       });
     }
 
-    function execute(expectOne: boolean): QueryResult {
+    function execute(expectOne: boolean, asList = false): QueryResult {
       const found = matched();
       if (action === "update") {
         const target = found[0];
@@ -379,6 +447,9 @@ export function createOrganizationMemory(initial?: {
           updated_at: new Date().toISOString(),
         });
         return { data: target, error: null };
+      }
+      if (asList) {
+        return { data: found, error: null };
       }
       const first = found[0] ?? null;
       if (expectOne && first === null) {
@@ -405,6 +476,10 @@ export function createOrganizationMemory(initial?: {
         filters[column] = value;
         return query;
       },
+      in(column: string, values: string[]) {
+        filters[column] = values;
+        return query;
+      },
       maybeSingle() {
         return Promise.resolve(execute(false));
       },
@@ -415,7 +490,147 @@ export function createOrganizationMemory(initial?: {
         resolve: (value: QueryResult) => void,
         reject?: (reason: unknown) => void,
       ) {
-        return Promise.resolve(execute(false)).then(resolve, reject);
+        return Promise.resolve(execute(false, true)).then(resolve, reject);
+      },
+    };
+    return query;
+  }
+
+  function invitesBuilder() {
+    let action: "select" | "insert" | "update" | "delete" = "select";
+    let payload: Record<string, unknown> | null = null;
+    const filters: Record<string, string | null | string[]> = {};
+
+    function matched(): OrganizationInviteRow[] {
+      return invites.filter((row) => {
+        return Object.entries(filters).every(([column, value]) => {
+          const current = row[column as keyof OrganizationInviteRow];
+          if (value === null) {
+            return current === null;
+          }
+          if (Array.isArray(value)) {
+            return value.includes(String(current));
+          }
+          return String(current) === value;
+        });
+      });
+    }
+
+    function execute(expectOne: boolean, asList = false): QueryResult {
+      if (action === "insert") {
+        const body = payload ?? {};
+        const organizationId = readString(body, "organization_id");
+        const email = readString(body, "email").toLowerCase();
+        const org = organizations.find((row) => row.id === organizationId);
+        if (
+          org !== undefined &&
+          occupied(organizationId) + 1 > seatLimit(org)
+        ) {
+          return {
+            data: null,
+            error: {
+              code: "P0001",
+              message: "organization seat limit exceeded",
+            },
+          };
+        }
+        if (
+          invites.some(
+            (row) =>
+              row.organization_id === organizationId &&
+              row.email.toLowerCase() === email &&
+              row.accepted_at === null,
+          )
+        ) {
+          return {
+            data: null,
+            error: { code: "23505", message: "duplicate pending invite" },
+          };
+        }
+        inviteSeq += 1;
+        const row = inviteRow({
+          id: `dddddddd-dddd-4ddd-8ddd-${String(inviteSeq).padStart(12, "0")}`,
+          organization_id: organizationId,
+          email,
+          invited_by: readString(body, "invited_by", orgTestUser.id),
+          permission_mask: readString(body, "permission_mask", "110947"),
+          access_mode: readString(body, "access_mode", "preset"),
+          preset_role: readString(body, "preset_role", "member"),
+          token_hash: readString(body, "token_hash"),
+          expires_at: readString(body, "expires_at"),
+        });
+        invites.push(row);
+        return { data: row, error: null };
+      }
+
+      const found = matched();
+      if (action === "update") {
+        for (const row of found) {
+          Object.assign(row, payload);
+        }
+        return { data: found[0] ?? null, error: null };
+      }
+      if (action === "delete") {
+        for (const row of found) {
+          const index = invites.indexOf(row);
+          if (index >= 0) {
+            invites.splice(index, 1);
+          }
+        }
+        return { data: found, error: null };
+      }
+      if (asList) {
+        return { data: found, error: null };
+      }
+      const first = found[0] ?? null;
+      if (expectOne && first === null) {
+        return {
+          data: null,
+          error: {
+            message: "Cannot coerce the result to a single JSON object",
+          },
+        };
+      }
+      return { data: first, error: null };
+    }
+
+    const query = {
+      select() {
+        return query;
+      },
+      insert(body: Record<string, unknown>) {
+        action = "insert";
+        payload = body;
+        return query;
+      },
+      update(body: Record<string, unknown>) {
+        action = "update";
+        payload = body;
+        return query;
+      },
+      delete() {
+        action = "delete";
+        return query;
+      },
+      eq(column: string, value: string) {
+        filters[column] = value;
+        return query;
+      },
+      is(column: string, value: null) {
+        filters[column] = value;
+        return query;
+      },
+      maybeSingle() {
+        return Promise.resolve(execute(false));
+      },
+      single() {
+        return Promise.resolve(execute(true));
+      },
+      then(
+        resolve: (value: QueryResult) => void,
+        reject?: (reason: unknown) => void,
+      ) {
+        return Promise.resolve(execute(false, true)).then(resolve, reject);
       },
     };
     return query;
@@ -428,6 +643,9 @@ export function createOrganizationMemory(initial?: {
       }
       if (table === "organization_members") {
         return membersBuilder();
+      }
+      if (table === "organization_invites") {
+        return invitesBuilder();
       }
       if (table === "profiles") {
         return profilesBuilder();
@@ -453,5 +671,5 @@ export function createOrganizationMemory(initial?: {
     },
   } as unknown as OrganizationClient;
 
-  return { supabase, profiles, organizations, members, uploads };
+  return { supabase, profiles, organizations, members, invites, uploads };
 }

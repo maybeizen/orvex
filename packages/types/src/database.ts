@@ -39,6 +39,56 @@ export type Database = {
   };
   public: {
     Tables: {
+      organization_invites: {
+        Row: {
+          accepted_at: string | null;
+          access_mode: string;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string;
+          organization_id: string;
+          permission_mask: string;
+          preset_role: string | null;
+          token_hash: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          access_mode: string;
+          created_at?: string;
+          email: string;
+          expires_at: string;
+          id?: string;
+          invited_by: string;
+          organization_id: string;
+          permission_mask: string;
+          preset_role?: string | null;
+          token_hash: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          access_mode?: string;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string;
+          organization_id?: string;
+          permission_mask?: string;
+          preset_role?: string | null;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "organization_invites_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       organization_members: {
         Row: {
           created_at: string;

@@ -1,18 +1,11 @@
 import type { AuthUser } from "@orvex/types";
-import {
-  ChevronDown,
-  LayoutDashboard,
-  LogOut,
-  Settings,
-  UserRound,
-} from "lucide-react";
+import { ChevronDown, LogOut, Palette, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeMenuItems } from "@/components/theme/theme-menu-items";
-import { AccountOrgSwitcher } from "@/components/organization/org-switcher";
 import { SidebarTooltip } from "@/components/layout/sidebar-tooltip";
 import {
   DropdownMenu,
@@ -114,14 +107,7 @@ export function AccountMenu({
           <span className="truncate font-normal">{user.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <AccountOrgSwitcher />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link to="/dashboard">
-              <LayoutDashboard />
-              Dashboard
-            </Link>
-          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to="/profile">
               <UserRound />
@@ -130,8 +116,8 @@ export function AccountMenu({
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to="/settings">
-              <Settings />
-              Settings
+              <Palette />
+              Appearance
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
@@ -146,7 +132,7 @@ export function AccountMenu({
           }}
         >
           <LogOut />
-          Log out
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

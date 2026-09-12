@@ -252,6 +252,66 @@ export async function createOrganization(
   return toOrganizationDto(supabase, org, "owner");
 }
 
+export type UpdateOrganizationInput = {
+  organizationId: string;
+  name?: string | undefined;
+  slug?: string | undefined;
+};
+
+export async function updateOrganization(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  input: UpdateOrganizationInput,
+): Promise<Organization> {
+  const membership = await fetchMembership(
+    supabase,
+    input.organizationId,
+    user.id,
+  );
+  if (membership === null) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You are not a member of that organization",
+    });
+  }
+  if (!canManageOrganization(membership.role)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only owners and admins can change organization settings",
+    });
+  }
+
+  const existing = await fetchOrganization(supabase, input.organizationId);
+  if (existing === null) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Organization not found",
+    });
+  }
+
+  const name = input.name ?? existing.name;
+  const slug = input.slug ?? existing.slug;
+  if (isReservedOrgSlug(slug)) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "That organization slug is not allowed",
+    });
+  }
+
+  const { data, error } = await supabase
+    .from("organizations")
+    .update({ name, slug })
+    .eq("id", input.organizationId)
+    .select("*")
+    .single();
+
+  if (error !== null) {
+    throwWriteError(error, true);
+  }
+
+  return toOrganizationDto(supabase, data, membership.role);
+}
+
 export async function setActiveOrganization(
   supabase: OrganizationClient,
   user: AuthUser,

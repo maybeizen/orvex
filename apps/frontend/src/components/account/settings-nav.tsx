@@ -2,6 +2,7 @@ import { NavLink } from "react-router";
 import { cn } from "@/lib/cn";
 
 const ITEMS = [
+  { to: "/settings/organization", label: "Organization", end: true },
   { to: "/profile", label: "Profile", end: true },
   { to: "/settings", label: "Appearance", end: true },
   { to: "/settings/billing", label: "Billing", end: true },

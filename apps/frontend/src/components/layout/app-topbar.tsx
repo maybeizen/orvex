@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
-import { SidebarNav } from "@/components/layout/sidebar";
+import { SidebarAccount, SidebarNav } from "@/components/layout/sidebar";
 import { AppBreadcrumb } from "@/components/organization/app-breadcrumb";
-import { AuthNavCluster } from "@/components/auth/auth-nav-cluster";
 import { BrandMark } from "@/components/marketing/brand-mark";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,9 +41,11 @@ export function AppTopbar() {
                 setOpen(false);
               }}
             />
-            <div className="mt-auto border-t border-border p-3">
-              <AuthNavCluster guest="signin" />
-            </div>
+            <SidebarAccount
+              onNavigate={() => {
+                setOpen(false);
+              }}
+            />
           </div>
         </SheetContent>
       </Sheet>

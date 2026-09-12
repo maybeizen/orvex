@@ -48,6 +48,10 @@ function renderShell(path = "/dashboard") {
           <Route path="/dashboard" element={<p>Dashboard body</p>} />
           <Route path="/profile" element={<p>Profile body</p>} />
           <Route path="/settings" element={<p>Settings body</p>} />
+          <Route
+            path="/settings/organization"
+            element={<p>Organization body</p>}
+          />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -79,19 +83,26 @@ test("sidebar collapses to icons and keeps accessible names", () => {
     within(sidebar as HTMLElement).getByRole("link", { name: "Dashboard" }),
   ).toBeInTheDocument();
   expect(
-    within(sidebar as HTMLElement).getByRole("link", { name: "Profile" }),
+    within(sidebar as HTMLElement).queryByRole("link", { name: "Profile" }),
+  ).not.toBeInTheDocument();
+  expect(
+    within(sidebar as HTMLElement).getByRole("link", {
+      name: "Uptime Monitors",
+    }),
   ).toBeInTheDocument();
   expect(
-    within(sidebar as HTMLElement).getByRole("link", { name: "Settings" }),
-  ).toBeInTheDocument();
-  expect(
-    within(sidebar as HTMLElement).getByRole("link", { name: "Monitors" }),
+    within(sidebar as HTMLElement).getByRole("link", { name: "Team Members" }),
   ).toBeInTheDocument();
   expect(
     within(sidebar as HTMLElement).getByRole("link", { name: "Incidents" }),
   ).toBeInTheDocument();
   expect(
-    within(sidebar as HTMLElement).getByRole("link", { name: "Status pages" }),
+    within(sidebar as HTMLElement).getByRole("link", { name: "Status Pages" }),
+  ).toBeInTheDocument();
+  expect(
+    within(sidebar as HTMLElement).getByRole("link", {
+      name: "Organization settings",
+    }),
   ).toBeInTheDocument();
   expect(
     within(sidebar as HTMLElement)
@@ -111,7 +122,7 @@ test("breadcrumb header shows the organization and current page", () => {
   ).toHaveTextContent("Profile");
 });
 
-test("breadcrumb header shows settings", () => {
+test("breadcrumb header shows appearance", () => {
   renderShell("/settings");
 
   expect(
@@ -119,7 +130,18 @@ test("breadcrumb header shows settings", () => {
   ).toHaveTextContent("Acme Desk");
   expect(
     screen.getByRole("navigation", { name: "breadcrumb" }),
-  ).toHaveTextContent("Settings");
+  ).toHaveTextContent("Appearance");
+});
+
+test("sidebar keeps organization settings and hides workspace grouping", () => {
+  renderShell();
+
+  expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+  expect(screen.queryByText("Observe")).not.toBeInTheDocument();
+  expect(screen.getByText("Billing")).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: "Organization settings" }),
+  ).toHaveAttribute("href", "/settings/organization");
 });
 
 test("mobile navigation opens application links", () => {

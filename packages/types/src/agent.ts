@@ -6,4 +6,5 @@ export type AgentHeartbeatPayload = {
   id: string;
   version: string;
   metrics: AgentHeartbeatMetrics;
+  hostname?: string;
 };

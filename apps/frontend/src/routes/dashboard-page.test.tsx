@@ -60,13 +60,14 @@ test("signed-in dashboard shows the empty signal room", () => {
 
   expect(screen.getByRole("heading", { name: "Overview" })).toBeInTheDocument();
   expect(screen.getByText("Lovelace Lab")).toBeInTheDocument();
-  expect(screen.getByText("No checks armed")).toBeInTheDocument();
   expect(screen.getByText("Board is clear")).toBeInTheDocument();
+  expect(screen.getByText("No ranked checks")).toBeInTheDocument();
+  expect(screen.getByText("No heartbeat agents")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "New monitor" })).toHaveAttribute(
     "href",
     "/monitors/new",
   );
-  expect(screen.getByRole("link", { name: "Open list" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "Agents" })).toHaveAttribute(
     "href",
     "/monitors",
   );
