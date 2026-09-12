@@ -1,7 +1,9 @@
+import { PROBE_REGION_CODES } from "@orvex/types";
 import { planAllowsKind } from "@orvex/types/plans";
 import { z } from "zod";
 import { CACHE_TTL, cacheKeys } from "../../lib/cache-keys.js";
 import { invalidateOrgCaches } from "../../lib/cached.js";
+import { orgProcedure } from "../../trpc/org-procedure.js";
 import {
   protectedProcedure,
   publicProcedure,
@@ -11,6 +13,7 @@ import {
   acceptInvite,
   inviteMember,
   listMembers,
+  lockMember,
   previewInvite,
   removeMember,
   revokeInvite,
@@ -20,10 +23,16 @@ import {
   createOrganization,
   deleteOrganization,
   getOrganization,
+  leaveOrganization,
   listOrganizations,
+  organizationDefaults,
+  organizationOidc,
   resolveAccessibleOrganization,
   setActiveOrganization,
+  transferOrganizationOwnership,
   updateOrganization,
+  updateOrganizationDefaults,
+  updateOrganizationOidc,
 } from "./organization-service.js";
 import { isReservedOrgSlug, ORG_SLUG_PATTERN } from "./slugs.js";
 
@@ -41,6 +50,7 @@ const createSchema = z
     billingCycle: z.enum(["monthly", "quarterly", "yearly"]),
     tosAccepted: z.literal(true),
     marketingOptIn: z.boolean(),
+    referralCode: z.string().trim().min(1).max(64).optional(),
   })
   .superRefine((value, ctx) => {
     if (!planAllowsKind(value.planId, value.kind)) {
@@ -207,7 +217,106 @@ export const organizationRouter = router({
         ]);
         return { ok: true as const };
       }),
+    lock: orgProcedure("team.write")
+      .input(orgRefSchema.and(z.object({ userId: z.uuid() })))
+      .mutation(async ({ ctx, input }) => {
+        await lockMember(
+          ctx.supabase,
+          ctx.user,
+          ctx.organization.id,
+          input.userId,
+        );
+        await invalidateOrgCaches(ctx.cache, ctx.organization.id, [
+          ctx.user.id,
+          input.userId,
+        ]);
+        return { ok: true as const };
+      }),
   }),
+  defaults: orgProcedure("org.settings")
+    .input(orgRefSchema)
+    .query(({ ctx }) => organizationDefaults(ctx.organization)),
+  updateDefaults: orgProcedure("org.settings")
+    .input(
+      orgRefSchema.and(
+        z.object({
+          timezone: z.string().trim().min(1).max(80),
+          defaultRegions: z
+            .array(z.enum(PROBE_REGION_CODES))
+            .min(1)
+            .max(PROBE_REGION_CODES.length),
+          supportEmail: z.email().nullable(),
+        }),
+      ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updated = await updateOrganizationDefaults(
+        ctx.supabase,
+        ctx.user,
+        ctx.organization.id,
+        {
+          timezone: input.timezone,
+          defaultRegions: input.defaultRegions,
+          supportEmail: input.supportEmail,
+        },
+      );
+      await invalidateOrgCaches(ctx.cache, ctx.organization.id, [ctx.user.id]);
+      return updated;
+    }),
+  oidc: orgProcedure("org.settings")
+    .input(orgRefSchema)
+    .query(({ ctx }) => organizationOidc(ctx.organization)),
+  updateOidc: orgProcedure("org.settings")
+    .input(
+      orgRefSchema.and(
+        z.object({
+          issuer: z.url(),
+          clientId: z.string().trim().min(1).max(200),
+          clientSecret: z.string().min(1).max(400),
+        }),
+      ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updated = await updateOrganizationOidc(
+        ctx.supabase,
+        ctx.user,
+        ctx.organization.id,
+        {
+          issuer: input.issuer,
+          clientId: input.clientId,
+          clientSecret: input.clientSecret,
+        },
+      );
+      await invalidateOrgCaches(ctx.cache, ctx.organization.id, [ctx.user.id]);
+      return updated;
+    }),
+  transferOwnership: orgProcedure("org.settings")
+    .input(orgRefSchema.and(z.object({ userId: z.uuid() })))
+    .mutation(async ({ ctx, input }) => {
+      const transferred = await transferOrganizationOwnership(
+        ctx.supabase,
+        ctx.user,
+        ctx.organization.id,
+        input.userId,
+      );
+      await invalidateOrgCaches(ctx.cache, ctx.organization.id, [
+        ctx.user.id,
+        input.userId,
+      ]);
+      return transferred;
+    }),
+  leave: protectedProcedure
+    .input(orgRefSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { organization } = await resolveAccessibleOrganization(
+        ctx.supabase,
+        ctx.user,
+        input,
+      );
+      const left = await leaveOrganization(ctx.supabase, ctx.user, input);
+      await invalidateOrgCaches(ctx.cache, organization.id, [ctx.user.id]);
+      return left;
+    }),
   invites: router({
     revoke: protectedProcedure
       .input(orgRefSchema.and(z.object({ inviteId: z.uuid() })))

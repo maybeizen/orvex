@@ -142,3 +142,32 @@ export function toInviteDto(row: OrganizationInviteRow): OrganizationInvite {
     createdAt: row.created_at,
   };
 }
+
+export type OrganizationDefaultsDto = {
+  timezone: string;
+  defaultRegions: string[];
+  supportEmail: string | null;
+};
+
+export type OrganizationOidcDto = {
+  issuer: string | null;
+  clientId: string | null;
+  configured: boolean;
+};
+
+export function toDefaultsDto(row: OrganizationRow): OrganizationDefaultsDto {
+  return {
+    timezone: row.timezone,
+    defaultRegions: [...row.default_regions],
+    supportEmail: row.support_email,
+  };
+}
+
+export function toOidcDto(row: OrganizationRow): OrganizationOidcDto {
+  return {
+    issuer: row.oidc_issuer,
+    clientId: row.oidc_client_id,
+    configured:
+      row.oidc_client_secret !== null && row.oidc_client_secret.length > 0,
+  };
+}

@@ -324,6 +324,123 @@ test("organization.delete is forbidden for a non-owner", async () => {
   expect(memory.organizations).toHaveLength(1);
 });
 
+test("organization.updateDefaults writes timezone, regions, and support email", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const updated = await caller(memory.supabase).organization.updateDefaults({
+    organizationId: org.id,
+    timezone: "America/New_York",
+    defaultRegions: ["IAD", "LHR"],
+    supportEmail: "desk@orvex.dev",
+  });
+  expect(updated).toEqual({
+    timezone: "America/New_York",
+    defaultRegions: ["IAD", "LHR"],
+    supportEmail: "desk@orvex.dev",
+  });
+  expect(memory.organizations[0]?.timezone).toBe("America/New_York");
+  expect(memory.organizations[0]?.default_regions).toEqual(["IAD", "LHR"]);
+});
+
+test("organization.updateOidc stores an encrypted client secret when a key is set", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const previous = process.env.CRYPTO_SECRET;
+  process.env.CRYPTO_SECRET = "test-crypto-secret";
+  try {
+    const updated = await caller(memory.supabase).organization.updateOidc({
+      organizationId: org.id,
+      issuer: "https://idp.example.com",
+      clientId: "oidc-client",
+      clientSecret: "super-secret",
+    });
+    expect(updated.issuer).toBe("https://idp.example.com");
+    expect(updated.clientId).toBe("oidc-client");
+    expect(updated.configured).toBe(true);
+    expect(memory.organizations[0]?.oidc_client_secret).not.toBe(
+      "super-secret",
+    );
+    expect(memory.organizations[0]?.oidc_client_secret).toEqual(
+      expect.any(String),
+    );
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CRYPTO_SECRET;
+    } else {
+      process.env.CRYPTO_SECRET = previous;
+    }
+  }
+});
+
+test("organization.transferOwnership promotes the target and demotes the caller", async () => {
+  const nextOwnerId = "22222222-2222-4222-8222-222222222222";
+  const org = organizationRow({ kind: "team", plan_id: "sentinel" });
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow(), memberRow({ user_id: nextOwnerId, role: "admin" })],
+  });
+
+  const result = await caller(memory.supabase).organization.transferOwnership({
+    organizationId: org.id,
+    userId: nextOwnerId,
+  });
+  expect(result).toEqual({ ok: true });
+  expect(memory.members.find((row) => row.user_id === nextOwnerId)?.role).toBe(
+    "owner",
+  );
+  expect(
+    memory.members.find((row) => row.user_id === orgTestUser.id)?.role,
+  ).toBe("admin");
+});
+
+test("organization.leave removes a non-owner membership", async () => {
+  const org = organizationRow({ kind: "team", plan_id: "sentinel" });
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow(), memberRow({ user_id: otherUserId, role: "member" })],
+    profiles: [
+      profileFixture(),
+      profileFixture({
+        user_id: otherUserId,
+        active_organization_id: org.id,
+      }),
+    ],
+  });
+
+  const result = await caller(memory.supabase, {
+    ...orgTestUser,
+    id: otherUserId,
+  }).organization.leave({ organizationId: org.id });
+  expect(result).toEqual({ ok: true });
+  expect(memory.members.map((row) => row.user_id)).toEqual([orgTestUser.id]);
+  expect(
+    memory.profiles.find((row) => row.user_id === otherUserId)
+      ?.active_organization_id,
+  ).toBeNull();
+});
+
+test("organization.leave is forbidden for the owner", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const error = await caller(memory.supabase)
+    .organization.leave({ organizationId: org.id })
+    .catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+  expect(memory.members).toHaveLength(1);
+});
+
 test("single orgs cannot add a second member", async () => {
   const org = organizationRow();
   const memory = createOrganizationMemory({
@@ -337,6 +454,9 @@ test("single orgs cannot add a second member", async () => {
       organization_id: org.id,
       user_id: otherUserId,
       role: "member",
+      access_mode: "preset",
+      permission_mask: "5469",
+      status: "active",
     })
     .single();
 
