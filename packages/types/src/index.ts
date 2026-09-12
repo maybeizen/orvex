@@ -4,7 +4,10 @@ export type { User } from "./user.js";
 export type {
   Organization,
   OrganizationBillingStatus,
+  OrganizationInvite,
   OrganizationKind,
+  OrganizationMember,
+  OrganizationMemberList,
   OrganizationPlanId,
   OrganizationRole,
 } from "./organization.js";

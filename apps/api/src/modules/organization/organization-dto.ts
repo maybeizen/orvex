@@ -2,16 +2,22 @@ import type {
   Database,
   Organization,
   OrganizationBillingStatus,
+  OrganizationInvite,
   OrganizationKind,
+  OrganizationMember,
   OrganizationRole,
 } from "@orvex/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isPlanId } from "@orvex/types/plans";
+import { avatarPublicUrl } from "../profile/profile-dto.js";
 
 export type OrganizationRow =
   Database["public"]["Tables"]["organizations"]["Row"];
 export type OrganizationMemberRow =
   Database["public"]["Tables"]["organization_members"]["Row"];
+export type OrganizationInviteRow =
+  Database["public"]["Tables"]["organization_invites"]["Row"];
+export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
 export type OrganizationClient = Pick<
   SupabaseClient<Database>,
@@ -86,4 +92,50 @@ export function toOrganizationDto(
 
 export function canManageOrganization(role: string): boolean {
   return role === "owner" || role === "admin";
+}
+
+export function inviteRole(
+  value: string | null,
+): Exclude<OrganizationRole, "owner"> {
+  return value === "admin" ? "admin" : "member";
+}
+
+export function toMemberDto(
+  supabase: OrganizationClient,
+  membership: OrganizationMemberRow,
+  profile: ProfileRow | undefined,
+): OrganizationMember {
+  const firstName = profile?.first_name ?? "";
+  const lastName = profile?.last_name ?? "";
+  const username = profile?.username ?? "";
+  const nameParts = [firstName, lastName].filter((part) => part.length > 0);
+  return {
+    userId: membership.user_id,
+    role: isOrganizationRole(membership.role) ? membership.role : "member",
+    username,
+    firstName,
+    lastName,
+    displayName:
+      nameParts.length > 0
+        ? nameParts.join(" ")
+        : username.length > 0
+          ? username
+          : "Member",
+    avatarUrl: avatarPublicUrl(
+      supabase,
+      profile?.avatar_path ?? null,
+      profile?.updated_at ?? membership.created_at,
+    ),
+    createdAt: membership.created_at,
+  };
+}
+
+export function toInviteDto(row: OrganizationInviteRow): OrganizationInvite {
+  return {
+    id: row.id,
+    email: row.email,
+    role: inviteRole(row.preset_role),
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
+  };
 }

@@ -25,11 +25,24 @@ import { PrivacyPage } from "@/routes/privacy-page";
 import { ProfilePage } from "@/routes/profile-page";
 import { RegisterPage } from "@/routes/register-page";
 import { ResetPasswordPage } from "@/routes/reset-password-page";
+import { InvitePage } from "@/routes/invite-page";
+import { InvoicesPage } from "@/routes/invoices-page";
+import { OrganizationSettingsPage } from "@/routes/organization-settings-page";
 import { SettingsPage } from "@/routes/settings-page";
 import { StatusPageDetailPage } from "@/routes/status-page-detail-page";
 import { StatusPagesPage } from "@/routes/status-pages-page";
+import { TeamMembersPage } from "@/routes/team-members-page";
 import { TermsPage } from "@/routes/terms-page";
 import { TwoFactorPage } from "@/routes/two-factor-page";
+import { DocsPage } from "@/routes/docs-page";
+import {
+  AuditLogPage,
+  ContactListsPage,
+  OrdersPage,
+  ReferralsPage,
+  SupportPage,
+  WhiteLabelPage,
+} from "@/routes/workspace-pages";
 import { Providers } from "./providers";
 
 export const router = createBrowserRouter([
@@ -52,6 +65,7 @@ export const router = createBrowserRouter([
       { path: "/changelog", element: <ChangelogPage /> },
       { path: "/pricing", element: <PricingPage /> },
       { path: "/forbidden", element: <ForbiddenPage /> },
+      { path: "/invite/:token", element: <InvitePage /> },
       {
         element: (
           <RequireOrganization>
@@ -68,8 +82,21 @@ export const router = createBrowserRouter([
           { path: "/incidents/:incidentId", element: <IncidentDetailPage /> },
           { path: "/status-pages", element: <StatusPagesPage /> },
           { path: "/status-pages/:pageId", element: <StatusPageDetailPage /> },
+          { path: "/contact-lists", element: <ContactListsPage /> },
+          { path: "/white-label", element: <WhiteLabelPage /> },
+          { path: "/team", element: <TeamMembersPage /> },
+          { path: "/audit-log", element: <AuditLogPage /> },
+          { path: "/orders", element: <OrdersPage /> },
+          { path: "/invoices", element: <InvoicesPage /> },
+          { path: "/referrals", element: <ReferralsPage /> },
+          { path: "/support", element: <SupportPage /> },
+          { path: "/docs", element: <DocsPage /> },
           { path: "/profile", element: <ProfilePage /> },
           { path: "/settings", element: <SettingsPage /> },
+          {
+            path: "/settings/organization",
+            element: <OrganizationSettingsPage />,
+          },
           { path: "/settings/billing", element: <BillingPage /> },
         ],
       },

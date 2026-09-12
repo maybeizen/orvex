@@ -191,6 +191,45 @@ test("organization.setActive updates the profile for members", async () => {
   expect(memory.profiles[0]?.active_organization_id).toBe(org.id);
 });
 
+test("organization.update changes name and slug for managers", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const updated = await caller(memory.supabase).organization.update({
+    organizationId: org.id,
+    name: "Ada Desk",
+    slug: "ada-desk",
+  });
+
+  expect(updated.name).toBe("Ada Desk");
+  expect(updated.slug).toBe("ada-desk");
+  expect(memory.organizations[0]?.name).toBe("Ada Desk");
+});
+
+test("organization.update is forbidden for members", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow({ user_id: otherUserId, role: "member" })],
+  });
+
+  const error = await caller(memory.supabase, {
+    ...orgTestUser,
+    id: otherUserId,
+  })
+    .organization.update({
+      organizationId: org.id,
+      name: "Nope",
+    })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+});
+
 test("single orgs cannot add a second member", async () => {
   const org = organizationRow();
   const memory = createOrganizationMemory({
