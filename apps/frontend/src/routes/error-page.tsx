@@ -1,7 +1,6 @@
 import { Link, useRouteError } from "react-router";
 import { AuthFooter } from "@/components/auth/auth-footer";
 import { PublicChrome } from "@/components/auth/public-chrome";
-import "@/components/auth/auth-display.css";
 import { Button } from "@/components/ui/button";
 
 function errorMessage(error: unknown): string {
@@ -24,7 +23,7 @@ export function ErrorPage() {
           <p className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
             Error
           </p>
-          <h1 className="auth-display text-[2rem] leading-tight text-foreground">
+          <h1 className="font-display text-[2rem] leading-tight text-foreground">
             Unable to continue
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground text-pretty">

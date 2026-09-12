@@ -1,7 +1,6 @@
 import { Link } from "react-router";
 import { AuthFooter } from "@/components/auth/auth-footer";
 import { PublicChrome } from "@/components/auth/public-chrome";
-import "@/components/auth/auth-display.css";
 import { Button } from "@/components/ui/button";
 
 export function ForbiddenPage() {
@@ -12,7 +11,7 @@ export function ForbiddenPage() {
           <p className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
             403
           </p>
-          <h1 className="auth-display text-[2rem] leading-tight text-foreground">
+          <h1 className="font-display text-[2rem] leading-tight text-foreground">
             Access denied
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground text-pretty">

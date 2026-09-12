@@ -1,7 +1,6 @@
 import { Link } from "react-router";
 import { AuthFooter } from "@/components/auth/auth-footer";
 import { PublicChrome } from "@/components/auth/public-chrome";
-import "@/components/auth/auth-display.css";
 
 const SECTIONS = [
   {
@@ -38,7 +37,7 @@ export function TermsPage() {
           <p className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
             Legal
           </p>
-          <h1 className="auth-display text-[2.25rem] leading-tight">
+          <h1 className="font-display text-[2.25rem] leading-tight">
             Terms of Service
           </h1>
           <p className="text-sm text-muted-foreground">

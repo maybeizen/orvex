@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { AuthFooter } from "@/components/auth/auth-footer";
 import { PublicChrome } from "@/components/auth/public-chrome";
-import "@/components/auth/auth-display.css";
 
 export function AuthShell({
   title,
@@ -18,7 +17,7 @@ export function AuthShell({
     <PublicChrome>
       <div className="flex w-full flex-col gap-8">
         <div className="flex flex-col gap-2">
-          <h1 className="auth-display text-[2rem] leading-tight text-foreground">
+          <h1 className="font-display text-[2rem] leading-tight text-foreground">
             {title}
           </h1>
           {description ? (
