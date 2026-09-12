@@ -92,7 +92,11 @@ function OrgRow({
   );
 }
 
-export function AccountOrgSwitcher() {
+export function AccountOrgSwitcher({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+} = {}) {
   const reduceMotion = useReducedMotion();
   const [expanded, setExpanded] = useState(false);
   const items = useOrgStore((state) => state.items);
@@ -100,7 +104,19 @@ export function AccountOrgSwitcher() {
   const handleSwitch = useSwitchOrganization();
 
   if (active === null || items.length === 0) {
-    return null;
+    return (
+      <>
+        <DropdownMenuGroup>
+          <DropdownMenuItem asChild>
+            <Link to="/onboarding" onClick={onNavigate}>
+              <Plus />
+              New organization
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+      </>
+    );
   }
 
   const others = items.filter((item) => item.id !== active.id);
@@ -146,6 +162,7 @@ export function AccountOrgSwitcher() {
                       <DropdownMenuItem
                         key={organization.id}
                         onSelect={() => {
+                          onNavigate?.();
                           handleSwitch(organization);
                         }}
                       >
@@ -153,7 +170,7 @@ export function AccountOrgSwitcher() {
                       </DropdownMenuItem>
                     ))}
                     <DropdownMenuItem asChild>
-                      <Link to="/onboarding">
+                      <Link to="/onboarding" onClick={onNavigate}>
                         <Plus />
                         New organization
                       </Link>

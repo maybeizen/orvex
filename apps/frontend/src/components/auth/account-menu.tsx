@@ -1,5 +1,5 @@
 import type { AuthUser } from "@orvex/types";
-import { Building2, ChevronDown, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, LogOut, Settings, Shield } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -17,18 +17,86 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AccountOrgSwitcher } from "@/components/organization/org-switcher";
+import { isPlatformAdmin } from "@/lib/platform-admin";
 import { accountHandle, userInitials } from "@/lib/user-display";
-import { ORGANIZATIONS_PATH, USER_SETTINGS_PATH } from "@/lib/org-paths";
+import { ADMIN_PATH, USER_SETTINGS_PATH } from "@/lib/org-paths";
 import { cn } from "@/lib/cn";
 import { getBrowserAuth } from "@/lib/supabase";
 import { useSidebarStore } from "@/stores/sidebar-store";
 
+export function AccountMenuItems({
+  user,
+  pending = false,
+  onLogout,
+  onNavigate,
+}: {
+  user: AuthUser;
+  pending?: boolean;
+  onLogout?: () => void;
+  onNavigate?: () => void;
+}) {
+  const handle = accountHandle(user);
+  const staff = isPlatformAdmin(user);
+
+  return (
+    <>
+      <DropdownMenuLabel className="flex flex-col gap-0.5">
+        <span className="truncate text-sm font-medium text-foreground">
+          {handle}
+        </span>
+        <span className="truncate font-normal">{user.email}</span>
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <ThemeMenuItems />
+      <DropdownMenuSeparator />
+      <AccountOrgSwitcher
+        {...(onNavigate === undefined ? {} : { onNavigate })}
+      />
+      <DropdownMenuGroup>
+        <DropdownMenuItem asChild>
+          <Link to={USER_SETTINGS_PATH} onClick={onNavigate}>
+            <Settings />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        variant="destructive"
+        disabled={pending}
+        onSelect={() => {
+          onLogout?.();
+        }}
+      >
+        <LogOut />
+        Log Out
+      </DropdownMenuItem>
+      {staff ? (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Admin</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuItem asChild>
+              <Link to={ADMIN_PATH} onClick={onNavigate}>
+                <Shield />
+                Staff console
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 export function AccountMenu({
   user,
   layout = "nav",
+  onNavigate,
 }: {
   user: AuthUser;
   layout?: "nav" | "sidebar";
+  onNavigate?: () => void;
 }) {
   const navigate = useNavigate();
   const [pending, setPending] = useState(false);
@@ -102,43 +170,14 @@ export function AccountMenu({
         side={rail ? "right" : sidebar ? "top" : "bottom"}
         className="min-w-56 duration-200"
       >
-        <DropdownMenuLabel className="flex flex-col gap-0.5">
-          <span className="truncate text-sm font-medium text-foreground">
-            {handle}
-          </span>
-          <span className="truncate font-normal">{user.email}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link to={ORGANIZATIONS_PATH}>
-              <Building2 />
-              Organizations
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <AccountOrgSwitcher />
-        <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link to={USER_SETTINGS_PATH}>
-              <UserRound />
-              User settings
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <ThemeMenuItems />
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          variant="destructive"
-          disabled={pending}
-          onSelect={() => {
+        <AccountMenuItems
+          user={user}
+          pending={pending}
+          onLogout={() => {
             void logout();
           }}
-        >
-          <LogOut />
-          Sign out
-        </DropdownMenuItem>
+          {...(onNavigate === undefined ? {} : { onNavigate })}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );

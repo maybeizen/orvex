@@ -17,7 +17,7 @@ export function SettingsPage() {
       title="Settings"
       description="Sign in to manage your account."
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10">
         <Enter>
           <div className="flex flex-col gap-1">
             <h1 className="text-xl font-medium tracking-tight">Settings</h1>
@@ -27,7 +27,9 @@ export function SettingsPage() {
           </div>
         </Enter>
         <Enter delay={0.04}>
-          <ProfileHero />
+          <div id="profile" className="scroll-mt-6">
+            <ProfileHero />
+          </div>
         </Enter>
         <Enter delay={0.06}>
           <div className="overflow-hidden rounded-lg border border-border bg-card">
@@ -47,12 +49,14 @@ export function SettingsPage() {
           </div>
         </Enter>
         <Enter delay={0.08}>
-          <SettingsBlock
-            title="Appearance"
-            description="Theme for this browser. It does not change other seats."
-          >
-            <ThemeSwitcher />
-          </SettingsBlock>
+          <div id="appearance" className="scroll-mt-6">
+            <SettingsBlock
+              title="Appearance"
+              description="Theme for this browser. It does not change other seats."
+            >
+              <ThemeSwitcher />
+            </SettingsBlock>
+          </div>
         </Enter>
       </div>
     </RequireSession>

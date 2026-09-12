@@ -52,6 +52,10 @@ test("organizations page lists memberships with extra context", () => {
   expect(screen.getByText("acme-desk")).toBeInTheDocument();
   expect(screen.getByText("Owner")).toBeInTheDocument();
   expect(screen.getByText("Free")).toBeInTheDocument();
+  expect(screen.getByText("1 member")).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: "New organization" }),
+  ).toHaveAttribute("href", "/onboarding");
 });
 
 test("organizations page shows an empty state", () => {

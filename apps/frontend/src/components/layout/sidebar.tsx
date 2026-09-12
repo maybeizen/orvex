@@ -2,7 +2,6 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLink, useLocation } from "react-router";
 import { AuthNavCluster } from "@/components/auth/auth-nav-cluster";
 import { appNavSections } from "@/components/layout/nav-config";
-import { SidebarOrgControl } from "@/components/layout/sidebar-org-control";
 import { SidebarTooltip } from "@/components/layout/sidebar-tooltip";
 import { BrandMark, OrvexMark } from "@/components/marketing/brand-mark";
 import { Button } from "@/components/ui/button";
@@ -144,11 +143,11 @@ export function SidebarAccount({
           collapsed ? "items-center gap-1" : "gap-2",
         )}
       >
-        <SidebarOrgControl
-          collapsed={collapsed}
+        <AuthNavCluster
+          guest="signin"
+          layout="sidebar"
           {...(onNavigate === undefined ? {} : { onNavigate })}
         />
-        <AuthNavCluster guest="signin" layout="sidebar" />
       </div>
     </div>
   );

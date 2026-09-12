@@ -15,25 +15,26 @@ organization onboarding, and the signed-in application shell.
 - **Onboarding** — a multi-step wizard (identity → organization type → plan →
   legal) that creates an organization through the API; paid plans route to a
   checkout stub.
-- **Profile & settings** — identity editing, avatar upload/crop/gravatar, and
+- **Settings** — identity editing, avatar upload/crop/gravatar, security, and
   theme selection.
 - **Dashboard** — application shell with placeholder monitor cards (real
   monitoring data is not wired yet).
 
 ## Routes
 
-| Path                                  | Access               |
-| ------------------------------------- | -------------------- |
-| `/`                                   | public (landing)     |
-| `/login`, `/login/2fa`                | public               |
-| `/register`                           | public               |
-| `/forgot-password`, `/reset-password` | public               |
-| `/auth/callback`                      | public (OAuth)       |
-| `/terms`                              | public               |
-| `/onboarding`                         | session required     |
-| `/onboarding/checkout`                | session + org        |
-| `/dashboard`                          | session + active org |
-| `/profile`, `/settings`               | session + active org |
+| Path                                  | Access                   |
+| ------------------------------------- | ------------------------ |
+| `/`                                   | public (landing)         |
+| `/login`, `/login/2fa`                | public                   |
+| `/register`                           | public                   |
+| `/forgot-password`, `/reset-password` | public                   |
+| `/auth/callback`                      | public (OAuth)           |
+| `/terms`                              | public                   |
+| `/onboarding`                         | session required         |
+| `/onboarding/checkout`                | session + org            |
+| `/dashboard`                          | session + active org     |
+| `/settings`                           | session required         |
+| `/profile`                            | redirects to `/settings` |
 
 ## Environment variables
 

@@ -137,9 +137,29 @@ test("sidebar keeps organization settings and hides workspace grouping", () => {
   expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
   expect(screen.queryByText("Observe")).not.toBeInTheDocument();
   expect(screen.getByText("Billing")).toBeInTheDocument();
+  const nav = screen.getByRole("navigation", { name: "Application" });
   expect(
-    screen.getByRole("link", { name: "Organization settings" }),
+    within(nav).getByRole("link", { name: "Organization settings" }),
   ).toHaveAttribute("href", "/organization/acme-desk/settings");
+});
+
+test("organization settings is a sidebar item, not a footer control", () => {
+  renderShell();
+
+  const sidebar = document.querySelector("aside");
+  expect(sidebar).not.toBeNull();
+  const nav = within(sidebar as HTMLElement).getByRole("navigation", {
+    name: "Application",
+  });
+  expect(
+    within(nav).getByRole("link", { name: "Organization settings" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("link", { name: "Organization settings" }),
+  ).toHaveAttribute("href", "/organization/acme-desk/settings");
+  expect(
+    within(sidebar as HTMLElement).queryByText("Organization settings"),
+  ).not.toBeNull();
 });
 
 test("mobile navigation opens application links", () => {
