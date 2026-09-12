@@ -1,6 +1,7 @@
 import { useEffect, useState, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { AuthFieldError } from "@/components/auth/auth-field-error";
 import { PasswordInput } from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -13,6 +14,8 @@ export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [pending, setPending] = useState(false);
+  const mismatch = confirm.length > 0 && password !== confirm;
+  const canSubmit = password.length >= 8 && confirm.length >= 8 && !mismatch;
 
   useEffect(() => {
     if (!isAuthConfigured()) {
@@ -64,7 +67,7 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="password">New password</FieldLabel>
@@ -79,13 +82,14 @@ export function ResetPasswordForm() {
             }}
           />
         </Field>
-        <Field>
+        <Field data-invalid={mismatch}>
           <FieldLabel htmlFor="confirm">Confirm password</FieldLabel>
           <PasswordInput
             id="confirm"
             autoComplete="new-password"
             required
             minLength={8}
+            aria-invalid={mismatch}
             value={confirm}
             onChange={(event) => {
               setConfirm(event.target.value);
@@ -93,7 +97,8 @@ export function ResetPasswordForm() {
           />
         </Field>
       </FieldGroup>
-      <Button type="submit" disabled={pending}>
+      <AuthFieldError message={mismatch ? "Passwords do not match" : null} />
+      <Button type="submit" className="w-full" disabled={pending || !canSubmit}>
         {pending ? <Spinner data-icon="inline-start" /> : null}
         {pending ? "Saving" : "Update password"}
       </Button>

@@ -11,17 +11,11 @@ export function DashboardPage() {
       title="Dashboard"
       description="Sign in to see your monitors."
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {organization === null ? null : (
           <BillingBanner organization={organization} />
         )}
-        <div>
-          <h1 className="font-heading text-2xl tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Placeholder status until monitors are wired.
-          </p>
-        </div>
-        <StatusOverview />
+        <StatusOverview organization={organization} />
       </div>
     </RequireSession>
   );

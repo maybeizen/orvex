@@ -85,6 +85,15 @@ test("sidebar collapses to icons and keeps accessible names", () => {
     within(sidebar as HTMLElement).getByRole("link", { name: "Settings" }),
   ).toBeInTheDocument();
   expect(
+    within(sidebar as HTMLElement).getByRole("link", { name: "Monitors" }),
+  ).toBeInTheDocument();
+  expect(
+    within(sidebar as HTMLElement).getByRole("link", { name: "Incidents" }),
+  ).toBeInTheDocument();
+  expect(
+    within(sidebar as HTMLElement).getByRole("link", { name: "Status pages" }),
+  ).toBeInTheDocument();
+  expect(
     within(sidebar as HTMLElement)
       .getByRole("link", { name: "Dashboard" })
       .querySelector("span"),
@@ -111,4 +120,15 @@ test("breadcrumb header shows settings", () => {
   expect(
     screen.getByRole("navigation", { name: "breadcrumb" }),
   ).toHaveTextContent("Settings");
+});
+
+test("mobile navigation opens application links", () => {
+  renderShell();
+
+  fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(
+    screen.getAllByRole("link", { name: "Dashboard" }).length,
+  ).toBeGreaterThan(0);
 });

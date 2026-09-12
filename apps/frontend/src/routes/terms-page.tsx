@@ -1,6 +1,4 @@
-import { BrandMark } from "@/components/marketing/brand-mark";
-import { MarketingFooter } from "@/components/marketing/marketing-footer";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { MarketingDocument } from "@/components/marketing/marketing-document";
 
 const SECTIONS = [
   {
@@ -31,40 +29,23 @@ const SECTIONS = [
 
 export function TermsPage() {
   return (
-    <div className="min-h-svh bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 w-full max-w-3xl items-center justify-between px-6">
-          <BrandMark />
-          <ThemeToggle />
-        </div>
-      </header>
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16">
-        <div className="flex flex-col gap-3">
-          <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
-            Legal
-          </p>
-          <h1 className="font-heading text-3xl tracking-tight">
-            Terms of Service
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Last updated 23 August 2026. Creating an organization means you
-            accept these terms for that workspace.
-          </p>
-        </div>
-        <div className="flex flex-col gap-8">
-          {SECTIONS.map((section) => (
-            <section key={section.title} className="flex flex-col gap-2">
-              <h2 className="font-heading text-lg tracking-tight">
-                {section.title}
-              </h2>
-              <p className="text-sm text-muted-foreground text-pretty">
-                {section.body}
-              </p>
-            </section>
-          ))}
-        </div>
-      </main>
-      <MarketingFooter />
-    </div>
+    <MarketingDocument
+      eyebrow="Legal"
+      title="Terms of Service"
+      lede="Last updated 23 August 2026. Creating an organization means you accept these terms for that workspace."
+    >
+      <div className="flex flex-col gap-8">
+        {SECTIONS.map((section) => (
+          <section key={section.title} className="flex flex-col gap-2">
+            <h2 className="text-lg font-medium tracking-tight">
+              {section.title}
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
+              {section.body}
+            </p>
+          </section>
+        ))}
+      </div>
+    </MarketingDocument>
   );
 }

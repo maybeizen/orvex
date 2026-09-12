@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import type { OAuthProvider } from "@orvex/auth";
 import { Fingerprint } from "lucide-react";
 import { toast } from "sonner";
+import { AuthFieldError } from "@/components/auth/auth-field-error";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { PasswordInput } from "@/components/auth/password-input";
 import { Enter } from "@/components/motion/enter";
@@ -32,6 +33,8 @@ export function LoginForm() {
   const [pending, setPending] = useState(false);
   const configured = isAuthConfigured();
   const passkeys = isPasskeysEnabled();
+  const canSubmit =
+    configured && email.trim().length > 0 && password.length > 0;
 
   async function finishSignIn(outcome: "mfa" | "signed-in" | null) {
     if (outcome === "mfa") {
@@ -103,7 +106,7 @@ export function LoginForm() {
   }
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
       <Enter>
         <OAuthButtons
           pending={pending}
@@ -117,6 +120,7 @@ export function LoginForm() {
           <Button
             type="button"
             variant="outline"
+            className="w-full"
             disabled={pending || !configured}
             onClick={() => {
               void onPasskey();
@@ -142,6 +146,8 @@ export function LoginForm() {
               id="email"
               type="email"
               autoComplete="email"
+              inputMode="email"
+              spellCheck={false}
               required
               value={email}
               onChange={(event) => {
@@ -166,13 +172,19 @@ export function LoginForm() {
           </Field>
         </FieldGroup>
       </Enter>
-      {configured ? null : (
-        <p className="text-sm text-muted-foreground">
+      {configured ? (
+        <AuthFieldError message={null} />
+      ) : (
+        <p className="min-h-5 text-xs leading-5 text-muted-foreground">
           Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable sign-in.
         </p>
       )}
       <Enter delay={0.16}>
-        <Button type="submit" disabled={pending || !configured}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={pending || !canSubmit}
+        >
           {pending ? <Spinner data-icon="inline-start" /> : null}
           {pending ? "Signing in" : "Sign in"}
         </Button>

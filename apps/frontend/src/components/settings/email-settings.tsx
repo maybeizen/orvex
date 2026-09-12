@@ -79,7 +79,11 @@ export function EmailSettings({ framed = true }: { framed?: boolean }) {
         </Badge>
       }
       footer={
-        <Button type="submit" form={formId} disabled={pending}>
+        <Button
+          type="submit"
+          form={formId}
+          disabled={pending || nextEmail.trim().length === 0}
+        >
           {pending ? <Spinner data-icon="inline-start" /> : null}
           {pending ? "Sending" : "Update email"}
         </Button>

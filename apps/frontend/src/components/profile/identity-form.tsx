@@ -118,7 +118,7 @@ export function IdentityForm() {
   return (
     <form className="flex flex-col gap-5 px-6 py-6" onSubmit={onSubmit}>
       <div className="flex flex-col gap-1">
-        <h2 className="font-heading text-base">About you</h2>
+        <h2 className="text-sm font-medium tracking-tight">About you</h2>
         <p className="text-sm text-muted-foreground">
           This is how teammates see you on the desk.
         </p>
@@ -159,7 +159,7 @@ export function IdentityForm() {
         >
           <FieldLabel htmlFor="profile-username">Username</FieldLabel>
           <div className="flex">
-            <span className="inline-flex items-center rounded-l-lg border border-r-0 border-input bg-muted/50 px-3 text-sm text-muted-foreground">
+            <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted/50 px-3 text-sm text-muted-foreground">
               @
             </span>
             <Input

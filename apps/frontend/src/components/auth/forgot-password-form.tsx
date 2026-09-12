@@ -52,7 +52,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -60,6 +60,8 @@ export function ForgotPasswordForm() {
             id="email"
             type="email"
             autoComplete="email"
+            inputMode="email"
+            spellCheck={false}
             required
             value={email}
             onChange={(event) => {
@@ -68,7 +70,11 @@ export function ForgotPasswordForm() {
           />
         </Field>
       </FieldGroup>
-      <Button type="submit" disabled={pending}>
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={pending || email.trim().length === 0}
+      >
         {pending ? <Spinner data-icon="inline-start" /> : null}
         {pending ? "Sending" : "Send reset link"}
       </Button>

@@ -13,7 +13,10 @@ export function MarketingSection({
   return (
     <section
       id={id}
-      className={cn("mx-auto w-full max-w-6xl px-6 py-24 md:py-28", className)}
+      className={cn(
+        "mx-auto w-full max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6 md:py-24",
+        className,
+      )}
     >
       {children}
     </section>
@@ -24,23 +27,32 @@ export function SectionHeading({
   eyebrow,
   title,
   copy,
+  align = "left",
 }: {
   eyebrow?: string;
   title: string;
   copy?: string;
+  align?: "left" | "center";
 }) {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 text-center">
+    <div
+      className={cn(
+        "flex max-w-2xl flex-col gap-3",
+        align === "center" && "mx-auto text-center",
+      )}
+    >
       {eyebrow ? (
-        <p className="font-mono text-xs tracking-[0.2em] text-primary uppercase">
+        <p className="font-mono text-[0.68rem] tracking-[0.22em] text-primary uppercase">
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="font-heading text-3xl tracking-tight text-balance md:text-4xl">
+      <h2 className="font-display text-[2rem] leading-[1.15] text-balance md:text-[2.5rem]">
         {title}
       </h2>
       {copy ? (
-        <p className="text-muted-foreground text-pretty">{copy}</p>
+        <p className="text-[0.95rem] leading-relaxed text-muted-foreground text-pretty">
+          {copy}
+        </p>
       ) : null}
     </div>
   );

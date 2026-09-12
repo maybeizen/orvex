@@ -1,13 +1,8 @@
+import { SettingsBlock } from "@/components/account/settings-block";
+import { SettingsFrame } from "@/components/account/settings-frame";
 import { RequireSession } from "@/components/auth/require-session";
 import { Enter } from "@/components/motion/enter";
 import { ThemeSwitcher } from "@/components/theme/theme-switcher";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export function SettingsPage() {
   return (
@@ -15,29 +10,26 @@ export function SettingsPage() {
       title="Settings"
       description="Sign in to change appearance."
     >
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
-        <Enter>
-          <div>
-            <h1 className="font-heading text-2xl tracking-tight">Settings</h1>
-            <p className="text-sm text-muted-foreground">
-              Appearance for this workspace.
-            </p>
-          </div>
-        </Enter>
-        <Enter delay={0.04}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Theme</CardTitle>
-              <CardDescription>
-                Dark, light, or follow the system setting.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+      <SettingsFrame>
+        <div className="flex flex-col gap-6">
+          <Enter>
+            <div className="flex flex-col gap-1">
+              <h1 className="text-xl font-medium tracking-tight">Appearance</h1>
+              <p className="text-sm text-muted-foreground">
+                Theme for this browser. It does not change other seats.
+              </p>
+            </div>
+          </Enter>
+          <Enter delay={0.04}>
+            <SettingsBlock
+              title="Theme"
+              description="Dark, light, or follow the system setting."
+            >
               <ThemeSwitcher />
-            </CardContent>
-          </Card>
-        </Enter>
-      </div>
+            </SettingsBlock>
+          </Enter>
+        </div>
+      </SettingsFrame>
     </RequireSession>
   );
 }

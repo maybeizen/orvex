@@ -3,8 +3,8 @@ import { cn } from "@/lib/cn";
 const TONE_CLASS = {
   up: "bg-primary",
   down: "bg-destructive",
-  warn: "bg-muted-foreground",
-  degraded: "bg-muted-foreground",
+  warn: "bg-warning",
+  degraded: "bg-warning",
 } as const;
 
 export function StatusDot({

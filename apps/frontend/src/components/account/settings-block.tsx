@@ -26,11 +26,13 @@ export function SettingsBlock({
 }) {
   if (!framed) {
     return (
-      <section className="flex flex-col gap-5 px-6 py-6">
+      <section className="flex flex-col gap-5 px-5 py-5 sm:px-6 sm:py-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="font-heading text-base">{title}</h2>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <h2 className="text-sm font-medium tracking-tight">{title}</h2>
+            <p className="text-sm text-muted-foreground text-pretty">
+              {description}
+            </p>
           </div>
           {action}
         </div>
@@ -41,7 +43,7 @@ export function SettingsBlock({
   }
 
   return (
-    <Card>
+    <Card className="rounded-lg">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>

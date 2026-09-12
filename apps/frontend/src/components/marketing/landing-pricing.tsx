@@ -4,17 +4,7 @@ import {
   MarketingSection,
   SectionHeading,
 } from "@/components/marketing/marketing-section";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/cn";
 import {
   BILLING_CYCLES,
@@ -42,12 +32,12 @@ function PlanLimits({ plan }: { plan: PricingPlan }) {
             key={key}
             className="flex items-baseline justify-between gap-4 border-b border-border py-2.5 last:border-b-0"
           >
-            <dt className="font-mono text-[0.7rem] tracking-wide text-muted-foreground uppercase">
+            <dt className="font-mono text-[0.68rem] tracking-wide text-muted-foreground uppercase">
               {PRICING_FEATURE_LABELS[key]}
             </dt>
             <dd
               className={cn(
-                "text-right text-sm",
+                "text-right text-sm tabular-nums",
                 value ? "text-foreground" : "text-muted-foreground",
               )}
             >
@@ -65,29 +55,27 @@ function PlanCard({ plan, cycle }: { plan: PricingPlan; cycle: BillingCycle }) {
   const monthlyEquivalent = equivalentMonthlyUsd(plan.monthlyUsd, cycle);
 
   return (
-    <Card
+    <article
       className={cn(
-        "h-full gap-0 py-0",
-        plan.featured
-          ? "bg-card ring-primary/70 md:-translate-y-3"
-          : "bg-card/70",
+        "flex h-full min-w-0 flex-col rounded-md border bg-card",
+        plan.featured ? "border-primary/70" : "border-border",
       )}
     >
       {plan.featured ? <div className="h-0.5 bg-primary" /> : null}
-      <CardHeader className="gap-3 border-b border-border py-6">
+      <header className="flex flex-col gap-2 border-b border-border px-5 py-5">
         <div className="flex items-center justify-between gap-3">
-          <CardTitle className="font-heading text-lg tracking-tight">
-            {plan.name}
-          </CardTitle>
+          <h3 className="text-lg font-medium tracking-tight">{plan.name}</h3>
           {plan.featured ? (
-            <Badge className="font-mono uppercase">Most used</Badge>
+            <span className="font-mono rounded-md bg-primary px-2 py-0.5 text-[0.62rem] tracking-[0.12em] text-primary-foreground uppercase">
+              Most used
+            </span>
           ) : null}
         </div>
-        <CardDescription className="text-pretty">
+        <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
           {plan.description}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-6 py-6">
+        </p>
+      </header>
+      <div className="flex flex-1 flex-col gap-5 px-5 py-5">
         <div className="flex flex-col gap-1">
           <p className="font-mono text-4xl tracking-tight tabular-nums">
             {formatUsd(total)}
@@ -106,8 +94,8 @@ function PlanCard({ plan, cycle }: { plan: PricingPlan; cycle: BillingCycle }) {
           )}
         </div>
         <PlanLimits plan={plan} />
-      </CardContent>
-      <CardFooter className="mt-auto">
+      </div>
+      <footer className="mt-auto px-5 pb-5">
         <Button
           className="w-full"
           variant={plan.featured ? "default" : "outline"}
@@ -115,8 +103,8 @@ function PlanCard({ plan, cycle }: { plan: PricingPlan; cycle: BillingCycle }) {
         >
           <Link to="/register">Get started</Link>
         </Button>
-      </CardFooter>
-    </Card>
+      </footer>
+    </article>
   );
 }
 
@@ -125,54 +113,56 @@ export function LandingPricing() {
 
   return (
     <MarketingSection id="pricing">
-      <div className="flex flex-col gap-14">
+      <div className="flex flex-col gap-10">
         <SectionHeading
           eyebrow="Pricing"
           title="Pay for the desk you run"
           copy="Quarterly saves 10%. Yearly saves 20%. The figure is the period total."
         />
         <div className="flex justify-center">
-          <ToggleGroup
-            type="single"
-            value={cycle}
-            onValueChange={(value) => {
-              if (
-                value === "monthly" ||
-                value === "quarterly" ||
-                value === "yearly"
-              ) {
-                setCycle(value);
-              }
-            }}
-            variant="outline"
-            spacing={0}
-            className="border border-border bg-card font-mono"
+          <div
+            role="group"
+            aria-label="Billing cycle"
+            className="flex flex-wrap justify-center gap-px overflow-hidden rounded-md border border-border bg-border"
           >
             {BILLING_CYCLES.map((item) => {
               const discount = cycleDiscountLabel(item);
+              const selected = cycle === item;
 
               return (
-                <ToggleGroupItem
+                <button
                   key={item}
-                  value={item}
-                  className="gap-2 px-3.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  type="button"
+                  onClick={() => {
+                    setCycle(item);
+                  }}
+                  className={cn(
+                    "font-mono inline-flex items-center gap-2 px-4 py-2 text-xs tracking-wide uppercase transition-colors duration-150",
+                    selected
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-card text-muted-foreground hover:text-foreground",
+                  )}
                 >
                   {cycleHeading(item)}
                   {discount ? (
-                    <span className="text-[0.65rem] tracking-wide opacity-80">
+                    <span className="text-[0.62rem] tracking-wide opacity-80">
                       {discount}
                     </span>
                   ) : null}
-                </ToggleGroupItem>
+                </button>
               );
             })}
-          </ToggleGroup>
+          </div>
         </div>
-        <div className="grid items-stretch gap-6 md:grid-cols-3 md:gap-5">
+        <div className="grid items-stretch gap-4 md:grid-cols-3">
           {PRICING_PLANS.map((plan) => (
             <PlanCard key={plan.id} plan={plan} cycle={cycle} />
           ))}
         </div>
+        <p className="text-center text-sm text-muted-foreground text-pretty">
+          Free stays available: 5 HTTP checks, one region, 5-minute interval,
+          email when something breaks.
+        </p>
       </div>
     </MarketingSection>
   );

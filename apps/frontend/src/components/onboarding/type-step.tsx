@@ -40,13 +40,14 @@ export function TypeStep({
           <button
             key={kind.id}
             type="button"
+            className="h-full w-full"
             onClick={() => {
               onChange({ kind: kind.id satisfies OrganizationKind });
             }}
           >
             <Card
               className={cn(
-                "h-full text-left transition-colors",
+                "h-full rounded-lg text-left transition-colors",
                 selected
                   ? "bg-card ring-2 ring-primary"
                   : "bg-card/70 hover:bg-muted/40",

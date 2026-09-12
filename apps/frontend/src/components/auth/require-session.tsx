@@ -28,7 +28,7 @@ export function RequireSession({
   if (user === null) {
     return (
       <div className="flex max-w-xl flex-col gap-4">
-        <h1 className="font-heading text-2xl tracking-tight">{title}</h1>
+        <h1 className="text-xl font-medium tracking-tight">{title}</h1>
         <p className="text-sm text-muted-foreground">{description}</p>
         <Button asChild className="w-fit">
           <Link to="/login">Sign in</Link>

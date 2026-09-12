@@ -1,96 +1,125 @@
-import { Code2, Rss, Users } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { BrandMark } from "@/components/marketing/brand-mark";
-import { Separator } from "@/components/ui/separator";
 
-const FOOTER_COLUMNS = [
-  {
-    title: "Product",
-    links: ["Features", "Pricing", "Status", "Changelog", "Integrations"],
-  },
-  {
-    title: "Company",
-    links: ["About", "Blog", "Careers", "Contact"],
-  },
-  {
-    title: "Resources",
-    links: ["Docs", "API", "Status page", "Support", "System status"],
-  },
-  {
-    title: "Legal",
-    links: ["Privacy", "Terms", "DPA", "Security"],
-  },
+const PRODUCT_LINKS = [
+  { label: "Features", to: "/#features", hash: "#features" },
+  { label: "Pricing", to: "/pricing", hash: "#pricing" },
+  { label: "Network", to: "/#network", hash: "#network" },
+  { label: "Changelog", to: "/changelog" },
 ] as const;
 
+const COMPANY_LINKS = [{ label: "About", to: "/about" }] as const;
+
+const ACCOUNT_LINKS = [
+  { label: "Sign in", to: "/login" },
+  { label: "Get started", to: "/register" },
+] as const;
+
+const LEGAL_LINKS = [
+  { label: "Privacy", to: "/privacy" },
+  { label: "Terms", to: "/terms" },
+] as const;
+
+function FooterLink({
+  label,
+  to,
+  hash,
+  pathname,
+}: {
+  label: string;
+  to: string;
+  hash?: string;
+  pathname: string;
+}) {
+  const href = hash !== undefined && pathname === "/" ? hash : to;
+  const className =
+    "text-sm text-muted-foreground transition-colors duration-150 hover:text-foreground";
+
+  if (href.startsWith("/") && !href.startsWith("/#")) {
+    return (
+      <Link to={href} className={className}>
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <a href={href} className={className}>
+      {label}
+    </a>
+  );
+}
+
 export function MarketingFooter() {
+  const { pathname } = useLocation();
+
   return (
     <footer className="border-t border-border bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-16 px-6 py-20">
-        <div className="grid gap-12 md:grid-cols-5">
-          <div className="flex flex-col gap-3 md:col-span-1">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-14 sm:px-6 sm:py-16">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="col-span-2 flex flex-col gap-3 sm:col-span-3 lg:col-span-1">
             <BrandMark />
-            <p className="text-sm text-muted-foreground text-pretty">
-              Control-room monitoring for HTTP, SSL, heartbeats, and the Go
+            <p className="max-w-xs text-sm leading-relaxed text-muted-foreground text-pretty">
+              Control-room monitoring for HTTP, TLS, heartbeats, and the Go
               agent.
             </p>
           </div>
-          {FOOTER_COLUMNS.map((column) => (
-            <div key={column.title} className="flex flex-col gap-3">
-              <p className="font-mono text-xs tracking-wide text-foreground uppercase">
-                {column.title}
-              </p>
-              <ul className="flex flex-col gap-2">
-                {column.links.map((label) => (
-                  <li key={label}>
-                    {label === "Terms" ? (
-                      <Link
-                        to="/terms"
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        {label}
-                      </Link>
-                    ) : (
-                      <a
-                        href="#"
-                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        {label}
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="flex flex-col gap-3">
+            <p className="font-mono text-[0.68rem] tracking-[0.16em] text-foreground uppercase">
+              Product
+            </p>
+            <ul className="flex flex-col gap-2">
+              {PRODUCT_LINKS.map((link) => (
+                <li key={link.label}>
+                  <FooterLink pathname={pathname} {...link} />
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-col gap-3">
+            <p className="font-mono text-[0.68rem] tracking-[0.16em] text-foreground uppercase">
+              Company
+            </p>
+            <ul className="flex flex-col gap-2">
+              {COMPANY_LINKS.map((link) => (
+                <li key={link.label}>
+                  <FooterLink pathname={pathname} {...link} />
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-col gap-3">
+            <p className="font-mono text-[0.68rem] tracking-[0.16em] text-foreground uppercase">
+              Account
+            </p>
+            <ul className="flex flex-col gap-2">
+              {ACCOUNT_LINKS.map((link) => (
+                <li key={link.label}>
+                  <FooterLink pathname={pathname} {...link} />
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-col gap-3">
+            <p className="font-mono text-[0.68rem] tracking-[0.16em] text-foreground uppercase">
+              Legal
+            </p>
+            <ul className="flex flex-col gap-2">
+              {LEGAL_LINKS.map((link) => (
+                <li key={link.label}>
+                  <FooterLink pathname={pathname} {...link} />
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-        <Separator />
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="font-mono text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+          <p className="font-mono text-[0.7rem] text-muted-foreground">
             © 2026 Orvex
           </p>
-          <div className="flex items-center gap-3">
-            <a
-              href="#"
-              aria-label="GitHub"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Code2 className="size-4" />
-            </a>
-            <a
-              href="#"
-              aria-label="LinkedIn"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Users className="size-4" />
-            </a>
-            <a
-              href="#"
-              aria-label="Feed"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Rss className="size-4" />
-            </a>
-          </div>
+          <p className="font-mono text-[0.7rem] tracking-wide text-muted-foreground uppercase">
+            IAD · FRA · LHR · SIN · SJC · SYD
+          </p>
         </div>
       </div>
     </footer>

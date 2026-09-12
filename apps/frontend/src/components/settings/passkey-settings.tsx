@@ -161,7 +161,7 @@ export function PasskeySettings({ framed = true }: { framed?: boolean }) {
             return (
               <li
                 key={passkey.id}
-                className="flex flex-col gap-3 rounded-lg border border-border px-3 py-3"
+                className="flex min-w-0 flex-col gap-3 rounded-md border border-border px-3 py-3"
               >
                 {renaming ? (
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-end">

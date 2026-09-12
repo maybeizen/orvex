@@ -121,6 +121,7 @@ export function PlanStep({
             <button
               key={plan.id}
               type="button"
+              className="h-full w-full"
               disabled={!allowed}
               aria-pressed={selected}
               onClick={() => {
@@ -129,13 +130,17 @@ export function PlanStep({
             >
               <Card
                 className={cn(
-                  "h-full gap-0 py-0 text-left",
+                  "relative h-full gap-0 rounded-lg py-0 text-left",
                   selected ? "bg-card ring-2 ring-primary" : "bg-card/70",
-                  plan.featured && allowed ? "ring-primary/40" : null,
+                  plan.featured && allowed && !selected
+                    ? "ring-primary/40"
+                    : null,
                   !allowed && "opacity-60",
                 )}
               >
-                {plan.featured ? <div className="h-0.5 bg-primary" /> : null}
+                {plan.featured ? (
+                  <span className="absolute inset-x-0 top-0 h-0.5 bg-primary" />
+                ) : null}
                 <CardHeader className="gap-2 border-b border-border py-4">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="font-heading text-base tracking-tight">
