@@ -8,7 +8,10 @@ import helmet from "helmet";
 import { createCorsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error.js";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
+import { createAgentIngestRouter } from "./modules/agent/http.js";
+import { createStripeWebhookRouter } from "./modules/billing/http.js";
 import { createOrganizationIconRouter } from "./modules/organization/icon-routes.js";
+import { createProbeIngestRouter } from "./modules/probe/http.js";
 import { createAvatarRouter } from "./modules/profile/avatar-routes.js";
 import { createContext } from "./trpc/context.js";
 import { appRouter } from "./trpc/router.js";
@@ -33,6 +36,21 @@ export function createApp(env: Env): CreatedApp {
   app.use(helmet());
   app.use(createCorsMiddleware(env.FRONTEND_ORIGIN));
   app.use(createRateLimitMiddleware(cache));
+  app.use(
+    createStripeWebhookRouter({
+      supabase,
+      cache,
+      webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+    }),
+  );
+  app.use(createAgentIngestRouter({ supabase, cache }));
+  app.use(
+    createProbeIngestRouter({
+      supabase,
+      cache,
+      probeServiceToken: env.PROBE_SERVICE_TOKEN,
+    }),
+  );
   app.use(
     "/trpc",
     createExpressMiddleware({

@@ -2,8 +2,12 @@ import type { CacheClient } from "@orvex/cache";
 import { Router } from "express";
 import express from "express";
 import { z } from "zod";
+import {
+  openAutoIncident,
+  resolveAutoIncident,
+} from "../incident/incident-service.js";
 import { applyProbeResult, claimDueMonitors } from "../monitor/ingest.js";
-import type { MonitorClient } from "../monitor/monitor-dto.js";
+import type { MonitorClient, MonitorRow } from "../monitor/monitor-dto.js";
 import { isMonitorStatus } from "../monitor/monitor-dto.js";
 import { HttpError } from "../../utils/http-error.js";
 
@@ -55,6 +59,35 @@ function authorizeProbe(
   return null;
 }
 
+async function syncAutoIncident(
+  supabase: MonitorClient,
+  monitor: MonitorRow,
+  resultStatus: string,
+): Promise<void> {
+  try {
+    if (monitor.status === "down") {
+      await openAutoIncident(supabase, {
+        organizationId: monitor.organization_id,
+        monitorId: monitor.id,
+        severity: resultStatus === "degraded" ? "degraded" : "down",
+        summary: `${monitor.name} is down`,
+      });
+      return;
+    }
+    if (resultStatus === "up") {
+      await resolveAutoIncident(supabase, monitor.id);
+    }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.startsWith("unexpected table")
+    ) {
+      return;
+    }
+    throw error;
+  }
+}
+
 export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
   const router = Router();
   router.use(express.json());
@@ -83,7 +116,13 @@ export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
         region: parsed.data.region,
         limit: parsed.data.limit ?? 10,
       });
-      res.status(200).json(claimed);
+      res.status(200).json(
+        claimed.map((job) => ({
+          ...job,
+          monitorId: job.id,
+          region: parsed.data.region,
+        })),
+      );
     })().catch((caught: unknown) => {
       next(caught);
     });
@@ -110,7 +149,7 @@ export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
         return;
       }
 
-      await applyProbeResult(deps.supabase, deps.cache, {
+      const { monitor } = await applyProbeResult(deps.supabase, deps.cache, {
         monitorId: parsed.data.monitorId,
         region: parsed.data.region,
         startedAt: parsed.data.startedAt,
@@ -119,6 +158,7 @@ export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
         httpCode: parsed.data.httpCode,
         error: parsed.data.error,
       });
+      await syncAutoIncident(deps.supabase, monitor, parsed.data.status);
       res.status(204).end();
     })().catch((caught: unknown) => {
       if (caught instanceof HttpError) {
