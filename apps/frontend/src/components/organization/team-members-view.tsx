@@ -8,8 +8,8 @@ import {
   LoadingPanel,
 } from "@/components/console/console-panel";
 import { PageHeader } from "@/components/console/page-header";
-import { NativeSelect } from "@/components/console/native-select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SelectMenu } from "@/components/ui/select-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -20,6 +20,13 @@ import { createVanillaTrpcClient } from "@/lib/trpc";
 import { userInitials } from "@/lib/user-display";
 import { useSessionStore } from "@/stores/session-store";
 
+type AssignableRole = "admin" | "member";
+
+const ASSIGNABLE_ROLES: readonly { value: AssignableRole; label: string }[] = [
+  { value: "admin", label: "Admin" },
+  { value: "member", label: "Member" },
+];
+
 function roleLabel(role: string): string {
   if (role === "owner") {
     return "Owner";
@@ -28,6 +35,10 @@ function roleLabel(role: string): string {
     return "Admin";
   }
   return "Member";
+}
+
+function assignableRole(role: string): AssignableRole {
+  return role === "admin" ? "admin" : "member";
 }
 
 export function TeamMembersView({
@@ -221,20 +232,16 @@ export function TeamMembersView({
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         {canEdit ? (
-                          <NativeSelect
+                          <SelectMenu
                             aria-label={`Role for ${member.displayName}`}
-                            value={member.role}
+                            value={assignableRole(member.role)}
                             disabled={busyUserId === member.userId}
-                            onChange={(event) => {
-                              const next = event.target.value;
-                              if (next === "admin" || next === "member") {
-                                void changeRole(member.userId, next);
-                              }
+                            onValueChange={(next) => {
+                              void changeRole(member.userId, next);
                             }}
-                          >
-                            <option value="admin">Admin</option>
-                            <option value="member">Member</option>
-                          </NativeSelect>
+                            options={ASSIGNABLE_ROLES}
+                            className="w-32"
+                          />
                         ) : (
                           <Badge variant="outline">
                             {roleLabel(member.role)}
@@ -292,21 +299,18 @@ export function TeamMembersView({
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="invite-role">Role</FieldLabel>
-                      <NativeSelect
+                      <SelectMenu
                         id="invite-role"
                         value={role}
-                        onChange={(event) => {
-                          const next = event.target.value;
-                          if (next === "admin" || next === "member") {
-                            setRole(next);
-                          }
-                        }}
-                      >
-                        {organization.role === "owner" ? (
-                          <option value="admin">Admin</option>
-                        ) : null}
-                        <option value="member">Member</option>
-                      </NativeSelect>
+                        onValueChange={setRole}
+                        options={
+                          organization.role === "owner"
+                            ? ASSIGNABLE_ROLES
+                            : ASSIGNABLE_ROLES.filter(
+                                (option) => option.value === "member",
+                              )
+                        }
+                      />
                     </Field>
                   </FieldGroup>
                   <div>
