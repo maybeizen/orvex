@@ -41,11 +41,11 @@ import { TermsPage } from "@/routes/terms-page";
 import { TwoFactorPage } from "@/routes/two-factor-page";
 import { DocsPage } from "@/routes/docs-page";
 import { AuditLogPage } from "@/routes/audit-log-page";
+import { OrdersPage } from "@/routes/orders-page";
+import { ReferralsPage } from "@/routes/referrals-page";
 import { SupportPage } from "@/routes/support-page";
 import {
   ContactListsPage,
-  OrdersPage,
-  ReferralsPage,
   WhiteLabelPage,
 } from "@/routes/workspace-pages";
 import { Providers } from "./providers";

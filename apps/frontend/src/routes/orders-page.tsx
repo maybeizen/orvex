@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import type { BillingInvoice } from "@orvex/types";
+import type { BillingOrder } from "@orvex/types";
 import { RequireSession } from "@/components/auth/require-session";
-import { queryInvoices } from "@/components/billing/client";
-import { InvoiceLedger } from "@/components/billing/invoice-ledger";
+import { queryOrders } from "@/components/billing/client";
+import { OrderLedger } from "@/components/billing/order-ledger";
 import { ConsolePanel } from "@/components/console/console-panel";
 import { PageHeader } from "@/components/console/page-header";
 import { Button } from "@/components/ui/button";
 import { useOrgLink } from "@/lib/use-org-link";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
-export function InvoicesPage() {
+export function OrdersPage() {
   const organization = useOrgStore(selectActiveOrganization);
   const organizationId = organization?.id;
   const orgLink = useOrgLink();
-  const [invoices, setInvoices] = useState<BillingInvoice[] | null>(null);
+  const [orders, setOrders] = useState<BillingOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,20 +22,18 @@ export function InvoicesPage() {
       return;
     }
     let active = true;
-    void queryInvoices(organizationId)
+    void queryOrders(organizationId)
       .then((next) => {
         if (active) {
-          setInvoices(next);
+          setOrders(next);
           setError(null);
         }
       })
       .catch((caught: unknown) => {
         if (active) {
-          setInvoices([]);
+          setOrders([]);
           setError(
-            caught instanceof Error
-              ? caught.message
-              : "Unable to load invoices",
+            caught instanceof Error ? caught.message : "Unable to load orders",
           );
         }
       });
@@ -45,15 +43,15 @@ export function InvoicesPage() {
   }, [organizationId]);
 
   return (
-    <RequireSession title="Invoices" description="Sign in to review invoices.">
+    <RequireSession title="Orders" description="Sign in to review orders.">
       <div className="flex flex-col gap-4">
         <PageHeader
           eyebrow="Billing"
-          title="Invoices"
+          title="Orders"
           description={
             organization === null
-              ? "Receipts for paid plans on this organization."
-              : `Receipts for ${organization.name}.`
+              ? "Plan changes and checkout sessions for this organization."
+              : `Plan changes and checkout sessions for ${organization.name}.`
           }
           actions={
             <Button asChild size="sm" variant="outline">
@@ -62,7 +60,7 @@ export function InvoicesPage() {
           }
         />
         <ConsolePanel padded={false} title="Ledger">
-          <InvoiceLedger invoices={invoices} error={error} />
+          <OrderLedger orders={orders} error={error} />
         </ConsolePanel>
       </div>
     </RequireSession>

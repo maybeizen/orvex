@@ -72,10 +72,10 @@ test("createCheckoutSession returns a hosted checkout URL", async () => {
     { price: "price_looked_up", quantity: 1 },
   ]);
   expect(params.success_url).toBe(
-    "http://localhost:5173/ada-labs/billing?checkout=success",
+    "http://localhost:5173/organization/ada-labs/billing?checkout=success",
   );
   expect(params.cancel_url).toBe(
-    "http://localhost:5173/ada-labs/billing?checkout=cancel",
+    "http://localhost:5173/organization/ada-labs/billing?checkout=cancel",
   );
   expect(params.subscription_data.billing_mode).toEqual({ type: "flexible" });
   expect(params.metadata).toEqual(

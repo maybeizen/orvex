@@ -135,7 +135,7 @@ export function billingPath(
   slug: string,
   checkout?: "success" | "cancel",
 ): string {
-  const url = new URL(`/${slug}/billing`, `${origin}/`);
+  const url = new URL(`/organization/${slug}/billing`, `${origin}/`);
   if (checkout !== undefined) {
     url.searchParams.set("checkout", checkout);
   }
