@@ -30,7 +30,7 @@ export function appPageTitle(pathname: string): string {
 
   const match = Object.keys(PAGE_TITLES)
     .filter((path) => path !== "/" && pathname.startsWith(`${path}/`))
-    .toSorted((left, right) => right.length - left.length)[0];
+    .sort((left: string, right: string) => right.length - left.length)[0];
 
   return PAGE_TITLES[match] ?? "Dashboard";
 }
