@@ -1,5 +1,5 @@
 import type { AuthUser } from "@orvex/types";
-import { ChevronDown, LogOut, Settings, Shield, UserRound } from "lucide-react";
+import { ChevronDown, LogOut, Settings, Shield } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -19,11 +19,7 @@ import {
 import { AccountOrgSwitcher } from "@/components/organization/org-switcher";
 import { isPlatformAdmin } from "@/lib/platform-admin";
 import { accountHandle, userInitials } from "@/lib/user-display";
-import {
-  ADMIN_PATH,
-  USER_PROFILE_PATH,
-  USER_SETTINGS_PATH,
-} from "@/lib/org-paths";
+import { ADMIN_PATH, USER_SETTINGS_PATH } from "@/lib/org-paths";
 import { cn } from "@/lib/cn";
 import { getBrowserAuth } from "@/lib/supabase";
 import { useSidebarStore } from "@/stores/sidebar-store";
@@ -57,12 +53,6 @@ export function AccountMenuItems({
         {...(onNavigate === undefined ? {} : { onNavigate })}
       />
       <DropdownMenuGroup>
-        <DropdownMenuItem asChild>
-          <Link to={USER_PROFILE_PATH} onClick={onNavigate}>
-            <UserRound />
-            Profile
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to={USER_SETTINGS_PATH} onClick={onNavigate}>
             <Settings />

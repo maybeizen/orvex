@@ -72,17 +72,19 @@ function openAccountMenu(user = ada) {
   );
 }
 
-test("account menu lists theme, orgs, profile, settings, and log out", () => {
+test("account menu lists theme, orgs, settings, and log out", () => {
   openAccountMenu();
 
   expect(screen.getByRole("radio", { name: "Dark" })).toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: "Organization Acme Desk" }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("menuitem", { name: "Profile" })).toHaveAttribute(
-    "href",
-    "/settings#profile",
-  );
+  expect(
+    screen.queryByRole("menuitem", { name: "Profile" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("menuitem", { name: "All organizations" }),
+  ).not.toBeInTheDocument();
   expect(screen.getByRole("menuitem", { name: "Settings" })).toHaveAttribute(
     "href",
     "/settings",

@@ -108,11 +108,6 @@ export function AccountOrgSwitcher({
       <>
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link to="/organizations" onClick={onNavigate}>
-              All organizations
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
             <Link to="/onboarding" onClick={onNavigate}>
               <Plus />
               New organization
@@ -185,11 +180,6 @@ export function AccountOrgSwitcher({
               </motion.div>
             ) : null}
           </AnimatePresence>
-          <DropdownMenuItem asChild>
-            <Link to="/organizations" onClick={onNavigate}>
-              All organizations
-            </Link>
-          </DropdownMenuItem>
         </div>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
@@ -237,9 +227,6 @@ export function HeaderOrgControl() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link to="/organizations">All organizations</Link>
-          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to="/onboarding">
               <Plus />
