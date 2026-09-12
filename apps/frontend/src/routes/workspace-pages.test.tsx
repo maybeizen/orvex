@@ -6,27 +6,28 @@ import { expect, test, vi } from "vitest";
 vi.mock("@/lib/trpc", () => ({
   createVanillaTrpcClient: () => ({
     billing: {
-      listInvoices: { query: async () => [] },
-      listOrders: { query: async () => [] },
+      listInvoices: { query: () => Promise.resolve([]) },
+      listOrders: { query: () => Promise.resolve([]) },
     },
     referral: {
       mine: {
-        query: async () => ({
-          code: "TEAMCODE",
-          sharePath: "/r/TEAMCODE",
-          items: [],
-        }),
+        query: () =>
+          Promise.resolve({
+            code: "TEAMCODE",
+            sharePath: "/r/TEAMCODE",
+            items: [],
+          }),
       },
     },
     statusPage: {
-      list: { query: async () => [] },
+      list: { query: () => Promise.resolve([]) },
     },
     audit: {
-      list: { query: async () => [] },
-      export: { query: async () => [] },
+      list: { query: () => Promise.resolve([]) },
+      export: { query: () => Promise.resolve([]) },
     },
     support: {
-      create: { mutate: async () => ({ status: "sent" }) },
+      create: { mutate: () => Promise.resolve({ status: "sent" }) },
     },
   }),
 }));

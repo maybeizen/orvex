@@ -7,14 +7,16 @@ import {
   organizationRow,
   orgTestUser,
 } from "../modules/organization/test-support.js";
-import { orgProcedure } from "./org-procedure.js";
+import { orgProcedure, orgRefInput } from "./org-procedure.js";
 import { router } from "./trpc.js";
 import { withCache } from "./test-context.js";
 
 const probe = router({
-  ping: orgProcedure("monitor.read").query(({ ctx }) => ({
-    orgId: ctx.organization.id,
-  })),
+  ping: orgProcedure("monitor.read")
+    .input(orgRefInput)
+    .query(({ ctx }) => ({
+      orgId: ctx.organization.id,
+    })),
 });
 
 test("orgProcedure allows a member with the required bit", async () => {
@@ -70,7 +72,9 @@ test("orgProcedure rejects a missing bit", async () => {
     members: [memberRow({ permission_mask: PERMISSION_PRESET_MASKS.member })],
   });
   const write = router({
-    create: orgProcedure("monitor.write").mutation(() => ({ ok: true })),
+    create: orgProcedure("monitor.write")
+      .input(orgRefInput)
+      .mutation(() => ({ ok: true })),
   });
   const caller = write.createCaller(
     withCache({

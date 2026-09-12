@@ -29,42 +29,8 @@ type ContactPatch = OrgRef & {
   enabled?: boolean;
 };
 
-type ContactClient = {
-  contact: {
-    lists: {
-      list: { query: (input: OrgRef) => Promise<ContactList[]> };
-      create: {
-        mutate: (input: OrgRef & { name: string }) => Promise<ContactList>;
-      };
-      update: {
-        mutate: (
-          input: OrgRef & { listId: string; name: string },
-        ) => Promise<ContactList>;
-      };
-      delete: {
-        mutate: (input: OrgRef & { listId: string }) => Promise<unknown>;
-      };
-    };
-    contacts: {
-      list: {
-        query: (input: OrgRef & { listId?: string }) => Promise<Contact[]>;
-      };
-      create: { mutate: (input: ContactWrite) => Promise<Contact> };
-      update: { mutate: (input: ContactPatch) => Promise<Contact> };
-      delete: {
-        mutate: (input: OrgRef & { contactId: string }) => Promise<unknown>;
-      };
-    };
-    testSend: {
-      mutate: (
-        input: OrgRef & { contactId: string; message?: string },
-      ) => Promise<NotificationDelivery>;
-    };
-  };
-};
-
-function contactClient(): ContactClient {
-  return createVanillaTrpcClient() as unknown as ContactClient;
+function contactClient() {
+  return createVanillaTrpcClient();
 }
 
 export function queryContactLists(

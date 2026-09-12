@@ -20,22 +20,8 @@ type BillingUrl = {
   url: string;
 };
 
-type BillingClient = {
-  billing: {
-    listInvoices: { query: (input: OrgRef) => Promise<BillingInvoice[]> };
-    listOrders: { query: (input: OrgRef) => Promise<BillingOrder[]> };
-    createCheckoutSession: {
-      mutate: (input: CheckoutInput) => Promise<BillingUrl>;
-    };
-    createPortalSession: { mutate: (input: OrgRef) => Promise<BillingUrl> };
-  };
-  referral: {
-    mine: { query: (input: OrgRef) => Promise<ReferralProgram> };
-  };
-};
-
-function billingClient(): BillingClient {
-  return createVanillaTrpcClient() as unknown as BillingClient;
+function billingClient() {
+  return createVanillaTrpcClient();
 }
 
 export function queryInvoices(

@@ -35,10 +35,34 @@ test("health.live returns ok", async () => {
           }),
         }),
         storage: stubSupabase.storage,
-      } as typeof stubSupabase,
+      } as unknown as typeof stubSupabase,
     }),
   );
   await expect(caller.health.live()).resolves.toEqual({ ok: true });
+});
+
+test("health.live fails when cache or organizations are down", async () => {
+  const cache = {
+    ping: () => Promise.resolve(false),
+  };
+  const caller = appRouter.createCaller(
+    withCache({
+      user: null,
+      req,
+      cache: cache as never,
+      supabase: {
+        from: () => ({
+          select: () => ({
+            limit: () => Promise.resolve({ data: [], error: null }),
+          }),
+        }),
+        storage: stubSupabase.storage,
+      } as unknown as typeof stubSupabase,
+    }),
+  );
+  const error = await caller.health.live().catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("INTERNAL_SERVER_ERROR");
 });
 
 test("auth.me requires a user", async () => {

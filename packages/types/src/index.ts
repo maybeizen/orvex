@@ -1,4 +1,9 @@
 export type { Result } from "./result.js";
+export type {
+  AgentHeartbeatMetrics,
+  AgentHeartbeatPayload,
+  AgentMode,
+} from "./agent.js";
 export type { AuthUser } from "./auth.js";
 export type { User } from "./user.js";
 export type {

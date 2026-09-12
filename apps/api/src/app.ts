@@ -40,7 +40,7 @@ export function createApp(env: Env): CreatedApp {
     createStripeWebhookRouter({
       supabase,
       cache,
-      webhookSecret: env.STRIPE_WEBHOOK_SECRET,
+      webhookSecret: env.STRIPE_WEBHOOK_SECRET ?? null,
     }),
   );
   app.use(createAgentIngestRouter({ supabase, cache }));

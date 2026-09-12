@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense } from "react";
 import type { Organization } from "@orvex/types";
 import { getPlan } from "@orvex/types/plans";
 import { Link } from "react-router";
@@ -18,18 +18,14 @@ import {
   LoadingPanel,
 } from "@/components/console/console-panel";
 import { Button } from "@/components/ui/button";
-import { createIncidentClient } from "@/components/incidents/incident-client";
+import { useOrgIncidents } from "@/components/incidents/use-org-incidents";
 import { useOrgMonitors } from "@/components/monitors/use-org-monitors";
-import { statusPageApi } from "@/components/status/status-api";
+import { useOrgStatusPages } from "@/components/status/use-org-status-pages";
 import {
   countByStatus,
   hostMonitors,
   openIncidentCount,
   samplesFromMonitors,
-  toIncidentRecord,
-  toStatusPageRecord,
-  type IncidentRecord,
-  type StatusPageRecord,
 } from "@/lib/console";
 import { orgPlanLabel } from "@/components/organization/org-avatar";
 import { useOrgLink } from "@/lib/use-org-link";
@@ -45,9 +41,10 @@ export function StatusOverview({
   organization: Organization | null;
 }) {
   const orgLink = useOrgLink();
-  const { monitors, error } = useOrgMonitors(organization?.id ?? null);
-  const [incidents, setIncidents] = useState<IncidentRecord[]>([]);
-  const [pages, setPages] = useState<StatusPageRecord[]>([]);
+  const organizationId = organization?.id ?? null;
+  const { monitors, error } = useOrgMonitors(organizationId);
+  const { incidents } = useOrgIncidents(organizationId);
+  const { pages } = useOrgStatusPages(organizationId);
   const plan = organization === null ? null : getPlan(organization.planId);
   const ready = monitors !== null;
   const rows = monitors ?? [];
@@ -55,43 +52,6 @@ export function StatusOverview({
   const down = countByStatus(rows, "down");
   const degraded = countByStatus(rows, "degraded");
   const open = openIncidentCount(incidents);
-
-  useEffect(() => {
-    const organizationId = organization?.id;
-    if (organizationId === undefined) {
-      setIncidents([]);
-      setPages([]);
-      return;
-    }
-    let active = true;
-    void createIncidentClient()
-      .incident.list.query({ organizationId })
-      .then((rows) => {
-        if (active) {
-          setIncidents(rows.map(toIncidentRecord));
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setIncidents([]);
-        }
-      });
-    void statusPageApi()
-      .list.query({ organizationId })
-      .then((rows) => {
-        if (active) {
-          setPages(rows.map(toStatusPageRecord));
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setPages([]);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [organization?.id]);
   const monitorLimit = plan?.limits.monitors ?? "—";
   const regionLimit = plan?.limits.regions ?? "1";
   const series = samplesFromMonitors(rows);

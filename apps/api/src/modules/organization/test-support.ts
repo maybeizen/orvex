@@ -318,7 +318,7 @@ export function createOrganizationMemory(initial?: {
         return Object.entries(filters).every(([column, value]) => {
           const current = row[column as keyof OrganizationMemberRow];
           if (Array.isArray(value)) {
-            return value.includes(current);
+            return typeof current === "string" && value.includes(current);
           }
           return current === value;
         });
