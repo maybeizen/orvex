@@ -57,3 +57,23 @@ func TestParseStatCPU(t *testing.T) {
 		t.Fatalf("total = %d", total)
 	}
 }
+
+func TestCollectWarmsCPUSample(t *testing.T) {
+	cpuMu.Lock()
+	haveCPUPrev = false
+	prevIdle = 0
+	prevTotal = 0
+	cpuMu.Unlock()
+
+	snap, err := host{}.Collect()
+	if err != nil {
+		t.Fatalf("Collect: %v", err)
+	}
+	cpu, ok := snap["cpu"]
+	if !ok {
+		t.Fatal("expected cpu after warm sample")
+	}
+	if cpu < 0 || cpu > 1 {
+		t.Fatalf("cpu = %v", cpu)
+	}
+}

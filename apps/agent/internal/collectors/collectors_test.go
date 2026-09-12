@@ -44,12 +44,21 @@ func TestStubsStayDisabled(t *testing.T) {
 func TestGatherIncludesHostKeys(t *testing.T) {
 	t.Parallel()
 
-	got := collectors.Gather(false)
+	got := collectors.Gather(false, collectors.DefaultFlags())
 	if got == nil {
 		t.Fatal("Gather returned nil")
 	}
 	_, hasServices := got["services"]
 	if hasServices {
 		t.Fatal("disabled stubs must not contribute")
+	}
+}
+
+func TestGatherHonorsCollectorFlags(t *testing.T) {
+	t.Parallel()
+
+	got := collectors.Gather(false, collectors.Flags{})
+	if _, hasCPU := got["cpu"]; hasCPU {
+		t.Fatal("host collector must honor flags")
 	}
 }
