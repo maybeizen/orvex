@@ -92,7 +92,11 @@ function OrgRow({
   );
 }
 
-export function AccountOrgSwitcher() {
+export function AccountOrgSwitcher({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+} = {}) {
   const reduceMotion = useReducedMotion();
   const [expanded, setExpanded] = useState(false);
   const items = useOrgStore((state) => state.items);
@@ -104,10 +108,12 @@ export function AccountOrgSwitcher() {
       <>
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link to="/organizations">All organizations</Link>
+            <Link to="/organizations" onClick={onNavigate}>
+              All organizations
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link to="/onboarding">
+            <Link to="/onboarding" onClick={onNavigate}>
               <Plus />
               New organization
             </Link>
@@ -161,6 +167,7 @@ export function AccountOrgSwitcher() {
                       <DropdownMenuItem
                         key={organization.id}
                         onSelect={() => {
+                          onNavigate?.();
                           handleSwitch(organization);
                         }}
                       >
@@ -168,7 +175,7 @@ export function AccountOrgSwitcher() {
                       </DropdownMenuItem>
                     ))}
                     <DropdownMenuItem asChild>
-                      <Link to="/onboarding">
+                      <Link to="/onboarding" onClick={onNavigate}>
                         <Plus />
                         New organization
                       </Link>
@@ -179,7 +186,9 @@ export function AccountOrgSwitcher() {
             ) : null}
           </AnimatePresence>
           <DropdownMenuItem asChild>
-            <Link to="/organizations">All organizations</Link>
+            <Link to="/organizations" onClick={onNavigate}>
+              All organizations
+            </Link>
           </DropdownMenuItem>
         </div>
       </DropdownMenuGroup>

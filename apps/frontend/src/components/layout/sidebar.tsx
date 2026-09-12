@@ -143,7 +143,11 @@ export function SidebarAccount({
           collapsed ? "items-center gap-1" : "gap-2",
         )}
       >
-        <AuthNavCluster guest="signin" layout="sidebar" />
+        <AuthNavCluster
+          guest="signin"
+          layout="sidebar"
+          {...(onNavigate === undefined ? {} : { onNavigate })}
+        />
       </div>
     </div>
   );

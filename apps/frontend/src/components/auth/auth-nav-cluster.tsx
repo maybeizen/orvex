@@ -19,9 +19,11 @@ const swap = {
 export function AuthNavCluster({
   guest = "buttons",
   layout = "nav",
+  onNavigate,
 }: {
   guest?: "buttons" | "signin";
   layout?: "nav" | "sidebar";
+  onNavigate?: () => void;
 }) {
   const user = useSessionStore((state) => state.user);
   const status = useSessionStore((state) => state.status);
@@ -50,7 +52,11 @@ export function AuthNavCluster({
           className={cn(sidebar && "w-full", rail && "flex justify-center")}
           {...swap}
         >
-          <AccountMenu user={user} layout={layout} />
+          <AccountMenu
+            user={user}
+            layout={layout}
+            {...(onNavigate === undefined ? {} : { onNavigate })}
+          />
         </motion.div>
       ) : guest === "signin" ? (
         <motion.div

@@ -32,10 +32,12 @@ export function AccountMenuItems({
   user,
   pending = false,
   onLogout,
+  onNavigate,
 }: {
   user: AuthUser;
   pending?: boolean;
   onLogout?: () => void;
+  onNavigate?: () => void;
 }) {
   const handle = accountHandle(user);
   const staff = isPlatformAdmin(user);
@@ -51,16 +53,18 @@ export function AccountMenuItems({
       <DropdownMenuSeparator />
       <ThemeMenuItems />
       <DropdownMenuSeparator />
-      <AccountOrgSwitcher />
+      <AccountOrgSwitcher
+        {...(onNavigate === undefined ? {} : { onNavigate })}
+      />
       <DropdownMenuGroup>
         <DropdownMenuItem asChild>
-          <Link to={USER_PROFILE_PATH}>
+          <Link to={USER_PROFILE_PATH} onClick={onNavigate}>
             <UserRound />
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link to={USER_SETTINGS_PATH}>
+          <Link to={USER_SETTINGS_PATH} onClick={onNavigate}>
             <Settings />
             Settings
           </Link>
@@ -83,7 +87,7 @@ export function AccountMenuItems({
           <DropdownMenuLabel>Admin</DropdownMenuLabel>
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link to={ADMIN_PATH}>
+              <Link to={ADMIN_PATH} onClick={onNavigate}>
                 <Shield />
                 Staff console
               </Link>
@@ -98,9 +102,11 @@ export function AccountMenuItems({
 export function AccountMenu({
   user,
   layout = "nav",
+  onNavigate,
 }: {
   user: AuthUser;
   layout?: "nav" | "sidebar";
+  onNavigate?: () => void;
 }) {
   const navigate = useNavigate();
   const [pending, setPending] = useState(false);
@@ -180,6 +186,7 @@ export function AccountMenu({
           onLogout={() => {
             void logout();
           }}
+          {...(onNavigate === undefined ? {} : { onNavigate })}
         />
       </DropdownMenuContent>
     </DropdownMenu>
