@@ -139,7 +139,7 @@ export function OnboardingWizard() {
   const submitLabel = paid ? "Continue to checkout" : "Create organization";
 
   return (
-    <Card className="w-full max-w-3xl gap-0 py-0">
+    <Card className="w-full max-w-3xl gap-0 rounded-lg py-0">
       <CardHeader className="gap-4 border-b border-border py-6">
         <Enter>
           <ol className="flex flex-wrap items-center gap-2">
@@ -150,9 +150,9 @@ export function OnboardingWizard() {
                 <li key={item.id} className="flex items-center gap-2">
                   <span
                     className={cn(
-                      "flex size-7 items-center justify-center rounded-full font-mono text-xs",
+                      "flex size-7 items-center justify-center rounded-md font-mono text-xs",
                       active && "bg-primary text-primary-foreground",
-                      done && "bg-primary/20 text-primary",
+                      done && "bg-primary/15 text-primary",
                       !active && !done && "bg-muted text-muted-foreground",
                     )}
                   >
@@ -172,9 +172,7 @@ export function OnboardingWizard() {
           </ol>
         </Enter>
         <div className="flex flex-col gap-1">
-          <CardTitle className="font-heading text-xl tracking-tight">
-            {meta.title}
-          </CardTitle>
+          <CardTitle className="text-xl tracking-tight">{meta.title}</CardTitle>
           <CardDescription>{meta.description}</CardDescription>
         </div>
       </CardHeader>

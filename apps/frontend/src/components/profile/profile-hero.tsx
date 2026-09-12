@@ -78,11 +78,10 @@ export function ProfileHero() {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-card">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(120%_80%_at_0%_0%,color-mix(in_oklch,var(--primary)_22%,transparent),transparent_70%)]" />
-      <div className="relative flex flex-col gap-5 px-6 py-6 sm:flex-row sm:items-end sm:gap-6">
-        <div className="relative size-24 shrink-0">
-          <Avatar className="size-24 text-lg ring-4 ring-background">
+    <div className="rounded-lg border border-border bg-card">
+      <div className="flex flex-col gap-5 px-5 py-5 sm:flex-row sm:items-end sm:gap-6 sm:px-6 sm:py-6">
+        <div className="relative size-20 shrink-0">
+          <Avatar className="size-20 text-lg ring-2 ring-background">
             {user.avatarUrl === null ? null : (
               <AvatarImage src={user.avatarUrl} alt="" />
             )}
@@ -94,7 +93,7 @@ export function ProfileHero() {
             type="button"
             size="icon"
             variant="secondary"
-            className="absolute right-0 bottom-0 rounded-full"
+            className="absolute right-0 bottom-0"
             aria-label="Change photo"
             disabled={pending}
             onClick={pickFile}
@@ -104,7 +103,7 @@ export function ProfileHero() {
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className="flex min-w-0 flex-col gap-1">
-            <h1 className="font-heading truncate text-2xl tracking-tight">
+            <h1 className="truncate text-xl font-medium tracking-tight">
               {user.displayName}
             </h1>
             <p className="truncate text-sm text-muted-foreground">

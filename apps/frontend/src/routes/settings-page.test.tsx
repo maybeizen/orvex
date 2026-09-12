@@ -42,7 +42,14 @@ test("settings page asks guests to sign in", () => {
 test("settings page only shows appearance", () => {
   renderSettings();
 
+  expect(
+    screen.getByRole("heading", { name: "Appearance" }),
+  ).toBeInTheDocument();
   expect(screen.getByText("Theme")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Billing" })).toHaveAttribute(
+    "href",
+    "/settings/billing",
+  );
   expect(screen.getByRole("radio", { name: "Dark" })).toBeInTheDocument();
   expect(screen.getByRole("radio", { name: "Light" })).toBeInTheDocument();
   expect(screen.getByRole("radio", { name: "System" })).toBeInTheDocument();

@@ -80,7 +80,7 @@ export function AuthCallbackPage() {
               Return to sign in
             </Link>
           </p>
-        ) : undefined}
+        ) : undefined
       }
     >
       {failed ? null : (

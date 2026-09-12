@@ -1,6 +1,7 @@
-import { BrandMark } from "@/components/marketing/brand-mark";
-import { MarketingFooter } from "@/components/marketing/marketing-footer";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { Link } from "react-router";
+import { AuthFooter } from "@/components/auth/auth-footer";
+import { PublicChrome } from "@/components/auth/public-chrome";
+import "@/components/auth/auth-display.css";
 
 const SECTIONS = [
   {
@@ -31,19 +32,13 @@ const SECTIONS = [
 
 export function TermsPage() {
   return (
-    <div className="min-h-svh bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex h-16 w-full max-w-3xl items-center justify-between px-6">
-          <BrandMark />
-          <ThemeToggle />
-        </div>
-      </header>
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16">
+    <PublicChrome align="start" width="document">
+      <div className="flex flex-col gap-10 pb-16">
         <div className="flex flex-col gap-3">
-          <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+          <p className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
             Legal
           </p>
-          <h1 className="font-heading text-3xl tracking-tight">
+          <h1 className="auth-display text-[2.25rem] leading-tight">
             Terms of Service
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -54,17 +49,26 @@ export function TermsPage() {
         <div className="flex flex-col gap-8">
           {SECTIONS.map((section) => (
             <section key={section.title} className="flex flex-col gap-2">
-              <h2 className="font-heading text-lg tracking-tight">
+              <h2 className="text-base font-medium tracking-tight">
                 {section.title}
               </h2>
-              <p className="text-sm text-muted-foreground text-pretty">
+              <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
                 {section.body}
               </p>
             </section>
           ))}
         </div>
-      </main>
-      <MarketingFooter />
-    </div>
+        <AuthFooter>
+          <p className="text-center text-sm text-muted-foreground">
+            <Link
+              className="text-foreground underline-offset-4 hover:underline"
+              to="/register"
+            >
+              Create an account
+            </Link>
+          </p>
+        </AuthFooter>
+      </div>
+    </PublicChrome>
   );
 }

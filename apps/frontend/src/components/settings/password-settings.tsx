@@ -1,6 +1,7 @@
 import { useId, useState, type SyntheticEvent } from "react";
 import { toast } from "sonner";
 import { SettingsBlock } from "@/components/account/settings-block";
+import { AuthFieldError } from "@/components/auth/auth-field-error";
 import { CodeOtp } from "@/components/auth/code-otp";
 import { PasswordInput } from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,14 @@ export function PasswordSettings({ framed = true }: { framed?: boolean }) {
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState("");
   const [pending, setPending] = useState(false);
+  const mismatch =
+    confirmPassword.length > 0 && nextPassword !== confirmPassword;
+  const canSubmit =
+    currentPassword.length > 0 &&
+    nextPassword.length >= 8 &&
+    confirmPassword.length >= 8 &&
+    !mismatch &&
+    (mfaFactorId === null || mfaCode.length === 6);
 
   async function submit() {
     if (!guardAuthConfigured()) {
@@ -86,7 +95,7 @@ export function PasswordSettings({ framed = true }: { framed?: boolean }) {
       title="Password"
       description="Confirm the current password, then choose a new one."
       footer={
-        <Button type="submit" form={formId} disabled={pending}>
+        <Button type="submit" form={formId} disabled={pending || !canSubmit}>
           {pending ? <Spinner data-icon="inline-start" /> : null}
           {pending ? "Saving" : "Update password"}
         </Button>
@@ -119,13 +128,14 @@ export function PasswordSettings({ framed = true }: { framed?: boolean }) {
               }}
             />
           </Field>
-          <Field>
+          <Field data-invalid={mismatch}>
             <FieldLabel htmlFor="confirm-password">Confirm password</FieldLabel>
             <PasswordInput
               id="confirm-password"
               autoComplete="new-password"
               required
               minLength={8}
+              aria-invalid={mismatch}
               value={confirmPassword}
               onChange={(event) => {
                 setConfirmPassword(event.target.value);
@@ -144,6 +154,7 @@ export function PasswordSettings({ framed = true }: { framed?: boolean }) {
             </Field>
           )}
         </FieldGroup>
+        <AuthFieldError message={mismatch ? "Passwords do not match" : null} />
       </form>
     </SettingsBlock>
   );
