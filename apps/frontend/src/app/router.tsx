@@ -40,12 +40,12 @@ import { TeamMembersPage } from "@/routes/team-members-page";
 import { TermsPage } from "@/routes/terms-page";
 import { TwoFactorPage } from "@/routes/two-factor-page";
 import { DocsPage } from "@/routes/docs-page";
+import { AuditLogPage } from "@/routes/audit-log-page";
+import { SupportPage } from "@/routes/support-page";
 import {
-  AuditLogPage,
   ContactListsPage,
   OrdersPage,
   ReferralsPage,
-  SupportPage,
   WhiteLabelPage,
 } from "@/routes/workspace-pages";
 import { Providers } from "./providers";

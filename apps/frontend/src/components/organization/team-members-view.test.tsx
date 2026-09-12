@@ -10,6 +10,7 @@ const list = vi.fn();
 const invite = vi.fn();
 const updateRole = vi.fn();
 const remove = vi.fn();
+const lock = vi.fn();
 const revoke = vi.fn();
 
 vi.mock("@/lib/trpc", () => ({
@@ -20,6 +21,7 @@ vi.mock("@/lib/trpc", () => ({
         invite: { mutate: invite },
         updateRole: { mutate: updateRole },
         remove: { mutate: remove },
+        lock: { mutate: lock },
       },
       invites: {
         revoke: { mutate: revoke },
@@ -83,6 +85,7 @@ beforeEach(() => {
   invite.mockReset();
   updateRole.mockReset();
   remove.mockReset();
+  lock.mockReset();
   revoke.mockReset();
   list.mockResolvedValue(roster);
   invite.mockResolvedValue({
@@ -92,6 +95,7 @@ beforeEach(() => {
   });
   updateRole.mockResolvedValue({ ok: true });
   remove.mockResolvedValue({ ok: true });
+  lock.mockResolvedValue({ ok: true });
   revoke.mockResolvedValue({ ok: true });
   useSessionStore.setState({
     status: "ready",
@@ -168,4 +172,38 @@ test("single organizations explain that invites are closed", async () => {
   expect(
     screen.queryByRole("button", { name: "Create invite" }),
   ).not.toBeInTheDocument();
+});
+
+test("team members opens the permission matrix and locks a member", async () => {
+  render(
+    <MemoryRouter>
+      <TeamMembersView organization={workspace} />
+    </MemoryRouter>,
+  );
+
+  await screen.findByText("Grace Hopper");
+  const permissionButtons = screen.getAllByRole("button", {
+    name: "Permissions",
+  });
+  const gracePermissions = permissionButtons[1];
+  if (gracePermissions === undefined) {
+    throw new Error("expected Grace Hopper permissions");
+  }
+  fireEvent.click(gracePermissions);
+  expect(
+    await screen.findByRole("heading", { name: "Permissions" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("monitor.read")).toBeInTheDocument();
+  expect(screen.getByLabelText("billing.write owner")).toBeChecked();
+  expect(screen.getByLabelText("billing.write admin")).not.toBeChecked();
+  expect(screen.getByLabelText("billing.write member")).not.toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+  fireEvent.click(screen.getByRole("button", { name: "Lock" }));
+  await vi.waitFor(() => {
+    expect(lock).toHaveBeenCalledWith({
+      organizationId: workspace.id,
+      userId: "user-2",
+    });
+  });
 });

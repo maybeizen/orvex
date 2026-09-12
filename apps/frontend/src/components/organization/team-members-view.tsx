@@ -1,6 +1,11 @@
 import { useEffect, useState, type SyntheticEvent } from "react";
 import { toast } from "sonner";
-import type { Organization, OrganizationMemberList } from "@orvex/types";
+import type {
+  Organization,
+  OrganizationMember,
+  OrganizationMemberList,
+} from "@orvex/types";
+import { PermissionMatrixDialog } from "@/components/access/permission-matrix-dialog";
 import {
   ConsolePanel,
   EmptyPanel,
@@ -16,6 +21,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { inviteAbsoluteUrl } from "@/lib/invite-paths";
+import { createAccessClient } from "@/components/access/access-client";
 import { createVanillaTrpcClient } from "@/lib/trpc";
 import { userInitials } from "@/lib/user-display";
 import { useSessionStore } from "@/stores/session-store";
@@ -53,6 +59,9 @@ export function TeamMembersView({
   const [role, setRole] = useState<"admin" | "member">("member");
   const [pending, setPending] = useState(false);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [matrixMember, setMatrixMember] = useState<OrganizationMember | null>(
+    null,
+  );
 
   async function reload(): Promise<void> {
     const next =
@@ -144,6 +153,24 @@ export function TeamMembersView({
     }
   }
 
+  async function lock(userId: string) {
+    setBusyUserId(userId);
+    try {
+      await createAccessClient().organization.members.lock.mutate({
+        organizationId: organization.id,
+        userId,
+      });
+      toast.success("Member locked");
+      await reload();
+    } catch (caught: unknown) {
+      toast.error(
+        caught instanceof Error ? caught.message : "Unable to lock member",
+      );
+    } finally {
+      setBusyUserId(null);
+    }
+  }
+
   async function revoke(inviteId: string) {
     setBusyUserId(inviteId);
     try {
@@ -204,6 +231,15 @@ export function TeamMembersView({
                     roster.canManage &&
                     member.role !== "owner" &&
                     (organization.role === "owner" || member.role === "member");
+                  const ownerCount = roster.members.filter(
+                    (row) => row.role === "owner",
+                  ).length;
+                  const canLock =
+                    roster.canManage &&
+                    !self &&
+                    (organization.role === "owner" ||
+                      member.role === "member") &&
+                    (member.role !== "owner" || ownerCount > 1);
                   return (
                     <li
                       key={member.userId}
@@ -247,6 +283,29 @@ export function TeamMembersView({
                             {roleLabel(member.role)}
                           </Badge>
                         )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setMatrixMember(member);
+                          }}
+                        >
+                          Permissions
+                        </Button>
+                        {canLock ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={busyUserId === member.userId}
+                            onClick={() => {
+                              void lock(member.userId);
+                            }}
+                          >
+                            Lock
+                          </Button>
+                        ) : null}
                         {canEdit ? (
                           <Button
                             type="button"
@@ -363,6 +422,14 @@ export function TeamMembersView({
           ) : null}
         </>
       )}
+      <PermissionMatrixDialog
+        open={matrixMember !== null}
+        role={matrixMember?.role ?? "member"}
+        displayName={matrixMember?.displayName ?? ""}
+        onClose={() => {
+          setMatrixMember(null);
+        }}
+      />
     </div>
   );
 }
