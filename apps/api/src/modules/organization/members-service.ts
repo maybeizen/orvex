@@ -16,6 +16,7 @@ import { writeAuditEvent } from "../audit/audit-service.js";
 import {
   canManageOrganization,
   inviteRole,
+  isMembershipLocked,
   isOrganizationRole,
   toInviteDto,
   toMemberDto,
@@ -215,6 +216,9 @@ async function requireManager(
   organizationId: string,
 ): Promise<OrganizationMemberRow> {
   const membership = await requireMembership(supabase, user, organizationId);
+  if (isMembershipLocked(membership)) {
+    forbidden("This membership is locked");
+  }
   if (!canManageOrganization(membership.role)) {
     forbidden("Only owners and admins can manage members");
   }
@@ -413,7 +417,11 @@ export async function updateMemberRole(
   }
   const { error } = await supabase
     .from("organization_members")
-    .update({ role })
+    .update({
+      role,
+      access_mode: "preset",
+      permission_mask: ROLE_MASK[role],
+    })
     .eq("organization_id", organizationId)
     .eq("user_id", userId);
   if (error !== null) {

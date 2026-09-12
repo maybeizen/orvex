@@ -1,5 +1,7 @@
+import { MemoryCache } from "@orvex/cache";
 import { TRPCError } from "@trpc/server";
 import { expect, test } from "vitest";
+import { cacheKeys } from "../../lib/cache-keys.js";
 import type { ContextRequest } from "../../trpc/context.js";
 import { appRouter } from "../../trpc/router.js";
 import { withCache } from "../../trpc/test-context.js";
@@ -162,6 +164,36 @@ test("organization.list returns memberships and the active id", async () => {
   ]);
 });
 
+test("organization.list is cache-aside per user", async () => {
+  const org = organizationRow();
+  const cache = new MemoryCache();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+    profiles: [
+      profileFixture({
+        user_id: orgTestUser.id,
+        active_organization_id: org.id,
+      }),
+    ],
+  });
+  const api = appRouter.createCaller(
+    withCache({
+      user: orgTestUser,
+      req,
+      supabase: memory.supabase,
+      cache,
+    }),
+  );
+
+  const first = await api.organization.list();
+  expect(await cache.getJson(cacheKeys.orgList(orgTestUser.id))).toEqual(first);
+
+  memory.members.splice(0, memory.members.length);
+  const second = await api.organization.list();
+  expect(second).toEqual(first);
+});
+
 test("organization.setActive is forbidden for non-members", async () => {
   const org = organizationRow({ created_by: otherUserId });
   const memory = createOrganizationMemory({
@@ -211,6 +243,31 @@ test("organization.update changes name and slug for managers", async () => {
   expect(updated.name).toBe("Ada Desk");
   expect(updated.slug).toBe("ada-desk");
   expect(memory.organizations[0]?.name).toBe("Ada Desk");
+});
+
+test("organization.update is forbidden for a locked owner", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [
+      memberRow({
+        status: "locked",
+        locked_at: "2026-01-02T00:00:00.000Z",
+        locked_by: orgTestUser.id,
+      }),
+    ],
+  });
+
+  const error = await caller(memory.supabase)
+    .organization.update({
+      organizationId: org.id,
+      name: "Nope",
+    })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+  expect(memory.organizations[0]?.name).toBe(org.name);
 });
 
 test("organization.update is forbidden for members", async () => {
@@ -346,8 +403,27 @@ test("organization.updateDefaults writes timezone, regions, and support email", 
   expect(memory.organizations[0]?.default_regions).toEqual(["IAD", "LHR"]);
 });
 
-test("organization.updateOidc stores an encrypted client secret when a key is set", async () => {
+test("organization.updateOidc rejects plans without SSO", async () => {
   const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const updated = await caller(memory.supabase)
+    .organization.updateOidc({
+      organizationId: org.id,
+      issuer: "https://idp.example.com",
+      clientId: "oidc-client",
+      clientSecret: "super-secret",
+    })
+    .catch((caught: unknown) => caught);
+  expect(updated).toBeInstanceOf(TRPCError);
+  expect((updated as TRPCError).code).toBe("PRECONDITION_FAILED");
+});
+
+test("organization.updateOidc stores an encrypted client secret when a key is set", async () => {
+  const org = organizationRow({ kind: "team", plan_id: "command" });
   const memory = createOrganizationMemory({
     organizations: [org],
     members: [memberRow()],

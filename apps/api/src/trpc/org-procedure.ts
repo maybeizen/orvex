@@ -1,6 +1,7 @@
 import { hasPermission, type PermissionBit } from "@orvex/types";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { isMembershipLocked } from "../modules/organization/organization-dto.js";
 import {
   resolveAccessibleOrganization,
   type ResolvedOrganization,
@@ -38,10 +39,7 @@ export function orgProcedure(bit: PermissionBit) {
       parsed.data,
     );
 
-    if (
-      resolved.membership.status === "locked" ||
-      resolved.membership.locked_at !== null
-    ) {
+    if (isMembershipLocked(resolved.membership)) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: "This membership is locked",

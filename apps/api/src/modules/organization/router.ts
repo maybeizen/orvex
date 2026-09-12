@@ -1,5 +1,6 @@
 import { PROBE_REGION_CODES } from "@orvex/types";
-import { planAllowsKind } from "@orvex/types/plans";
+import { getPlan, isPlanId, planAllowsKind } from "@orvex/types/plans";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { CACHE_TTL, cacheKeys } from "../../lib/cache-keys.js";
 import { invalidateOrgCaches } from "../../lib/cached.js";
@@ -277,6 +278,15 @@ export const organizationRouter = router({
       ),
     )
     .mutation(async ({ ctx, input }) => {
+      const planId = isPlanId(ctx.organization.plan_id)
+        ? ctx.organization.plan_id
+        : "free";
+      if (!getPlan(planId).entitlements.sso) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "SSO requires the Command plan",
+        });
+      }
       const updated = await updateOrganizationOidc(
         ctx.supabase,
         ctx.user,

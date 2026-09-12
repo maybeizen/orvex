@@ -97,6 +97,10 @@ export function canManageOrganization(role: string): boolean {
   return role === "owner" || role === "admin";
 }
 
+export function isMembershipLocked(membership: OrganizationMemberRow): boolean {
+  return membership.status === "locked" || membership.locked_at !== null;
+}
+
 export function inviteRole(
   value: string | null,
 ): Exclude<OrganizationRole, "owner"> {

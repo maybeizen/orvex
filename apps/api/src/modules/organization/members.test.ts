@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { PERMISSION_PRESET_MASKS } from "@orvex/types";
 import { TRPCError } from "@trpc/server";
 import { expect, test } from "vitest";
 import type { ContextRequest } from "../../trpc/context.js";
@@ -138,6 +139,63 @@ test("organization.members.invite rejects a single organization", async () => {
   expect(memory.invites).toHaveLength(0);
 });
 
+test("organization.members.updateRole remaps the permission mask to the new role", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [
+      memberRow({ organization_id: teamOrg.id, user_id: ownerId }),
+      memberRow({
+        organization_id: teamOrg.id,
+        user_id: memberId,
+        role: "admin",
+        permission_mask: PERMISSION_PRESET_MASKS.admin,
+      }),
+    ],
+  });
+
+  await caller(memory.supabase, owner).organization.members.updateRole({
+    organizationId: teamOrg.id,
+    userId: memberId,
+    role: "member",
+  });
+
+  expect(memory.members.find((row) => row.user_id === memberId)).toEqual(
+    expect.objectContaining({
+      role: "member",
+      access_mode: "preset",
+      permission_mask: PERMISSION_PRESET_MASKS.member,
+    }),
+  );
+});
+
+test("organization.members.invite rejects a locked admin", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [
+      memberRow({
+        organization_id: teamOrg.id,
+        user_id: ownerId,
+        role: "admin",
+        status: "locked",
+        locked_at: "2026-01-02T00:00:00.000Z",
+        locked_by: ownerId,
+      }),
+    ],
+  });
+
+  const error = await caller(memory.supabase, owner)
+    .organization.members.invite({
+      organizationId: teamOrg.id,
+      email: "grace@orvex.dev",
+      role: "member",
+    })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+  expect(memory.invites).toHaveLength(0);
+});
+
 test("organization.members.updateRole and remove change the roster", async () => {
   const memory = createOrganizationMemory({
     organizations: [teamOrg],
@@ -225,6 +283,33 @@ test("organization.invites.accept adds a member from the token", async () => {
   expect(accepted.organizationId).toBe(teamOrg.id);
   expect(memory.members.some((row) => row.user_id === memberId)).toBe(true);
   expect(memory.invites[0]?.accepted_at).toEqual(expect.any(String));
+});
+
+test("organization.invites.accept binds invite email case-insensitively", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [memberRow({ organization_id: teamOrg.id })],
+    invites: [
+      inviteRow({
+        organization_id: teamOrg.id,
+        email: "grace@orvex.dev",
+        token_hash: createHash("sha256").update("seat-case").digest("hex"),
+      }),
+    ],
+    profiles: [
+      profileFixture(),
+      profileFixture({ user_id: memberId, username: "grace" }),
+    ],
+  });
+
+  const accepted = await caller(memory.supabase, {
+    ...grace,
+    email: "Grace@Orvex.DEV",
+  }).organization.invites.accept({
+    token: "seat-case",
+  });
+  expect(accepted.organizationId).toBe(teamOrg.id);
+  expect(memory.members.some((row) => row.user_id === memberId)).toBe(true);
 });
 
 test("organization.invites.accept is forbidden when emails do not match", async () => {

@@ -21,6 +21,7 @@ import {
 } from "../referral/referral-service.js";
 import {
   canManageOrganization,
+  isMembershipLocked,
   orgIconObjectPath,
   toDefaultsDto,
   toOidcDto,
@@ -212,6 +213,15 @@ export async function resolveAccessibleOrganization(
   }
 
   return { organization, membership };
+}
+
+function assertActiveMembership(membership: OrganizationMemberRow): void {
+  if (isMembershipLocked(membership)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This membership is locked",
+    });
+  }
 }
 
 export function hasActiveSubscription(organization: OrganizationRow): boolean {
@@ -448,6 +458,7 @@ export async function updateOrganization(
     user,
     input,
   );
+  assertActiveMembership(membership);
   if (!canManageOrganization(membership.role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -520,6 +531,7 @@ export async function deleteOrganization(
     user,
     ref,
   );
+  assertActiveMembership(membership);
   if (membership.role !== "owner") {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -749,6 +761,7 @@ export async function transferOrganizationOwnership(
     user,
     { organizationId },
   );
+  assertActiveMembership(membership);
   if (membership.role !== "owner") {
     throw new TRPCError({
       code: "FORBIDDEN",

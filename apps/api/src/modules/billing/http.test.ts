@@ -40,6 +40,100 @@ async function listen(
   return `http://127.0.0.1:${String(address.port)}`;
 }
 
+test("webhook verifies a raw body when express.json is mounted after the route", async () => {
+  const org = organizationRow();
+  const memory = createBillingMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const event = {
+    type: "checkout.session.completed",
+    data: {
+      object: {
+        id: "cs_test_raw",
+        object: "checkout.session",
+        amount_total: 1200,
+        customer: "cus_live",
+        subscription: "sub_live",
+        client_reference_id: org.id,
+        metadata: {
+          organization_id: org.id,
+          orvex_plan: "probe",
+          orvex_cycle: "monthly",
+        },
+      },
+    },
+  } as unknown as Stripe.Event;
+  const constructEvent = vi.fn(() => event);
+  const stripe = createMockStripe({ constructEvent });
+  const app = express();
+  app.use(
+    createStripeWebhookRouter({
+      supabase: memory.supabase,
+      stripe,
+      webhookSecret: "whsec_test",
+    }),
+  );
+  app.use(express.json());
+  app.use(errorHandler);
+  const server = app.listen(0);
+  servers.push(server);
+  await once(server, "listening");
+  const address = server.address() as AddressInfo;
+  const response = await fetch(
+    `http://127.0.0.1:${String(address.port)}/webhooks/stripe`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Stripe-Signature": "t=1,v1=ok",
+      },
+      body: JSON.stringify({ type: "checkout.session.completed" }),
+    },
+  );
+
+  expect(response.status).toBe(200);
+  const firstCall = constructEvent.mock.calls as unknown as unknown[][];
+  expect(Buffer.isBuffer(firstCall[0]?.[0])).toBe(true);
+});
+
+test("webhook rejects a parsed JSON body instead of a raw Buffer", async () => {
+  const memory = createBillingMemory({
+    organizations: [organizationRow()],
+    members: [memberRow()],
+  });
+  const constructEvent = vi.fn();
+  const stripe = createMockStripe({ constructEvent });
+  const app = express();
+  app.use(express.json());
+  app.use(
+    createStripeWebhookRouter({
+      supabase: memory.supabase,
+      stripe,
+      webhookSecret: "whsec_test",
+    }),
+  );
+  app.use(errorHandler);
+  const server = app.listen(0);
+  servers.push(server);
+  await once(server, "listening");
+  const address = server.address() as AddressInfo;
+  const response = await fetch(
+    `http://127.0.0.1:${String(address.port)}/webhooks/stripe`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Stripe-Signature": "t=1,v1=ok",
+      },
+      body: JSON.stringify({ type: "checkout.session.completed" }),
+    },
+  );
+
+  expect(response.status).toBe(400);
+  expect(constructEvent).not.toHaveBeenCalled();
+});
+
 test("webhook rejects a bad Stripe signature", async () => {
   const memory = createBillingMemory({
     organizations: [organizationRow()],
