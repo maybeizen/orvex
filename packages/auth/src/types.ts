@@ -77,7 +77,7 @@ export type Passkey = {
 export type TotpFactorSource = {
   id: string;
   friendly_name?: string;
-  factor_type?: "totp" | "phone" | "webauthn";
+  factor_type?: "totp" | "phone" | "webauthn" | "recovery_code";
   status?: TotpFactorStatus;
   created_at?: string;
   updated_at?: string;
