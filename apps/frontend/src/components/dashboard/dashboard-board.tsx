@@ -5,7 +5,6 @@ import { StatusMark, StatusPip } from "@/components/console/status-pip";
 import { cn } from "@/lib/cn";
 import {
   INCIDENTS,
-  MONITORS,
   PROBE_REGIONS,
   STATUS_PAGES,
   enabledRegionCodes,
@@ -21,20 +20,24 @@ import { HostInstrumentBoard } from "@/components/monitors/host-instrument";
 import { MonitorTable } from "@/components/monitors/monitor-table";
 import { useOrgLink } from "@/lib/use-org-link";
 
-export function MonitorSnapshot() {
+export function MonitorSnapshot({
+  monitors,
+}: {
+  monitors: readonly MonitorRecord[];
+}) {
   const orgLink = useOrgLink();
   return (
     <ConsolePanel
       title="Armed checks"
       description="Worst first when the catalog has rows"
-      padded={MONITORS.length === 0}
+      padded={monitors.length === 0}
       action={
         <Button asChild variant="ghost" size="xs">
           <Link to={orgLink("/monitors")}>Open list</Link>
         </Button>
       }
     >
-      {MONITORS.length === 0 ? (
+      {monitors.length === 0 ? (
         <EmptyPanel
           title="No checks armed"
           body="HTTP, keyword, ping, port, heartbeat, and agent targets land here from the same catalog the list uses."
@@ -45,7 +48,7 @@ export function MonitorSnapshot() {
           }
         />
       ) : (
-        <MonitorTable monitors={MONITORS} />
+        <MonitorTable monitors={monitors} />
       )}
     </ConsolePanel>
   );
@@ -98,8 +101,12 @@ export function IncidentSnapshot() {
   );
 }
 
-export function WorstChecks() {
-  const worst = worstChecks(MONITORS);
+export function WorstChecks({
+  monitors,
+}: {
+  monitors: readonly MonitorRecord[];
+}) {
+  const worst = worstChecks(monitors);
 
   return (
     <ConsolePanel
@@ -149,7 +156,13 @@ function WorstRow({ monitor }: { monitor: MonitorRecord }) {
   );
 }
 
-export function RegionBoard({ regionLimit }: { regionLimit: string }) {
+export function RegionBoard({
+  regionLimit,
+  monitors,
+}: {
+  regionLimit: string;
+  monitors: readonly MonitorRecord[];
+}) {
   const enabled = new Set(enabledRegionCodes(regionLimit));
   const byRegion = new Map<
     string,
@@ -159,7 +172,7 @@ export function RegionBoard({ regionLimit }: { regionLimit: string }) {
   for (const region of PROBE_REGIONS) {
     byRegion.set(region.code, { up: 0, down: 0, total: 0 });
   }
-  for (const monitor of MONITORS) {
+  for (const monitor of monitors) {
     for (const code of monitor.regionCodes) {
       const bucket = byRegion.get(code);
       if (bucket === undefined) {
@@ -224,8 +237,12 @@ export function RegionBoard({ regionLimit }: { regionLimit: string }) {
   );
 }
 
-export function EventTape() {
-  const events = recentEvents(INCIDENTS, MONITORS);
+export function EventTape({
+  monitors,
+}: {
+  monitors: readonly MonitorRecord[];
+}) {
+  const events = recentEvents(INCIDENTS, monitors);
 
   return (
     <ConsolePanel
@@ -282,7 +299,11 @@ export function EventTape() {
   );
 }
 
-export function HostSnapshot() {
+export function HostSnapshot({
+  monitors,
+}: {
+  monitors: readonly MonitorRecord[];
+}) {
   const orgLink = useOrgLink();
   return (
     <ConsolePanel
@@ -294,7 +315,7 @@ export function HostSnapshot() {
         </Button>
       }
     >
-      <HostInstrumentBoard monitors={MONITORS} />
+      <HostInstrumentBoard monitors={monitors} />
     </ConsolePanel>
   );
 }

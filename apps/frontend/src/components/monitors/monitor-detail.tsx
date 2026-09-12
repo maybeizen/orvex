@@ -1,5 +1,16 @@
-import { Link } from "react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ConsolePanel,
   EmptyPanel,
@@ -9,7 +20,9 @@ import { MetricStrip } from "@/components/console/metric-strip";
 import { PageHeader } from "@/components/console/page-header";
 import { StatusMark } from "@/components/console/status-pip";
 import { ProbeReadout } from "@/components/monitors/probe-readout";
+import { Spinner } from "@/components/ui/spinner";
 import { useOrgLink } from "@/lib/use-org-link";
+import { monitorApi } from "@/components/monitors/monitor-api";
 import {
   MONITOR_TYPE_LABEL,
   PROBE_REGIONS,
@@ -17,6 +30,7 @@ import {
   formatLatency,
   formatUptime,
   isHostAgent,
+  toMonitorRecord,
   type CheckStatus,
   type MonitorRecord,
 } from "@/lib/console";
@@ -36,7 +50,7 @@ export function MonitorMissing({ id }: { id: string }) {
       />
       <ErrorPanel
         title={`${id} is not a known check`}
-        body="The probe core is not connected, so there are no stored monitors to open. Create a check from the list when you are ready."
+        body="It is missing from this workspace. It may have been deleted, or the id does not match a stored monitor."
         action={
           <Button asChild size="sm">
             <Link to={orgLink("/monitors")}>Back to monitors</Link>
@@ -106,12 +120,86 @@ function stripFor(monitor: MonitorRecord) {
   ];
 }
 
-export function MonitorDetail({ monitor }: { monitor: MonitorRecord }) {
+export function MonitorDetail({
+  monitor,
+  organizationId,
+  onMonitorChange,
+}: {
+  monitor: MonitorRecord;
+  organizationId: string;
+  onMonitorChange: (monitor: MonitorRecord) => void;
+}) {
   const orgLink = useOrgLink();
+  const navigate = useNavigate();
+  const [confirm, setConfirm] = useState<"pause" | "delete" | null>(null);
+  const [pending, setPending] = useState(false);
   const regions = PROBE_REGIONS.filter((region) =>
     monitor.regionCodes.includes(region.code),
   );
   const host = isHostAgent(monitor.type);
+  const paused = monitor.status === "paused";
+
+  async function pauseMonitor(): Promise<void> {
+    setPending(true);
+    try {
+      const updated = await monitorApi().pause.mutate({
+        organizationId,
+        monitorId: monitor.id,
+      });
+      onMonitorChange({
+        ...toMonitorRecord(updated),
+        ...(monitor.samples === undefined ? {} : { samples: monitor.samples }),
+      });
+      toast.success("Monitor paused");
+      setConfirm(null);
+    } catch (caught: unknown) {
+      toast.error(
+        caught instanceof Error ? caught.message : "Unable to pause monitor",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function resumeMonitor(): Promise<void> {
+    setPending(true);
+    try {
+      const updated = await monitorApi().unpause.mutate({
+        organizationId,
+        monitorId: monitor.id,
+      });
+      onMonitorChange({
+        ...toMonitorRecord(updated),
+        ...(monitor.samples === undefined ? {} : { samples: monitor.samples }),
+      });
+      toast.success("Monitor resumed");
+    } catch (caught: unknown) {
+      toast.error(
+        caught instanceof Error ? caught.message : "Unable to resume monitor",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function deleteMonitor(): Promise<void> {
+    setPending(true);
+    try {
+      await monitorApi().delete.mutate({
+        organizationId,
+        monitorId: monitor.id,
+      });
+      toast.success("Monitor deleted");
+      setConfirm(null);
+      void navigate(orgLink("/monitors"));
+    } catch (caught: unknown) {
+      toast.error(
+        caught instanceof Error ? caught.message : "Unable to delete monitor",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -132,6 +220,42 @@ export function MonitorDetail({ monitor }: { monitor: MonitorRecord }) {
           <>
             <Button asChild variant="outline" size="sm">
               <Link to={orgLink(`/monitors/${monitor.id}/edit`)}>Edit</Link>
+            </Button>
+            {paused ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pending}
+                onClick={() => {
+                  void resumeMonitor();
+                }}
+              >
+                Resume
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pending}
+                onClick={() => {
+                  setConfirm("pause");
+                }}
+              >
+                Pause
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={pending}
+              onClick={() => {
+                setConfirm("delete");
+              }}
+            >
+              Delete
             </Button>
             <Button asChild variant="ghost" size="sm">
               <Link to={orgLink("/monitors")}>All monitors</Link>
@@ -182,6 +306,71 @@ export function MonitorDetail({ monitor }: { monitor: MonitorRecord }) {
       >
         <MonitorHistory samples={monitor.samples} />
       </ConsolePanel>
+
+      <AlertDialog
+        open={confirm === "pause"}
+        onOpenChange={(open) => {
+          if (!open && !pending) {
+            setConfirm(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pause {monitor.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Probes stop until you resume this check. History stays on the
+              workspace.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                void pauseMonitor();
+              }}
+            >
+              {pending ? <Spinner data-icon="inline-start" /> : null}
+              Pause monitor
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={confirm === "delete"}
+        onOpenChange={(open) => {
+          if (!open && !pending) {
+            setConfirm(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {monitor.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the check and its probe history. The action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              onClick={() => {
+                void deleteMonitor();
+              }}
+            >
+              {pending ? <Spinner data-icon="inline-start" /> : null}
+              Delete monitor
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

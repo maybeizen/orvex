@@ -1,5 +1,6 @@
 /** @vitest-environment node */
 import { expect, test } from "vitest";
+import type { CheckResult, Monitor } from "@orvex/types";
 import {
   countByStatus,
   enabledRegionCodes,
@@ -13,6 +14,7 @@ import {
   isHostAgent,
   openIncidentCount,
   samplesFromMonitors,
+  toMonitorRecord,
   worstChecks,
   type MonitorRecord,
 } from "./console.js";
@@ -72,4 +74,67 @@ test("host agents and worst-check ranking use real catalog rows", () => {
   expect(hostMonitors([http, beat])).toEqual([beat]);
   expect(worstChecks([http, beat], 1)).toEqual([http]);
   expect(samplesFromMonitors([http, beat])).toHaveLength(1);
+});
+
+test("toMonitorRecord maps live list rows and sorts samples", () => {
+  const row: Monitor = {
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    organizationId: "org-1",
+    name: "api-prod",
+    type: "http",
+    target: "https://api.example.com/health",
+    keyword: null,
+    port: null,
+    intervalSeconds: 15,
+    timeoutMs: 5000,
+    method: "GET",
+    regionCodes: ["IAD"],
+    status: "up",
+    paused: false,
+    consecutiveFailures: 0,
+    lastCheckAt: "2026-09-11T18:02:00.000Z",
+    lastLatencyMs: 142,
+    lastStatusCode: 200,
+    uptimePct: 99.9,
+    nextCheckAt: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+  const late: CheckResult = {
+    id: "res-2",
+    monitorId: row.id,
+    region: "SJC",
+    startedAt: "2026-09-11T18:03:00.000Z",
+    latencyMs: 90,
+    status: "up",
+    httpCode: 200,
+    error: null,
+  };
+  const early: CheckResult = {
+    id: "res-1",
+    monitorId: row.id,
+    region: "IAD",
+    startedAt: "2026-09-11T18:01:00.000Z",
+    latencyMs: 210,
+    status: "degraded",
+    httpCode: 200,
+    error: null,
+  };
+
+  const mapped = toMonitorRecord(row, [late, early]);
+  expect(mapped.latencyMs).toBe(142);
+  expect(mapped.samples).toEqual([
+    {
+      at: early.startedAt,
+      latencyMs: 210,
+      status: "degraded",
+      regionCode: "IAD",
+    },
+    {
+      at: late.startedAt,
+      latencyMs: 90,
+      status: "up",
+      regionCode: "SJC",
+    },
+  ]);
 });

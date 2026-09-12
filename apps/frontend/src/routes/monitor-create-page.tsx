@@ -14,8 +14,10 @@ export function MonitorCreatePage() {
     >
       <MonitorForm
         mode="create"
+        organizationId={organization?.id ?? null}
         regionLimit={plan?.limits.regions ?? "1"}
         interval={plan?.limits.interval ?? "5 min"}
+        intervalSeconds={plan?.entitlements.intervalSeconds ?? 60}
       />
     </RequireSession>
   );
