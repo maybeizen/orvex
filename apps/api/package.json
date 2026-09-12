@@ -33,8 +33,8 @@
     "express-rate-limit": "catalog:",
     "file-type": "^22.0.2",
     "helmet": "catalog:",
-    "multer": "^2.2.0",
-    "sharp": "^0.35.3",
+    "multer": "^2.3.0",
+    "sharp": "^0.35.4",
     "zod": "catalog:"
   },
   "devDependencies": {
