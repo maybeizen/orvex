@@ -75,6 +75,9 @@ test("account menu switcher lists other organizations and selects one", async ()
   fireEvent.click(screen.getByRole("button", { name: "Organization Acme" }));
 
   expect(
+    screen.getByRole("menuitem", { name: "All organizations" }),
+  ).toHaveAttribute("href", "/organizations");
+  expect(
     screen.getByRole("menuitem", { name: "New organization" }),
   ).toHaveAttribute("href", "/onboarding");
   fireEvent.click(screen.getByRole("menuitem", { name: /Globex/ }));

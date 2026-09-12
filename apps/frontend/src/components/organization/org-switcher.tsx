@@ -100,7 +100,22 @@ export function AccountOrgSwitcher() {
   const handleSwitch = useSwitchOrganization();
 
   if (active === null || items.length === 0) {
-    return null;
+    return (
+      <>
+        <DropdownMenuGroup>
+          <DropdownMenuItem asChild>
+            <Link to="/organizations">All organizations</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/onboarding">
+              <Plus />
+              New organization
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+      </>
+    );
   }
 
   const others = items.filter((item) => item.id !== active.id);
@@ -163,6 +178,9 @@ export function AccountOrgSwitcher() {
               </motion.div>
             ) : null}
           </AnimatePresence>
+          <DropdownMenuItem asChild>
+            <Link to="/organizations">All organizations</Link>
+          </DropdownMenuItem>
         </div>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
@@ -210,6 +228,9 @@ export function HeaderOrgControl() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+          <DropdownMenuItem asChild>
+            <Link to="/organizations">All organizations</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link to="/onboarding">
               <Plus />
