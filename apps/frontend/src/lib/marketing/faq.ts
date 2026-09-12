@@ -21,12 +21,12 @@ export const FAQS: readonly FaqItem[] = [
   {
     question: "Do status pages share the same events?",
     answer:
-      "Yes. Free and Probe include one status page. Sentinel includes three. Command adds a custom domain. The page updates from the same records that page on-call.",
+      "Yes. Free and Probe include one status page. Sentinel includes three. Command adds unlimited pages, a custom domain, and white label. The page updates from the same records that page on-call.",
   },
   {
     question: "How do incidents route?",
     answer:
-      "Email on Free. Slack, Discord, and webhooks on Probe. SMS and chat on Sentinel. Command adds voice, PagerDuty, and the rest of the destinations.",
+      "Email on Free. Slack, Discord, and webhooks on Probe. SMS, Telegram, Teams, and Pushover on Sentinel. Command adds voice, PagerDuty, and the rest of the destinations.",
   },
   {
     question: "Is billing live?",

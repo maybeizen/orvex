@@ -69,8 +69,10 @@ test("free plan is in the shared catalog", () => {
   expect(free.limits.regions).toBe("1");
   expect(free.limits.routing).toBe("Email");
   expect(free.limits.statusPage).toBe("1 page");
+  expect(free.limits.heartbeat).toBeNull();
   expect(free.limits.agent).toBeNull();
   expect(free.limits.sso).toBeNull();
+  expect(free.limits.audit).toBe("7 days");
 });
 
 test("paid plan limits stay generous", () => {
@@ -79,20 +81,24 @@ test("paid plan limits stay generous", () => {
     seats: "3",
     interval: "30s",
     regions: "2",
-    routing: "Email, Slack, Discord",
+    routing: "Email, Slack, Discord, webhook",
     statusPage: "1 page",
+    heartbeat: "Included",
     agent: null,
     sso: null,
+    audit: "30 days",
   });
   expect(getPlan("sentinel").limits).toEqual({
     monitors: "200",
     seats: "10",
     interval: "15s",
     regions: "4",
-    routing: "Slack, Discord, SMS",
+    routing: "Email, Slack, Discord, webhook, SMS, Telegram, Teams, Pushover",
     statusPage: "3 pages",
+    heartbeat: "Included",
     agent: "Included",
     sso: null,
+    audit: "90 days",
   });
   expect(getPlan("command").limits).toEqual({
     monitors: "1000",
@@ -100,9 +106,11 @@ test("paid plan limits stay generous", () => {
     interval: "5s",
     regions: "All 6",
     routing: "All destinations",
-    statusPage: "Custom domain",
+    statusPage: "Unlimited + white label",
+    heartbeat: "Included",
     agent: "Included",
     sso: "OIDC",
+    audit: "365 days",
   });
   expect(getPlan("probe").monthlyUsd).toBe(12);
   expect(getPlan("sentinel").monthlyUsd).toBe(36);

@@ -10,8 +10,10 @@ export const PRICING_FEATURE_KEYS = [
   "regions",
   "routing",
   "statusPage",
+  "heartbeat",
   "agent",
   "sso",
+  "audit",
 ] as const;
 
 export type PricingFeatureKey = (typeof PRICING_FEATURE_KEYS)[number];
@@ -23,8 +25,10 @@ export const PRICING_FEATURE_LABELS: Record<PricingFeatureKey, string> = {
   regions: "Regions",
   routing: "Routing",
   statusPage: "Status page",
+  heartbeat: "Heartbeat",
   agent: "Go agent",
   sso: "SSO",
+  audit: "Audit",
 };
 
 export type PlanEntitlements = {
@@ -112,8 +116,10 @@ export const PLAN_CATALOG: readonly PricingPlan[] = [
       regions: "1",
       routing: "Email",
       statusPage: "1 page",
+      heartbeat: null,
       agent: null,
       sso: null,
+      audit: "7 days",
     },
     entitlements: {
       monitors: 15,
@@ -144,10 +150,12 @@ export const PLAN_CATALOG: readonly PricingPlan[] = [
       seats: "3",
       interval: "30s",
       regions: "2",
-      routing: "Email, Slack, Discord",
+      routing: "Email, Slack, Discord, webhook",
       statusPage: "1 page",
+      heartbeat: "Included",
       agent: null,
       sso: null,
+      audit: "30 days",
     },
     entitlements: {
       monitors: 50,
@@ -178,10 +186,12 @@ export const PLAN_CATALOG: readonly PricingPlan[] = [
       seats: "10",
       interval: "15s",
       regions: "4",
-      routing: "Slack, Discord, SMS",
+      routing: "Email, Slack, Discord, webhook, SMS, Telegram, Teams, Pushover",
       statusPage: "3 pages",
+      heartbeat: "Included",
       agent: "Included",
       sso: null,
+      audit: "90 days",
     },
     entitlements: {
       monitors: 200,
@@ -213,9 +223,11 @@ export const PLAN_CATALOG: readonly PricingPlan[] = [
       interval: "5s",
       regions: "All 6",
       routing: "All destinations",
-      statusPage: "Custom domain",
+      statusPage: "Unlimited + white label",
+      heartbeat: "Included",
       agent: "Included",
       sso: "OIDC",
+      audit: "365 days",
     },
     entitlements: {
       monitors: 1000,

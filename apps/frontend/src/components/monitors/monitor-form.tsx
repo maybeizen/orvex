@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ConsolePanel } from "@/components/console/console-panel";
-import { SelectMenu } from "@/components/ui/select-menu";
+import { SelectMenu, type SelectMenuOption } from "@/components/ui/select-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { PageHeader } from "@/components/console/page-header";
 import { monitorApi } from "@/components/monitors/monitor-api";
@@ -63,10 +63,44 @@ function draftFromMonitor(monitor: MonitorRecord, regionLimit: string): Draft {
   };
 }
 
-function validate(draft: Draft): Record<string, string> {
+function monitorTypeOptions(
+  allowsHeartbeat: boolean,
+  allowsAgent: boolean,
+  current: MonitorType,
+): SelectMenuOption<MonitorType>[] {
+  return MONITOR_TYPES.map((value) => {
+    const allowed =
+      (value !== "heartbeat" || allowsHeartbeat || current === "heartbeat") &&
+      (value !== "agent" || allowsAgent || current === "agent");
+    if (allowed) {
+      return {
+        value,
+        label: MONITOR_TYPE_LABEL[value],
+      };
+    }
+    return {
+      value,
+      label: MONITOR_TYPE_LABEL[value],
+      disabled: true,
+      hint: "Upgrade",
+    };
+  });
+}
+
+function validate(
+  draft: Draft,
+  allowsHeartbeat: boolean,
+  allowsAgent: boolean,
+): Record<string, string> {
   const errors: Record<string, string> = {};
   if (draft.name.trim().length === 0) {
     errors.name = "Name is required.";
+  }
+  if (draft.type === "heartbeat" && !allowsHeartbeat) {
+    errors.target = "Heartbeat is not available on this plan.";
+  }
+  if (draft.type === "agent" && !allowsAgent) {
+    errors.target = "Agent is not available on this plan.";
   }
   if (draft.type !== "heartbeat" && draft.type !== "agent") {
     if (draft.target.trim().length === 0) {
@@ -115,6 +149,8 @@ export function MonitorForm({
   regionLimit,
   interval,
   intervalSeconds,
+  allowsHeartbeat,
+  allowsAgent,
 }: {
   mode: "create" | "edit";
   monitor?: MonitorRecord;
@@ -122,6 +158,8 @@ export function MonitorForm({
   regionLimit: string;
   interval: string;
   intervalSeconds: number;
+  allowsHeartbeat: boolean;
+  allowsAgent: boolean;
 }) {
   const orgLink = useOrgLink();
   const navigate = useNavigate();
@@ -172,7 +210,7 @@ export function MonitorForm({
 
   function onSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const next = validate(draft);
+    const next = validate(draft, allowsHeartbeat, allowsAgent);
     setErrors(next);
     if (Object.keys(next).length > 0) {
       return;
@@ -250,10 +288,11 @@ export function MonitorForm({
                   }));
                   setErrors({});
                 }}
-                options={MONITOR_TYPES.map((value) => ({
-                  value,
-                  label: MONITOR_TYPE_LABEL[value],
-                }))}
+                options={monitorTypeOptions(
+                  allowsHeartbeat,
+                  allowsAgent,
+                  draft.type,
+                )}
               />
             </Field>
 

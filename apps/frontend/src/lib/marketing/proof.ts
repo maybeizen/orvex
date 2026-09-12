@@ -13,7 +13,7 @@ export const PROOF_STATS: readonly ProofStat[] = [
   {
     value: "5s",
     label: "Fastest interval",
-    detail: "Command. Sentinel is 15s. Probe is 60s.",
+    detail: "Command. Sentinel is 15s. Probe is 30s.",
   },
   {
     value: "5",

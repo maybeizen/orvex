@@ -59,7 +59,7 @@ const workspace: Organization = {
   slug: "lovelace-lab",
   iconUrl: null,
   kind: "team",
-  planId: "sentinel",
+  planId: "command",
   billingStatus: "active",
   role: "owner",
   memberCount: 2,

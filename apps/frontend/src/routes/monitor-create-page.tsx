@@ -16,8 +16,10 @@ export function MonitorCreatePage() {
         mode="create"
         organizationId={organization?.id ?? null}
         regionLimit={plan?.limits.regions ?? "1"}
-        interval={plan?.limits.interval ?? "5 min"}
+        interval={plan?.limits.interval ?? "60s"}
         intervalSeconds={plan?.entitlements.intervalSeconds ?? 60}
+        allowsHeartbeat={plan?.entitlements.heartbeat ?? false}
+        allowsAgent={plan?.entitlements.agent ?? false}
       />
     </RequireSession>
   );

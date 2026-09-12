@@ -8,6 +8,7 @@ import {
   type OrganizationMemberList,
   type ProbeRegionCode,
 } from "@orvex/types";
+import { getPlan } from "@orvex/types/plans";
 import { SettingsBlock } from "@/components/account/settings-block";
 import { PROBE_REGIONS } from "@/lib/console";
 import { ORGANIZATIONS_PATH } from "@/lib/org-paths";
@@ -46,6 +47,7 @@ export function OrgSettingsExtras({
     organization.role === "owner" || organization.role === "admin";
   const canTransfer = organization.role === "owner";
   const canLeave = organization.role !== "owner";
+  const sso = getPlan(organization.planId).entitlements.sso;
 
   const [timezone, setTimezone] = useState("UTC");
   const [regions, setRegions] = useState<ProbeRegionCode[]>(["IAD"]);
@@ -305,7 +307,14 @@ export function OrgSettingsExtras({
         </SettingsBlock>
       ) : null}
 
-      {canManage ? (
+      {canManage && !sso ? (
+        <SettingsBlock
+          title="OIDC"
+          description="SSO settings require the Command plan."
+        />
+      ) : null}
+
+      {canManage && sso ? (
         <SettingsBlock
           title="OIDC"
           description="Bind an identity provider for this organization. The client secret is stored encrypted."
