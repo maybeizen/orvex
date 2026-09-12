@@ -26,6 +26,7 @@
     "supabase": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
-    "typescript-native": "catalog:"
+    "typescript-native": "catalog:",
+    "unrun": "^0.3.1"
   }
 }
