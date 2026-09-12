@@ -19,7 +19,9 @@ export type {
   MonitorStatus,
   MonitorTokenKind,
   MonitorType,
+  ProbeRegionCode,
 } from "./monitor.js";
+export { PROBE_REGION_CODES, isProbeRegionCode } from "./monitor.js";
 export type {
   Incident,
   IncidentSeverity,

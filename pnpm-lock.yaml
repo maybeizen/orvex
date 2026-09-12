@@ -229,12 +229,18 @@ importers:
       '@orvex/cache':
         specifier: workspace:*
         version: link:../../packages/cache
+      '@orvex/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@orvex/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@orvex/logger':
         specifier: workspace:*
         version: link:../../packages/logger
+      '@orvex/mail':
+        specifier: workspace:*
+        version: link:../../packages/mail
       '@orvex/types':
         specifier: workspace:*
         version: link:../../packages/types

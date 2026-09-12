@@ -23,8 +23,10 @@
   "dependencies": {
     "@orvex/auth": "workspace:*",
     "@orvex/cache": "workspace:*",
+    "@orvex/crypto": "workspace:*",
     "@orvex/db": "workspace:*",
     "@orvex/logger": "workspace:*",
+    "@orvex/mail": "workspace:*",
     "@orvex/types": "workspace:*",
     "@supabase/supabase-js": "catalog:",
     "@trpc/server": "catalog:",

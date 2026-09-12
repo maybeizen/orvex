@@ -1,3 +1,18 @@
+export const PROBE_REGION_CODES = [
+  "IAD",
+  "SJC",
+  "LHR",
+  "FRA",
+  "SIN",
+  "SYD",
+] as const;
+
+export type ProbeRegionCode = (typeof PROBE_REGION_CODES)[number];
+
+export function isProbeRegionCode(value: string): value is ProbeRegionCode {
+  return (PROBE_REGION_CODES as readonly string[]).includes(value);
+}
+
 export type MonitorType =
   "http" | "keyword" | "ping" | "port" | "heartbeat" | "agent";
 
