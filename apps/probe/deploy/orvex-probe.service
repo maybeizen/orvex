@@ -1,0 +1,24 @@
+[Unit]
+Description=Orvex regional probe worker
+Documentation=https://github.com/orvex/probe
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=orvex
+Group=orvex
+Environment=API_URL=
+Environment=PROBE_SERVICE_TOKEN=
+Environment=PROBE_REGION=IAD
+ExecStart=/usr/local/bin/orvex-probe
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

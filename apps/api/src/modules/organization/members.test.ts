@@ -1,8 +1,11 @@
 import { createHash } from "node:crypto";
+import { PERMISSION_PRESET_MASKS } from "@orvex/types";
 import { TRPCError } from "@trpc/server";
 import { expect, test } from "vitest";
 import type { ContextRequest } from "../../trpc/context.js";
 import { appRouter } from "../../trpc/router.js";
+import { withCache } from "../../trpc/test-context.js";
+import { inviteMember } from "./members-service.js";
 import {
   createOrganizationMemory,
   inviteRow,
@@ -19,11 +22,13 @@ function caller(
   supabase: ReturnType<typeof createOrganizationMemory>["supabase"],
   user = orgTestUser,
 ) {
-  return appRouter.createCaller({
-    user,
-    req,
-    supabase,
-  });
+  return appRouter.createCaller(
+    withCache({
+      user,
+      req,
+      supabase,
+    }),
+  );
 }
 
 const teamOrg = organizationRow({
@@ -77,7 +82,7 @@ test("organization.members.list returns seats and the caller roster", async () =
     organizationId: teamOrg.id,
   });
 
-  expect(listed.seatLimit).toBe(5);
+  expect(listed.seatLimit).toBe(10);
   expect(listed.seatsUsed).toBe(2);
   expect(listed.canManage).toBe(true);
   expect(listed.members).toEqual(
@@ -131,6 +136,63 @@ test("organization.members.invite rejects a single organization", async () => {
 
   expect(error).toBeInstanceOf(TRPCError);
   expect((error as TRPCError).code).toBe("BAD_REQUEST");
+  expect(memory.invites).toHaveLength(0);
+});
+
+test("organization.members.updateRole remaps the permission mask to the new role", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [
+      memberRow({ organization_id: teamOrg.id, user_id: ownerId }),
+      memberRow({
+        organization_id: teamOrg.id,
+        user_id: memberId,
+        role: "admin",
+        permission_mask: PERMISSION_PRESET_MASKS.admin,
+      }),
+    ],
+  });
+
+  await caller(memory.supabase, owner).organization.members.updateRole({
+    organizationId: teamOrg.id,
+    userId: memberId,
+    role: "member",
+  });
+
+  expect(memory.members.find((row) => row.user_id === memberId)).toEqual(
+    expect.objectContaining({
+      role: "member",
+      access_mode: "preset",
+      permission_mask: PERMISSION_PRESET_MASKS.member,
+    }),
+  );
+});
+
+test("organization.members.invite rejects a locked admin", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [
+      memberRow({
+        organization_id: teamOrg.id,
+        user_id: ownerId,
+        role: "admin",
+        status: "locked",
+        locked_at: "2026-01-02T00:00:00.000Z",
+        locked_by: ownerId,
+      }),
+    ],
+  });
+
+  const error = await caller(memory.supabase, owner)
+    .organization.members.invite({
+      organizationId: teamOrg.id,
+      email: "grace@orvex.dev",
+      role: "member",
+    })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
   expect(memory.invites).toHaveLength(0);
 });
 
@@ -201,11 +263,13 @@ test("organization.invites.accept adds a member from the token", async () => {
     ],
   });
 
-  const guest = appRouter.createCaller({
-    user: null,
-    req,
-    supabase: memory.supabase,
-  });
+  const guest = appRouter.createCaller(
+    withCache({
+      user: null,
+      req,
+      supabase: memory.supabase,
+    }),
+  );
   const shown = await guest.organization.invites.preview({ token: "seat-1" });
   expect(shown.organizationName).toBe("Ada Team");
   expect(shown.expired).toBe(false);
@@ -219,4 +283,107 @@ test("organization.invites.accept adds a member from the token", async () => {
   expect(accepted.organizationId).toBe(teamOrg.id);
   expect(memory.members.some((row) => row.user_id === memberId)).toBe(true);
   expect(memory.invites[0]?.accepted_at).toEqual(expect.any(String));
+});
+
+test("organization.invites.accept binds invite email case-insensitively", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [memberRow({ organization_id: teamOrg.id })],
+    invites: [
+      inviteRow({
+        organization_id: teamOrg.id,
+        email: "grace@orvex.dev",
+        token_hash: createHash("sha256").update("seat-case").digest("hex"),
+      }),
+    ],
+    profiles: [
+      profileFixture(),
+      profileFixture({ user_id: memberId, username: "grace" }),
+    ],
+  });
+
+  const accepted = await caller(memory.supabase, {
+    ...grace,
+    email: "Grace@Orvex.DEV",
+  }).organization.invites.accept({
+    token: "seat-case",
+  });
+  expect(accepted.organizationId).toBe(teamOrg.id);
+  expect(memory.members.some((row) => row.user_id === memberId)).toBe(true);
+});
+
+test("organization.invites.accept is forbidden when emails do not match", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [memberRow({ organization_id: teamOrg.id })],
+    invites: [
+      inviteRow({
+        organization_id: teamOrg.id,
+        email: "grace@orvex.dev",
+        token_hash: createHash("sha256").update("seat-mismatch").digest("hex"),
+      }),
+    ],
+  });
+
+  const error = await caller(memory.supabase)
+    .organization.invites.accept({ token: "seat-mismatch" })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+  expect(memory.members.some((row) => row.user_id === orgTestUser.id)).toBe(
+    true,
+  );
+  expect(memory.members).toHaveLength(1);
+  expect(memory.invites[0]?.accepted_at).toBeNull();
+});
+
+test("organization.members.lock sets locked_at for a member", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [
+      memberRow({ organization_id: teamOrg.id, user_id: ownerId }),
+      memberRow({
+        organization_id: teamOrg.id,
+        user_id: memberId,
+        role: "member",
+      }),
+    ],
+  });
+
+  const result = await caller(memory.supabase, owner).organization.members.lock(
+    {
+      organizationId: teamOrg.id,
+      userId: memberId,
+    },
+  );
+  expect(result).toEqual({ ok: true });
+  const locked = memory.members.find((row) => row.user_id === memberId);
+  expect(locked?.status).toBe("locked");
+  expect(locked?.locked_at).toEqual(expect.any(String));
+  expect(locked?.locked_by).toBe(ownerId);
+});
+
+test("organization.members.invite sends invite.html when a mailer is provided", async () => {
+  const memory = createOrganizationMemory({
+    organizations: [teamOrg],
+    members: [memberRow({ organization_id: teamOrg.id })],
+  });
+  const sent: { template: string; to: string }[] = [];
+
+  await inviteMember(
+    memory.supabase,
+    orgTestUser,
+    teamOrg.id,
+    "grace@orvex.dev",
+    "member",
+    {
+      send(message) {
+        sent.push({ template: message.template, to: message.to });
+        return Promise.resolve({ skipped: false, messageId: "1" });
+      },
+    },
+  );
+
+  expect(sent).toEqual([{ template: "invite", to: "grace@orvex.dev" }]);
 });

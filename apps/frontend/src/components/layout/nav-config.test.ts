@@ -12,4 +12,14 @@ test("organization settings sits with the regular sidebar items", () => {
   expect(items.findIndex((item) => item.label === "Dashboard")).toBeLessThan(
     items.findIndex((item) => item.label === "Organization settings"),
   );
+  expect(items.find((item) => item.label === "Maintenance")?.to).toBe(
+    "/organization/acme-desk/maintenance",
+  );
+  expect(items.findIndex((item) => item.label === "Incidents")).toBeLessThan(
+    items.findIndex((item) => item.label === "Maintenance"),
+  );
+  expect(items.find((item) => item.label === "Plan")?.to).toBe(
+    "/organization/acme-desk/billing",
+  );
+  expect(sections.find((section) => section.label === "Billing")).toBeTruthy();
 });

@@ -15,6 +15,7 @@ test("loadEnv parses required fields and port", () => {
   expect(env.PORT).toEqual(4010);
   expect(env.REDIS_URL).toEqual("redis://127.0.0.1:6379");
   expect(env.FRONTEND_ORIGIN).toEqual("http://localhost:5173");
+  expect(env.SMTP_PORT).toEqual(587);
 });
 
 test("loadEnv defaults port when PORT is omitted", () => {

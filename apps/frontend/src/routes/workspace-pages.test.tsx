@@ -1,18 +1,44 @@
 /** @vitest-environment jsdom */
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
+
+vi.mock("@/lib/trpc", () => ({
+  createVanillaTrpcClient: () => ({
+    billing: {
+      listInvoices: { query: () => Promise.resolve([]) },
+      listOrders: { query: () => Promise.resolve([]) },
+    },
+    referral: {
+      mine: {
+        query: () =>
+          Promise.resolve({
+            code: "TEAMCODE",
+            sharePath: "/r/TEAMCODE",
+            items: [],
+          }),
+      },
+    },
+    statusPage: {
+      list: { query: () => Promise.resolve([]) },
+    },
+    audit: {
+      list: { query: () => Promise.resolve([]) },
+      export: { query: () => Promise.resolve([]) },
+    },
+    support: {
+      create: { mutate: () => Promise.resolve({ status: "sent" }) },
+    },
+  }),
+}));
 import type { AuthUser, Organization } from "@orvex/types";
+import { AuditLogPage } from "./audit-log-page.js";
 import { DocsPage } from "./docs-page.js";
 import { InvoicesPage } from "./invoices-page.js";
-import {
-  AuditLogPage,
-  ContactListsPage,
-  OrdersPage,
-  ReferralsPage,
-  SupportPage,
-  WhiteLabelPage,
-} from "./workspace-pages.js";
+import { OrdersPage } from "./orders-page.js";
+import { ReferralsPage } from "./referrals-page.js";
+import { SupportPage } from "./support-page.js";
+import { WhiteLabelPage } from "./white-label-page.js";
 import { useOrgStore } from "@/stores/org-store";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -46,10 +72,9 @@ function signIn(): void {
   useOrgStore.getState().hydrate([workspace], workspace.id);
 }
 
-test("leftover product pages stay honest and reachable", () => {
+test("leftover product pages stay honest and reachable", async () => {
   signIn();
   const pages = [
-    [ContactListsPage, "Contact Lists"],
     [WhiteLabelPage, "White Label"],
     [AuditLogPage, "Audit Log"],
     [OrdersPage, "Orders"],
@@ -63,7 +88,9 @@ test("leftover product pages stay honest and reachable", () => {
         <Page />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: title }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/lorem/i)).not.toBeInTheDocument();
     unmount();
   }
@@ -86,7 +113,7 @@ test("docs page links into live product surfaces", () => {
   ).toHaveAttribute("href", "/organization/lovelace-lab/settings");
 });
 
-test("invoices page shows the empty ledger", () => {
+test("invoices page shows the empty ledger", async () => {
   signIn();
   render(
     <MemoryRouter>
@@ -95,7 +122,7 @@ test("invoices page shows the empty ledger", () => {
   );
 
   expect(screen.getByRole("heading", { name: "Invoices" })).toBeInTheDocument();
-  expect(screen.getByText("No invoices yet.")).toBeInTheDocument();
+  expect(await screen.findByText("No invoices yet.")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Plan" })).toHaveAttribute(
     "href",
     "/organization/lovelace-lab/billing",

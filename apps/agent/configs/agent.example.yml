@@ -1,4 +1,10 @@
 mode: cron
+interval: 30s
 api_url: http://localhost:3001
 agent_id: local-dev
 run_as_root: false
+collectors:
+  host: true
+  services: false
+  disk: false
+  raid: false

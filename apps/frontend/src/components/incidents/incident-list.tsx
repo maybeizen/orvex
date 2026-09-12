@@ -1,7 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
+import type { Incident, IncidentStatus, Organization } from "@orvex/types";
 import { Button } from "@/components/ui/button";
-import { ConsolePanel, EmptyPanel } from "@/components/console/console-panel";
+import {
+  ConsolePanel,
+  EmptyPanel,
+  ErrorPanel,
+} from "@/components/console/console-panel";
 import {
   ConsoleCell,
   ConsoleRow,
@@ -14,30 +19,78 @@ import {
 } from "@/components/console/filter-bar";
 import { MetricStrip } from "@/components/console/metric-strip";
 import { PageHeader } from "@/components/console/page-header";
-import { useOrgLink } from "@/lib/use-org-link";
 import { StatusMark } from "@/components/console/status-pip";
+import { formatCheckTime } from "@/lib/console";
+import { useOrgLink } from "@/lib/use-org-link";
+import { createIncidentClient } from "./incident-client";
+import { IncidentAckDialog } from "./incident-ack-dialog";
+import { IncidentComposeDialog } from "./incident-compose-dialog";
+import { IncidentResolveDialog } from "./incident-resolve-dialog";
+import { MaintenanceCreateDialog } from "./maintenance-create-dialog";
 import {
-  formatCheckTime,
-  openIncidentCount,
-  type IncidentRecord,
-} from "@/lib/console";
+  countByIncidentStatus,
+  incidentSubject,
+  isMissingProcedure,
+} from "./incident-format";
 
 const COLUMNS = [
   { key: "severity", label: "Severity", className: "w-[7.5rem]" },
   { key: "monitor", label: "Monitor" },
   { key: "summary", label: "Summary", hide: "md" as const },
   { key: "started", label: "Opened", hide: "sm" as const, className: "w-36" },
-  { key: "state", label: "State", className: "w-24" },
+  { key: "state", label: "State", className: "w-28" },
+  { key: "actions", label: "Actions", className: "w-36" },
 ] as const;
 
-export function IncidentList({
-  incidents,
-}: {
-  incidents: readonly IncidentRecord[];
-}) {
+type ListFilter = IncidentStatus | "all";
+
+export function IncidentList({ organization }: { organization: Organization }) {
   const orgLink = useOrgLink();
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [state, setState] = useState<"all" | "open" | "resolved">("open");
+  const [state, setState] = useState<ListFilter>("open");
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+  const [ackTarget, setAckTarget] = useState<Incident | null>(null);
+  const [resolveTarget, setResolveTarget] = useState<Incident | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void createIncidentClient()
+      .incident.list.query({ organizationId: organization.id })
+      .then((next) => {
+        if (active) {
+          setIncidents(next);
+          setError(null);
+        }
+      })
+      .catch((caught: unknown) => {
+        if (active) {
+          if (isMissingProcedure(caught)) {
+            setIncidents([]);
+            setError(null);
+            return;
+          }
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : "Unable to load incidents",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [organization.id]);
+
+  function replaceIncident(next: Incident) {
+    setIncidents((current) =>
+      current.some((incident) => incident.id === next.id)
+        ? current.map((incident) => (incident.id === next.id ? next : incident))
+        : [next, ...current],
+    );
+  }
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -48,14 +101,17 @@ export function IncidentList({
       if (needle.length === 0) {
         return true;
       }
+      const subject = incidentSubject(incident).toLowerCase();
       return (
-        incident.monitorName.toLowerCase().includes(needle) ||
+        subject.includes(needle) ||
         incident.summary.toLowerCase().includes(needle)
       );
     });
   }, [incidents, query, state]);
 
-  const open = openIncidentCount(incidents);
+  const open = countByIncidentStatus(incidents, "open");
+  const acknowledged = countByIncidentStatus(incidents, "acknowledged");
+  const resolved = countByIncidentStatus(incidents, "resolved");
   const emptyCatalog = incidents.length === 0;
 
   return (
@@ -71,9 +127,30 @@ export function IncidentList({
           </>
         }
         actions={
-          <Button asChild variant="outline" size="sm">
-            <Link to={orgLink("/monitors")}>View monitors</Link>
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setMaintenanceOpen(true);
+              }}
+            >
+              Schedule maintenance
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setComposeOpen(true);
+              }}
+            >
+              Open incident
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link to={orgLink("/monitors")}>View monitors</Link>
+            </Button>
+          </>
         }
       />
 
@@ -86,11 +163,14 @@ export function IncidentList({
             tone: open === 0 ? "neutral" : "down",
           },
           {
+            label: "Acknowledged",
+            value: String(acknowledged),
+            hint: acknowledged === 0 ? "none" : "in progress",
+            tone: acknowledged === 0 ? "neutral" : "degraded",
+          },
+          {
             label: "Resolved",
-            value: String(
-              incidents.filter((incident) => incident.status === "resolved")
-                .length,
-            ),
+            value: String(resolved),
           },
           {
             label: "Showing",
@@ -108,24 +188,28 @@ export function IncidentList({
             label="Filter incidents"
           />
           <div className="flex flex-wrap items-center gap-1.5">
-            {(["open", "resolved", "all"] as const).map((value) => (
-              <FilterChip
-                key={value}
-                selected={state === value}
-                onClick={() => {
-                  setState(value);
-                }}
-              >
-                {value}
-              </FilterChip>
-            ))}
+            {(["open", "acknowledged", "resolved", "all"] as const).map(
+              (value) => (
+                <FilterChip
+                  key={value}
+                  selected={state === value}
+                  onClick={() => {
+                    setState(value);
+                  }}
+                >
+                  {value}
+                </FilterChip>
+              ),
+            )}
           </div>
         </FilterBar>
 
-        {emptyCatalog ? (
+        {error !== null ? (
+          <ErrorPanel title="Unable to load incidents" body={error} />
+        ) : emptyCatalog ? (
           <EmptyPanel
             title="No incidents on record"
-            body="The board stays clear until a monitor fails consecutive probes. Nothing is being hidden by filters."
+            body="The board stays clear until a monitor fails consecutive probes or you open a manual incident."
           />
         ) : filtered.length === 0 ? (
           <EmptyPanel
@@ -135,10 +219,7 @@ export function IncidentList({
         ) : (
           <ConsoleTable columns={COLUMNS}>
             {filtered.map((incident) => (
-              <ConsoleRow
-                key={incident.id}
-                href={orgLink(`/incidents/${incident.id}`)}
-              >
+              <ConsoleRow key={incident.id}>
                 <ConsoleCell>
                   <StatusMark status={incident.severity} />
                 </ConsoleCell>
@@ -148,7 +229,7 @@ export function IncidentList({
                     className="block min-w-0"
                   >
                     <span className="block truncate font-medium">
-                      {incident.monitorName}
+                      {incidentSubject(incident)}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground md:hidden">
                       {incident.summary}
@@ -164,11 +245,78 @@ export function IncidentList({
                 <ConsoleCell mono className="uppercase">
                   {incident.status}
                 </ConsoleCell>
+                <ConsoleCell>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {incident.status === "open" ? (
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="outline"
+                        onClick={() => {
+                          setAckTarget(incident);
+                        }}
+                      >
+                        Ack
+                      </Button>
+                    ) : null}
+                    {incident.status === "resolved" ? null : (
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => {
+                          setResolveTarget(incident);
+                        }}
+                      >
+                        Resolve
+                      </Button>
+                    )}
+                  </div>
+                </ConsoleCell>
               </ConsoleRow>
             ))}
           </ConsoleTable>
         )}
       </ConsolePanel>
+
+      <IncidentComposeDialog
+        organizationId={organization.id}
+        open={composeOpen}
+        onOpenChange={setComposeOpen}
+        onCreated={replaceIncident}
+      />
+      <MaintenanceCreateDialog
+        organizationId={organization.id}
+        open={maintenanceOpen}
+        onOpenChange={setMaintenanceOpen}
+        onCreated={() => undefined}
+      />
+      {ackTarget === null ? null : (
+        <IncidentAckDialog
+          organizationId={organization.id}
+          incident={ackTarget}
+          open
+          onOpenChange={(next) => {
+            if (!next) {
+              setAckTarget(null);
+            }
+          }}
+          onAcked={replaceIncident}
+        />
+      )}
+      {resolveTarget === null ? null : (
+        <IncidentResolveDialog
+          organizationId={organization.id}
+          incident={resolveTarget}
+          open
+          onOpenChange={(next) => {
+            if (!next) {
+              setResolveTarget(null);
+            }
+          }}
+          onResolved={replaceIncident}
+        />
+      )}
     </div>
   );
 }

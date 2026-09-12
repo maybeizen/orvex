@@ -12,26 +12,25 @@ export const FAQS: readonly FaqItem[] = [
   {
     question: "Where do probes run?",
     answer:
-      "IAD, SJC, LHR, FRA, SIN, and SYD. Free and Probe start at one region. Sentinel uses three. Command uses all six.",
+      "IAD, SJC, LHR, FRA, SIN, and SYD. Free starts at one region. Probe uses two. Sentinel uses four. Command uses all six.",
   },
   {
     question: "How fast are the checks?",
-    answer:
-      "Free is every 5 minutes. Probe is 60s. Sentinel is 15s. Command is 5s.",
+    answer: "Free is every 60s. Probe is 30s. Sentinel is 15s. Command is 5s.",
   },
   {
     question: "Do status pages share the same events?",
     answer:
-      "Yes. Sentinel includes one status page. Command adds a custom domain. The page updates from the same records that page on-call.",
+      "Yes. Free and Probe include one status page. Sentinel includes three. Command adds unlimited pages, a custom domain, and white label. The page updates from the same records that page on-call.",
   },
   {
     question: "How do incidents route?",
     answer:
-      "Email on Free and Probe. Slack and Discord on Sentinel. Command adds PagerDuty, webhooks, and the rest of the destinations.",
+      "Email on Free. Slack, Discord, and webhooks on Probe. SMS, Telegram, Teams, and Pushover on Sentinel. Command adds voice, PagerDuty, and the rest of the destinations.",
   },
   {
     question: "Is billing live?",
     answer:
-      "Paid plans will bill through Stripe in a later release. You can create a paid workspace now; checkout may stay pending while you set up.",
+      "Paid plans bill through Stripe Checkout. Free stays cardless. The customer portal handles plan changes and invoices.",
   },
 ];

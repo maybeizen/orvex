@@ -1,6 +1,7 @@
 import {
   BookOpen,
   BookUser,
+  CreditCard,
   FileText,
   Gift,
   LayoutDashboard,
@@ -14,6 +15,7 @@ import {
   TriangleAlert,
   Users,
   Waypoints,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { organizationPath } from "@/lib/org-paths";
@@ -51,6 +53,11 @@ export function appNavSections(slug: string): readonly AppNavSection[] {
           icon: TriangleAlert,
         },
         {
+          to: organizationPath(slug, "/maintenance"),
+          label: "Maintenance",
+          icon: Wrench,
+        },
+        {
           to: organizationPath(slug, "/status-pages"),
           label: "Status Pages",
           icon: Radio,
@@ -85,6 +92,11 @@ export function appNavSections(slug: string): readonly AppNavSection[] {
     {
       label: "Billing",
       items: [
+        {
+          to: organizationPath(slug, "/billing"),
+          label: "Plan",
+          icon: CreditCard,
+        },
         {
           to: organizationPath(slug, "/orders"),
           label: "Orders",

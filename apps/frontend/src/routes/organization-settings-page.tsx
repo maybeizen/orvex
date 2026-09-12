@@ -1,3 +1,4 @@
+import { OrgSettingsExtras } from "@/components/access/org-settings-extras";
 import { RequireSession } from "@/components/auth/require-session";
 import { DeleteOrganization } from "@/components/organization/delete-organization";
 import { OrgSettingsForm } from "@/components/organization/org-settings-form";
@@ -31,6 +32,9 @@ export function OrganizationSettingsPage() {
               <OrgSettingsForm organization={organization} />
             </Enter>
             <Enter delay={0.08}>
+              <OrgSettingsExtras organization={organization} />
+            </Enter>
+            <Enter delay={0.12}>
               <DeleteOrganization organization={organization} />
             </Enter>
           </>

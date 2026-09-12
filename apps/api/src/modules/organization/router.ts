@@ -1,5 +1,10 @@
-import { planAllowsKind } from "@orvex/types/plans";
+import { PROBE_REGION_CODES } from "@orvex/types";
+import { getPlan, isPlanId, planAllowsKind } from "@orvex/types/plans";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { CACHE_TTL, cacheKeys } from "../../lib/cache-keys.js";
+import { invalidateOrgCaches } from "../../lib/cached.js";
+import { orgProcedure } from "../../trpc/org-procedure.js";
 import {
   protectedProcedure,
   publicProcedure,
@@ -9,6 +14,7 @@ import {
   acceptInvite,
   inviteMember,
   listMembers,
+  lockMember,
   previewInvite,
   removeMember,
   revokeInvite,
@@ -18,10 +24,16 @@ import {
   createOrganization,
   deleteOrganization,
   getOrganization,
+  leaveOrganization,
   listOrganizations,
+  organizationDefaults,
+  organizationOidc,
   resolveAccessibleOrganization,
   setActiveOrganization,
+  transferOrganizationOwnership,
   updateOrganization,
+  updateOrganizationDefaults,
+  updateOrganizationOidc,
 } from "./organization-service.js";
 import { isReservedOrgSlug, ORG_SLUG_PATTERN } from "./slugs.js";
 
@@ -39,6 +51,7 @@ const createSchema = z
     billingCycle: z.enum(["monthly", "quarterly", "yearly"]),
     tosAccepted: z.literal(true),
     marketingOptIn: z.boolean(),
+    referralCode: z.string().trim().min(1).max(64).optional(),
   })
   .superRefine((value, ctx) => {
     if (!planAllowsKind(value.planId, value.kind)) {
@@ -72,7 +85,11 @@ const memberRoleSchema = z.enum(["admin", "member"]);
 
 export const organizationRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return listOrganizations(ctx.supabase, ctx.user);
+    return ctx.cache.getOrSet(
+      cacheKeys.orgList(ctx.user.id),
+      CACHE_TTL.orgList,
+      () => listOrganizations(ctx.supabase, ctx.user),
+    );
   }),
   get: protectedProcedure.input(orgRefSchema).query(async ({ ctx, input }) => {
     return getOrganization(ctx.supabase, ctx.user, input);
@@ -80,7 +97,9 @@ export const organizationRouter = router({
   create: protectedProcedure
     .input(createSchema)
     .mutation(async ({ ctx, input }) => {
-      return createOrganization(ctx.supabase, ctx.user, input);
+      const created = await createOrganization(ctx.supabase, ctx.user, input);
+      await invalidateOrgCaches(ctx.cache, created.id, [ctx.user.id]);
+      return created;
     }),
   update: protectedProcedure
     .input(
@@ -92,17 +111,28 @@ export const organizationRouter = router({
       ),
     )
     .mutation(async ({ ctx, input }) => {
-      return updateOrganization(ctx.supabase, ctx.user, input);
+      const updated = await updateOrganization(ctx.supabase, ctx.user, input);
+      await invalidateOrgCaches(ctx.cache, updated.id, [ctx.user.id]);
+      return updated;
     }),
   setActive: protectedProcedure
     .input(orgRefSchema)
     .mutation(async ({ ctx, input }) => {
-      return setActiveOrganization(ctx.supabase, ctx.user, input);
+      const active = await setActiveOrganization(ctx.supabase, ctx.user, input);
+      await ctx.cache.del(cacheKeys.orgList(ctx.user.id));
+      return active;
     }),
   delete: protectedProcedure
     .input(orgRefSchema)
     .mutation(async ({ ctx, input }) => {
-      return deleteOrganization(ctx.supabase, ctx.user, input);
+      const { organization } = await resolveAccessibleOrganization(
+        ctx.supabase,
+        ctx.user,
+        input,
+      );
+      const deleted = await deleteOrganization(ctx.supabase, ctx.user, input);
+      await invalidateOrgCaches(ctx.cache, organization.id, [ctx.user.id]);
+      return deleted;
     }),
   members: router({
     list: protectedProcedure
@@ -130,13 +160,15 @@ export const organizationRouter = router({
           ctx.user,
           input,
         );
-        return inviteMember(
+        const invited = await inviteMember(
           ctx.supabase,
           ctx.user,
           organization.id,
           input.email,
           input.role,
         );
+        await invalidateOrgCaches(ctx.cache, organization.id, [ctx.user.id]);
+        return invited;
       }),
     updateRole: protectedProcedure
       .input(
@@ -160,6 +192,10 @@ export const organizationRouter = router({
           input.userId,
           input.role,
         );
+        await invalidateOrgCaches(ctx.cache, organization.id, [
+          ctx.user.id,
+          input.userId,
+        ]);
         return { ok: true as const };
       }),
     remove: protectedProcedure
@@ -176,9 +212,121 @@ export const organizationRouter = router({
           organization.id,
           input.userId,
         );
+        await invalidateOrgCaches(ctx.cache, organization.id, [
+          ctx.user.id,
+          input.userId,
+        ]);
+        return { ok: true as const };
+      }),
+    lock: orgProcedure("team.write")
+      .input(orgRefSchema.and(z.object({ userId: z.uuid() })))
+      .mutation(async ({ ctx, input }) => {
+        await lockMember(
+          ctx.supabase,
+          ctx.user,
+          ctx.organization.id,
+          input.userId,
+        );
+        await invalidateOrgCaches(ctx.cache, ctx.organization.id, [
+          ctx.user.id,
+          input.userId,
+        ]);
         return { ok: true as const };
       }),
   }),
+  defaults: orgProcedure("org.settings")
+    .input(orgRefSchema)
+    .query(({ ctx }) => organizationDefaults(ctx.organization)),
+  updateDefaults: orgProcedure("org.settings")
+    .input(
+      orgRefSchema.and(
+        z.object({
+          timezone: z.string().trim().min(1).max(80),
+          defaultRegions: z
+            .array(z.enum(PROBE_REGION_CODES))
+            .min(1)
+            .max(PROBE_REGION_CODES.length),
+          supportEmail: z.email().nullable(),
+        }),
+      ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updated = await updateOrganizationDefaults(
+        ctx.supabase,
+        ctx.user,
+        ctx.organization.id,
+        {
+          timezone: input.timezone,
+          defaultRegions: input.defaultRegions,
+          supportEmail: input.supportEmail,
+        },
+      );
+      await invalidateOrgCaches(ctx.cache, ctx.organization.id, [ctx.user.id]);
+      return updated;
+    }),
+  oidc: orgProcedure("org.settings")
+    .input(orgRefSchema)
+    .query(({ ctx }) => organizationOidc(ctx.organization)),
+  updateOidc: orgProcedure("org.settings")
+    .input(
+      orgRefSchema.and(
+        z.object({
+          issuer: z.url(),
+          clientId: z.string().trim().min(1).max(200),
+          clientSecret: z.string().min(1).max(400),
+        }),
+      ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const planId = isPlanId(ctx.organization.plan_id)
+        ? ctx.organization.plan_id
+        : "free";
+      if (!getPlan(planId).entitlements.sso) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "SSO requires the Command plan",
+        });
+      }
+      const updated = await updateOrganizationOidc(
+        ctx.supabase,
+        ctx.user,
+        ctx.organization.id,
+        {
+          issuer: input.issuer,
+          clientId: input.clientId,
+          clientSecret: input.clientSecret,
+        },
+      );
+      await invalidateOrgCaches(ctx.cache, ctx.organization.id, [ctx.user.id]);
+      return updated;
+    }),
+  transferOwnership: orgProcedure("org.settings")
+    .input(orgRefSchema.and(z.object({ userId: z.uuid() })))
+    .mutation(async ({ ctx, input }) => {
+      const transferred = await transferOrganizationOwnership(
+        ctx.supabase,
+        ctx.user,
+        ctx.organization.id,
+        input.userId,
+      );
+      await invalidateOrgCaches(ctx.cache, ctx.organization.id, [
+        ctx.user.id,
+        input.userId,
+      ]);
+      return transferred;
+    }),
+  leave: protectedProcedure
+    .input(orgRefSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { organization } = await resolveAccessibleOrganization(
+        ctx.supabase,
+        ctx.user,
+        input,
+      );
+      const left = await leaveOrganization(ctx.supabase, ctx.user, input);
+      await invalidateOrgCaches(ctx.cache, organization.id, [ctx.user.id]);
+      return left;
+    }),
   invites: router({
     revoke: protectedProcedure
       .input(orgRefSchema.and(z.object({ inviteId: z.uuid() })))
@@ -204,7 +352,13 @@ export const organizationRouter = router({
     accept: protectedProcedure
       .input(z.object({ token: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
-        return acceptInvite(ctx.supabase, ctx.user, input.token);
+        const accepted = await acceptInvite(
+          ctx.supabase,
+          ctx.user,
+          input.token,
+        );
+        await ctx.cache.del(cacheKeys.orgList(ctx.user.id));
+        return accepted;
       }),
   }),
 });

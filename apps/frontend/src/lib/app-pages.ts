@@ -6,6 +6,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/monitors": "Uptime Monitors",
   "/monitors/new": "New monitor",
   "/incidents": "Incidents",
+  "/maintenance": "Maintenance",
   "/status-pages": "Status Pages",
   "/contact-lists": "Contact Lists",
   "/white-label": "White Label",

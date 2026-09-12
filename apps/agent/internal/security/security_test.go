@@ -1,6 +1,10 @@
 package security
 
-import "testing"
+import (
+	"runtime"
+	"syscall"
+	"testing"
+)
 
 func TestRefuseRoot(t *testing.T) {
 
@@ -32,10 +36,19 @@ func TestRefuseRoot(t *testing.T) {
 	}
 }
 
-func TestDropCapabilitiesNoop(t *testing.T) {
-	t.Parallel()
-
+func TestDropCapabilitiesSetsNoNewPrivs(t *testing.T) {
 	if err := DropCapabilities(); err != nil {
 		t.Fatalf("DropCapabilities: %v", err)
+	}
+	if runtime.GOOS != "linux" {
+		return
+	}
+	const prGetNoNewPrivs = 39
+	v, _, errno := syscall.RawSyscall(syscall.SYS_PRCTL, prGetNoNewPrivs, 0, 0)
+	if errno != 0 {
+		t.Fatalf("PR_GET_NO_NEW_PRIVS: %v", errno)
+	}
+	if v != 1 {
+		t.Fatalf("NoNewPrivs = %d, want 1", v)
 	}
 }

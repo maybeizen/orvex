@@ -1,4 +1,5 @@
 import type { AuthUser, Database } from "@orvex/types";
+import { isPlanId, planSeatLimit } from "@orvex/types/plans";
 import type {
   OrganizationClient,
   OrganizationInviteRow,
@@ -57,6 +58,17 @@ export function organizationRow(
     created_by: orgTestUser.id,
     created_at: NOW,
     updated_at: NOW,
+    billing_cycle: null,
+    default_regions: ["IAD"],
+    oidc_client_id: null,
+    oidc_client_secret: null,
+    oidc_issuer: null,
+    referral_code: "ada-labs",
+    referred_by_organization_id: null,
+    stripe_customer_id: null,
+    stripe_subscription_id: null,
+    support_email: null,
+    timezone: "UTC",
     ...overrides,
   };
 }
@@ -68,6 +80,11 @@ export function memberRow(
     organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     user_id: orgTestUser.id,
     role: "owner",
+    access_mode: "preset",
+    permission_mask: "32767",
+    status: "active",
+    locked_at: null,
+    locked_by: null,
     created_at: NOW,
     ...overrides,
   };
@@ -81,7 +98,7 @@ export function inviteRow(
     organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     email: "grace@orvex.dev",
     invited_by: orgTestUser.id,
-    permission_mask: "110947",
+    permission_mask: "5469",
     access_mode: "preset",
     preset_role: "member",
     token_hash: "token-hash",
@@ -110,14 +127,7 @@ function seatLimit(org: OrganizationRow): number {
   if (org.kind === "single") {
     return 1;
   }
-  switch (org.plan_id) {
-    case "sentinel":
-      return 5;
-    case "command":
-      return 15;
-    default:
-      return 1;
-  }
+  return planSeatLimit(isPlanId(org.plan_id) ? org.plan_id : "free");
 }
 
 export function createOrganizationMemory(initial?: {
@@ -308,7 +318,7 @@ export function createOrganizationMemory(initial?: {
         return Object.entries(filters).every(([column, value]) => {
           const current = row[column as keyof OrganizationMemberRow];
           if (Array.isArray(value)) {
-            return value.includes(current);
+            return typeof current === "string" && value.includes(current);
           }
           return current === value;
         });
@@ -336,6 +346,9 @@ export function createOrganizationMemory(initial?: {
           organization_id: organizationId,
           user_id: readString(body, "user_id"),
           role: readString(body, "role", "member"),
+          access_mode: readString(body, "access_mode", "preset"),
+          permission_mask: readString(body, "permission_mask", "32767"),
+          status: readString(body, "status", "active"),
         });
         members.push(row);
         return { data: row, error: null };
@@ -553,7 +566,7 @@ export function createOrganizationMemory(initial?: {
           organization_id: organizationId,
           email,
           invited_by: readString(body, "invited_by", orgTestUser.id),
-          permission_mask: readString(body, "permission_mask", "110947"),
+          permission_mask: readString(body, "permission_mask", "5469"),
           access_mode: readString(body, "access_mode", "preset"),
           preset_role: readString(body, "preset_role", "member"),
           token_hash: readString(body, "token_hash"),

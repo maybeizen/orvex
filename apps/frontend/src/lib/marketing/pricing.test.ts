@@ -63,46 +63,54 @@ test("landing cards stay the three paid plans", () => {
 test("free plan is in the shared catalog", () => {
   const free = getPlan("free");
   expect(free.monthlyUsd).toBe(0);
-  expect(free.limits.monitors).toBe("5");
-  expect(free.limits.seats).toBe("1");
-  expect(free.limits.interval).toBe("5 min");
+  expect(free.limits.monitors).toBe("15");
+  expect(free.limits.seats).toBe("2");
+  expect(free.limits.interval).toBe("60s");
   expect(free.limits.regions).toBe("1");
   expect(free.limits.routing).toBe("Email");
-  expect(free.limits.statusPage).toBeNull();
+  expect(free.limits.statusPage).toBe("1 page");
+  expect(free.limits.heartbeat).toBeNull();
   expect(free.limits.agent).toBeNull();
   expect(free.limits.sso).toBeNull();
+  expect(free.limits.audit).toBe("7 days");
 });
 
-test("paid plan limits stay unchanged", () => {
+test("paid plan limits stay generous", () => {
   expect(getPlan("probe").limits).toEqual({
-    monitors: "20",
-    seats: "1",
-    interval: "60s",
-    regions: "1",
-    routing: "Email",
-    statusPage: null,
+    monitors: "50",
+    seats: "3",
+    interval: "30s",
+    regions: "2",
+    routing: "Email, Slack, Discord, webhook",
+    statusPage: "1 page",
+    heartbeat: "Included",
     agent: null,
     sso: null,
+    audit: "30 days",
   });
   expect(getPlan("sentinel").limits).toEqual({
-    monitors: "100",
-    seats: "5",
+    monitors: "200",
+    seats: "10",
     interval: "15s",
-    regions: "3",
-    routing: "Slack, Discord",
-    statusPage: "1 page",
-    agent: null,
+    regions: "4",
+    routing: "Email, Slack, Discord, webhook, SMS, Telegram, Teams, Pushover",
+    statusPage: "3 pages",
+    heartbeat: "Included",
+    agent: "Included",
     sso: null,
+    audit: "90 days",
   });
   expect(getPlan("command").limits).toEqual({
-    monitors: "500",
-    seats: "15",
+    monitors: "1000",
+    seats: "25",
     interval: "5s",
     regions: "All 6",
     routing: "All destinations",
-    statusPage: "Custom domain",
+    statusPage: "Unlimited + white label",
+    heartbeat: "Included",
     agent: "Included",
     sso: "OIDC",
+    audit: "365 days",
   });
   expect(getPlan("probe").monthlyUsd).toBe(12);
   expect(getPlan("sentinel").monthlyUsd).toBe(36);

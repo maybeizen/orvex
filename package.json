@@ -7,8 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "turbo run dev --filter=!@orvex/agent",
+    "dev": "turbo run dev --filter=!@orvex/agent --filter=!@orvex/probe",
     "dev:agent": "turbo run dev --filter=@orvex/agent",
+    "dev:probe": "turbo run dev --filter=@orvex/probe",
     "build": "NODE_ENV=production turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -25,6 +26,7 @@
     "supabase": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
-    "typescript-native": "catalog:"
+    "typescript-native": "catalog:",
+    "unrun": "^0.3.1"
   }
 }

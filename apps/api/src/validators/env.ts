@@ -20,6 +20,11 @@ const portSchema = z.preprocess((value) => {
   return typeof value === "number" ? value : Number(value);
 }, z.number().int().positive());
 
+const optionalString = z.preprocess(
+  emptyToUndefined,
+  z.string().min(1).optional(),
+);
+
 export const envSchema = z.object({
   PORT: portSchema,
   SUPABASE_URL: z.url(),
@@ -27,6 +32,25 @@ export const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   REDIS_URL: z.preprocess(emptyToUndefined, z.url().optional()),
   FRONTEND_ORIGIN: z.url(),
+  SMTP_HOST: optionalString,
+  SMTP_PORT: z.preprocess((value) => {
+    if (value === undefined || value === "") {
+      return 587;
+    }
+    return typeof value === "number" ? value : Number(value);
+  }, z.number().int().positive()),
+  SMTP_USER: optionalString,
+  SMTP_PASS: optionalString,
+  SMTP_FROM: optionalString,
+  STRIPE_SECRET_KEY: optionalString,
+  STRIPE_WEBHOOK_SECRET: optionalString,
+  STRIPE_PUBLISHABLE_KEY: optionalString,
+  CRYPTO_SECRET: optionalString,
+  PROBE_SERVICE_TOKEN: optionalString,
+  TWILIO_ACCOUNT_SID: optionalString,
+  TWILIO_AUTH_TOKEN: optionalString,
+  TWILIO_FROM_NUMBER: optionalString,
+  SUPPORT_INBOX: optionalString,
 });
 
 export type Env = z.infer<typeof envSchema>;

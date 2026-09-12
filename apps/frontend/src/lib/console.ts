@@ -1,4 +1,10 @@
-import type { AgentHeartbeatPayload, MonitorType } from "@orvex/types";
+import type {
+  CheckResult,
+  Incident,
+  Monitor,
+  MonitorType,
+  StatusPage,
+} from "@orvex/types";
 
 export type { MonitorType };
 
@@ -81,7 +87,12 @@ export type MonitorRecord = {
   keyword?: string | null;
   keywordFound?: boolean | null;
   port?: number | null;
-  lastHeartbeat?: AgentHeartbeatPayload | null;
+  lastHeartbeat?: {
+    id: string;
+    version: string;
+    metrics: Record<string, number>;
+    hostname?: string;
+  } | null;
   samples?: readonly LatencySample[];
 };
 
@@ -109,6 +120,67 @@ export type StatusPageRecord = {
 export const MONITORS: readonly MonitorRecord[] = [];
 export const INCIDENTS: readonly IncidentRecord[] = [];
 export const STATUS_PAGES: readonly StatusPageRecord[] = [];
+
+export function toLatencySample(result: CheckResult): LatencySample {
+  return {
+    at: result.startedAt,
+    latencyMs: result.latencyMs,
+    status: result.status,
+    regionCode: result.region,
+  };
+}
+
+export function toIncidentRecord(incident: Incident): IncidentRecord {
+  return {
+    id: incident.id,
+    monitorId: incident.monitorId ?? "",
+    monitorName: incident.monitorName ?? "Manual incident",
+    status: incident.status === "resolved" ? "resolved" : "open",
+    severity: incident.severity,
+    startedAt: incident.startedAt,
+    resolvedAt: incident.resolvedAt,
+    summary: incident.summary,
+  };
+}
+
+export function toStatusPageRecord(page: StatusPage): StatusPageRecord {
+  return {
+    id: page.id,
+    name: page.name,
+    slug: page.slug,
+    visibility: page.visibility === "public" ? "public" : "unlisted",
+    monitorIds: [],
+  };
+}
+
+export function toMonitorRecord(
+  monitor: Monitor,
+  samples?: readonly CheckResult[],
+): MonitorRecord {
+  return {
+    id: monitor.id,
+    name: monitor.name,
+    target: monitor.target,
+    type: monitor.type,
+    status: monitor.status,
+    lastCheckAt: monitor.lastCheckAt,
+    latencyMs: monitor.lastLatencyMs,
+    uptimePct: monitor.uptimePct,
+    regionCodes: monitor.regionCodes,
+    lastStatusCode: monitor.lastStatusCode,
+    keyword: monitor.keyword,
+    port: monitor.port,
+    ...(samples === undefined
+      ? {}
+      : {
+          samples: [...samples]
+            .sort((left, right) =>
+              left.startedAt.localeCompare(right.startedAt),
+            )
+            .map(toLatencySample),
+        }),
+  };
+}
 
 export function findMonitor(id: string): MonitorRecord | undefined {
   return MONITORS.find((monitor) => monitor.id === id);

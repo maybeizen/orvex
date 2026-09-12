@@ -4,10 +4,7 @@ import { ConsolePanel, EmptyPanel } from "@/components/console/console-panel";
 import { StatusMark, StatusPip } from "@/components/console/status-pip";
 import { cn } from "@/lib/cn";
 import {
-  INCIDENTS,
-  MONITORS,
   PROBE_REGIONS,
-  STATUS_PAGES,
   enabledRegionCodes,
   formatCheckTime,
   formatLatency,
@@ -15,26 +12,32 @@ import {
   recentEvents,
   worstChecks,
   type CheckStatus,
+  type IncidentRecord,
   type MonitorRecord,
+  type StatusPageRecord,
 } from "@/lib/console";
 import { HostInstrumentBoard } from "@/components/monitors/host-instrument";
 import { MonitorTable } from "@/components/monitors/monitor-table";
 import { useOrgLink } from "@/lib/use-org-link";
 
-export function MonitorSnapshot() {
+export function MonitorSnapshot({
+  monitors,
+}: {
+  monitors: readonly MonitorRecord[];
+}) {
   const orgLink = useOrgLink();
   return (
     <ConsolePanel
       title="Armed checks"
       description="Worst first when the catalog has rows"
-      padded={MONITORS.length === 0}
+      padded={monitors.length === 0}
       action={
         <Button asChild variant="ghost" size="xs">
           <Link to={orgLink("/monitors")}>Open list</Link>
         </Button>
       }
     >
-      {MONITORS.length === 0 ? (
+      {monitors.length === 0 ? (
         <EmptyPanel
           title="No checks armed"
           body="HTTP, keyword, ping, port, heartbeat, and agent targets land here from the same catalog the list uses."
@@ -45,15 +48,19 @@ export function MonitorSnapshot() {
           }
         />
       ) : (
-        <MonitorTable monitors={MONITORS} />
+        <MonitorTable monitors={monitors} />
       )}
     </ConsolePanel>
   );
 }
 
-export function IncidentSnapshot() {
+export function IncidentSnapshot({
+  incidents,
+}: {
+  incidents: readonly IncidentRecord[];
+}) {
   const orgLink = useOrgLink();
-  const open = openIncidents(INCIDENTS);
+  const open = openIncidents(incidents);
 
   return (
     <ConsolePanel
@@ -98,8 +105,12 @@ export function IncidentSnapshot() {
   );
 }
 
-export function WorstChecks() {
-  const worst = worstChecks(MONITORS);
+export function WorstChecks({
+  monitors,
+}: {
+  monitors: readonly MonitorRecord[];
+}) {
+  const worst = worstChecks(monitors);
 
   return (
     <ConsolePanel
@@ -149,7 +160,13 @@ function WorstRow({ monitor }: { monitor: MonitorRecord }) {
   );
 }
 
-export function RegionBoard({ regionLimit }: { regionLimit: string }) {
+export function RegionBoard({
+  regionLimit,
+  monitors,
+}: {
+  regionLimit: string;
+  monitors: readonly MonitorRecord[];
+}) {
   const enabled = new Set(enabledRegionCodes(regionLimit));
   const byRegion = new Map<
     string,
@@ -159,7 +176,7 @@ export function RegionBoard({ regionLimit }: { regionLimit: string }) {
   for (const region of PROBE_REGIONS) {
     byRegion.set(region.code, { up: 0, down: 0, total: 0 });
   }
-  for (const monitor of MONITORS) {
+  for (const monitor of monitors) {
     for (const code of monitor.regionCodes) {
       const bucket = byRegion.get(code);
       if (bucket === undefined) {
@@ -224,8 +241,14 @@ export function RegionBoard({ regionLimit }: { regionLimit: string }) {
   );
 }
 
-export function EventTape() {
-  const events = recentEvents(INCIDENTS, MONITORS);
+export function EventTape({
+  monitors,
+  incidents,
+}: {
+  monitors: readonly MonitorRecord[];
+  incidents: readonly IncidentRecord[];
+}) {
+  const events = recentEvents(incidents, monitors);
 
   return (
     <ConsolePanel
@@ -282,7 +305,11 @@ export function EventTape() {
   );
 }
 
-export function HostSnapshot() {
+export function HostSnapshot({
+  monitors,
+}: {
+  monitors: readonly MonitorRecord[];
+}) {
   const orgLink = useOrgLink();
   return (
     <ConsolePanel
@@ -294,13 +321,18 @@ export function HostSnapshot() {
         </Button>
       }
     >
-      <HostInstrumentBoard monitors={MONITORS} />
+      <HostInstrumentBoard monitors={monitors} />
     </ConsolePanel>
   );
 }
 
-export function StatusPageSnapshot() {
+export function StatusPageSnapshot({
+  pages,
+}: {
+  pages: readonly StatusPageRecord[];
+}) {
   const orgLink = useOrgLink();
+  const first = pages[0];
   return (
     <ConsolePanel
       title="Status page"
@@ -311,7 +343,7 @@ export function StatusPageSnapshot() {
         </Button>
       }
     >
-      {STATUS_PAGES.length === 0 ? (
+      {first === undefined ? (
         <div className="flex items-start gap-3">
           <StatusPip status="paused" className="mt-1.5" />
           <div className="min-w-0">
@@ -322,7 +354,20 @@ export function StatusPageSnapshot() {
             </p>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <Link
+          to={orgLink(`/status-pages/${first.id}`)}
+          className="flex items-start gap-3"
+        >
+          <StatusPip status="up" className="mt-1.5" />
+          <div className="min-w-0">
+            <p className="truncate text-sm">{first.name}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              /s/{first.slug}
+            </p>
+          </div>
+        </Link>
+      )}
     </ConsolePanel>
   );
 }

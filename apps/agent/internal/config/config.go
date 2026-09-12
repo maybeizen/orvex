@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/orvex/agent/internal/collectors"
 )
 
 type Mode string
@@ -25,6 +27,7 @@ const (
 
 	DefaultConfigPath = "agent.yml"
 	DefaultInterval   = 30 * time.Second
+	DefaultBinaryPath = "/usr/local/bin/orvex-agent"
 )
 
 var (
@@ -33,12 +36,13 @@ var (
 )
 
 type Config struct {
-	Mode      Mode
-	APIURL    string
-	AgentID   string
-	Token     string
-	RunAsRoot bool
-	Interval  time.Duration
+	Mode       Mode
+	APIURL     string
+	AgentID    string
+	Token      string
+	RunAsRoot  bool
+	Interval   time.Duration
+	Collectors collectors.Flags
 }
 
 type Options struct {
@@ -47,11 +51,13 @@ type Options struct {
 }
 
 type fileConfig struct {
-	Mode      string
-	APIURL    string
-	AgentID   string
-	Token     string
-	RunAsRoot bool
+	Mode       string
+	APIURL     string
+	AgentID    string
+	Token      string
+	RunAsRoot  bool
+	Interval   time.Duration
+	Collectors collectors.Flags
 }
 
 func (m Mode) Valid() error {
@@ -97,19 +103,30 @@ func ParseFile(path string) (Config, error) {
 		return Config{}, fmt.Errorf("config: parse %s: %w", path, err)
 	}
 
+	interval := raw.Interval
+	if interval <= 0 {
+		interval = DefaultInterval
+	}
+
 	return Config{
-		Mode:      Mode(raw.Mode),
-		APIURL:    raw.APIURL,
-		AgentID:   raw.AgentID,
-		Token:     raw.Token,
-		RunAsRoot: raw.RunAsRoot,
-		Interval:  DefaultInterval,
+		Mode:       Mode(raw.Mode),
+		APIURL:     raw.APIURL,
+		AgentID:    raw.AgentID,
+		Token:      raw.Token,
+		RunAsRoot:  raw.RunAsRoot,
+		Interval:   interval,
+		Collectors: raw.Collectors,
 	}, nil
 }
 
 func parseYAML(data []byte) (fileConfig, error) {
-	var raw fileConfig
+	raw := fileConfig{Collectors: collectors.DefaultFlags()}
+	section := ""
 	for i, line := range strings.Split(string(data), "\n") {
+		if line == "" {
+			continue
+		}
+		indented := line[0] == ' ' || line[0] == '\t'
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
@@ -120,6 +137,20 @@ func parseYAML(data []byte) (fileConfig, error) {
 		}
 		key = strings.TrimSpace(key)
 		val = unquote(strings.TrimSpace(val))
+		if indented {
+			if section != "collectors" {
+				return fileConfig{}, fmt.Errorf("unexpected indented key %q", key)
+			}
+			parsed, err := strconv.ParseBool(val)
+			if err != nil {
+				return fileConfig{}, fmt.Errorf("collectors.%s: %w", key, err)
+			}
+			if err := raw.Collectors.Set(key, parsed); err != nil {
+				return fileConfig{}, err
+			}
+			continue
+		}
+		section = ""
 		switch key {
 		case "mode":
 			raw.Mode = val
@@ -135,11 +166,39 @@ func parseYAML(data []byte) (fileConfig, error) {
 				return fileConfig{}, fmt.Errorf("run_as_root: %w", err)
 			}
 			raw.RunAsRoot = parsed
+		case "interval":
+			parsed, err := ParseInterval(val)
+			if err != nil {
+				return fileConfig{}, fmt.Errorf("interval: %w", err)
+			}
+			raw.Interval = parsed
+		case "collectors":
+			section = "collectors"
 		default:
 			return fileConfig{}, fmt.Errorf("unknown key %q", key)
 		}
 	}
 	return raw, nil
+}
+
+func ParseInterval(val string) (time.Duration, error) {
+	if val == "" {
+		return 0, fmt.Errorf("%w: interval", ErrMissing)
+	}
+	if d, err := time.ParseDuration(val); err == nil {
+		if d <= 0 {
+			return 0, fmt.Errorf("%w: interval", ErrMissing)
+		}
+		return d, nil
+	}
+	n, err := strconv.Atoi(val)
+	if err != nil {
+		return 0, err
+	}
+	if n <= 0 {
+		return 0, fmt.Errorf("%w: interval", ErrMissing)
+	}
+	return time.Duration(n) * time.Second, nil
 }
 
 func unquote(val string) string {
@@ -205,16 +264,24 @@ func WriteFile(path string, cfg Config) error {
 	if cfg.Interval <= 0 {
 		cfg.Interval = DefaultInterval
 	}
+	if cfg.Collectors == (collectors.Flags{}) {
+		cfg.Collectors = collectors.DefaultFlags()
+	}
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
 	body := fmt.Sprintf(
-		"mode: %s\napi_url: %s\nagent_id: %s\ntoken: %s\nrun_as_root: %t\n",
+		"mode: %s\ninterval: %s\napi_url: %s\nagent_id: %s\ntoken: %s\nrun_as_root: %t\ncollectors:\n  host: %t\n  services: %t\n  disk: %t\n  raid: %t\n",
 		cfg.Mode,
+		cfg.Interval.String(),
 		cfg.APIURL,
 		cfg.AgentID,
 		cfg.Token,
 		cfg.RunAsRoot,
+		cfg.Collectors.Host,
+		cfg.Collectors.Services,
+		cfg.Collectors.Disk,
+		cfg.Collectors.Raid,
 	)
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		return fmt.Errorf("config: write %s: %w", path, err)

@@ -1,15 +1,22 @@
 import { createHash, randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createMailer, type Mailer } from "@orvex/mail";
 import type {
   AuthUser,
   OrganizationInvite,
   OrganizationMemberList,
   OrganizationRole,
 } from "@orvex/types";
+import { presetMaskForRole } from "@orvex/types/permissions";
 import { isPlanId, planSeatLimit } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
+import { writeAuditEvent } from "../audit/audit-service.js";
 import {
   canManageOrganization,
   inviteRole,
+  isMembershipLocked,
   isOrganizationRole,
   toInviteDto,
   toMemberDto,
@@ -23,9 +30,11 @@ import {
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const ROLE_MASK: Record<Exclude<OrganizationRole, "owner">, string> = {
-  admin: "3178477",
-  member: "110947",
+  admin: presetMaskForRole("admin"),
+  member: presetMaskForRole("member"),
 };
+
+export type InviteMailer = Pick<Mailer, "send">;
 
 export type InviteCreated = {
   invite: OrganizationInvite;
@@ -58,6 +67,94 @@ function hashInviteToken(token: string): string {
 
 function newInviteToken(): string {
   return randomBytes(32).toString("base64url");
+}
+
+function inviteTemplatesDir(): string {
+  const fromModule = resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../../../packages/mail/templates",
+  );
+  const fromCwd = resolve(process.cwd(), "../../packages/mail/templates");
+  if (existsSync(fromModule)) {
+    return fromModule;
+  }
+  return fromCwd;
+}
+
+function createInviteMailer(): InviteMailer | null {
+  const host = process.env.SMTP_HOST;
+  if (host === undefined || host.length === 0) {
+    return null;
+  }
+  const config: {
+    host: string;
+    port: number;
+    templatesDir: string;
+    user?: string;
+    pass?: string;
+    from?: string;
+  } = {
+    host,
+    port:
+      process.env.SMTP_PORT === undefined || process.env.SMTP_PORT.length === 0
+        ? 587
+        : Number(process.env.SMTP_PORT),
+    templatesDir: inviteTemplatesDir(),
+  };
+  if (process.env.SMTP_USER !== undefined && process.env.SMTP_USER.length > 0) {
+    config.user = process.env.SMTP_USER;
+  }
+  if (process.env.SMTP_PASS !== undefined && process.env.SMTP_PASS.length > 0) {
+    config.pass = process.env.SMTP_PASS;
+  }
+  if (process.env.SMTP_FROM !== undefined && process.env.SMTP_FROM.length > 0) {
+    config.from = process.env.SMTP_FROM;
+  }
+  return createMailer(config);
+}
+
+function inviteAbsoluteUrl(token: string): string {
+  const origin = process.env.FRONTEND_ORIGIN ?? "";
+  const path = `/invite/${token}`;
+  if (origin.length === 0) {
+    return path;
+  }
+  return `${origin.replace(/\/$/, "")}${path}`;
+}
+
+async function sendInviteEmail(
+  mailer: InviteMailer | null,
+  input: {
+    email: string;
+    organizationName: string;
+    role: string;
+    inviterName: string;
+    token: string;
+  },
+): Promise<void> {
+  if (mailer === null) {
+    return;
+  }
+  try {
+    await mailer.send({
+      to: input.email,
+      subject: `Join ${input.organizationName} on Orvex`,
+      template: "invite",
+      variables: {
+        organizationName: input.organizationName,
+        email: input.email,
+        role: input.role,
+        inviterName: input.inviterName,
+        inviteUrl: inviteAbsoluteUrl(input.token),
+      },
+    });
+  } catch {
+    return;
+  }
+}
+
+function emailsMatch(left: string, right: string): boolean {
+  return left.trim().toLowerCase() === right.trim().toLowerCase();
 }
 
 async function fetchOrganization(
@@ -119,6 +216,9 @@ async function requireManager(
   organizationId: string,
 ): Promise<OrganizationMemberRow> {
   const membership = await requireMembership(supabase, user, organizationId);
+  if (isMembershipLocked(membership)) {
+    forbidden("This membership is locked");
+  }
   if (!canManageOrganization(membership.role)) {
     forbidden("Only owners and admins can manage members");
   }
@@ -222,6 +322,7 @@ export async function inviteMember(
   organizationId: string,
   email: string,
   role: Exclude<OrganizationRole, "owner">,
+  mailer?: InviteMailer | null,
 ): Promise<InviteCreated> {
   const caller = await requireManager(supabase, user, organizationId);
   if (caller.role === "admin" && role === "admin") {
@@ -269,6 +370,23 @@ export async function inviteMember(
     });
   }
 
+  await sendInviteEmail(mailer === undefined ? createInviteMailer() : mailer, {
+    email: data.email,
+    organizationName: org.name,
+    role,
+    inviterName: user.displayName,
+    token,
+  });
+
+  await writeAuditEvent(supabase, {
+    organizationId,
+    actorUserId: user.id,
+    action: "member.invite",
+    resourceType: "invite",
+    resourceId: data.id,
+    payload: { email: data.email, role },
+  });
+
   return {
     invite: toInviteDto(data),
     token,
@@ -299,7 +417,11 @@ export async function updateMemberRole(
   }
   const { error } = await supabase
     .from("organization_members")
-    .update({ role })
+    .update({
+      role,
+      access_mode: "preset",
+      permission_mask: ROLE_MASK[role],
+    })
     .eq("organization_id", organizationId)
     .eq("user_id", userId);
   if (error !== null) {
@@ -411,6 +533,9 @@ export async function acceptInvite(
   if (invite === null || invite.accepted_at !== null) {
     notFound("Invite not found");
   }
+  if (!emailsMatch(invite.email, user.email)) {
+    forbidden("Invite email does not match this account");
+  }
   if (Date.parse(invite.expires_at) <= Date.now()) {
     badRequest("That invite has expired");
   }
@@ -428,6 +553,9 @@ export async function acceptInvite(
         organization_id: invite.organization_id,
         user_id: user.id,
         role,
+        access_mode: invite.access_mode,
+        permission_mask: invite.permission_mask,
+        status: "active",
       });
     if (memberError !== null) {
       if (
@@ -465,7 +593,67 @@ export async function acceptInvite(
     });
   }
 
+  await writeAuditEvent(supabase, {
+    organizationId: invite.organization_id,
+    actorUserId: user.id,
+    action: "member.accept_invite",
+    resourceType: "invite",
+    resourceId: invite.id,
+  });
+
   return { organizationId: invite.organization_id };
+}
+
+export async function lockMember(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  organizationId: string,
+  userId: string,
+): Promise<void> {
+  const caller = await requireManager(supabase, user, organizationId);
+  const target = await fetchMembership(supabase, organizationId, userId);
+  if (target === null) {
+    notFound("Member not found");
+  }
+  if (target.user_id === user.id) {
+    forbidden("You cannot lock your own membership");
+  }
+  if (target.role === "owner") {
+    const owners = ownerIds(await listMemberships(supabase, organizationId));
+    if (owners.length <= 1) {
+      forbidden("The last owner cannot be locked");
+    }
+    if (caller.role !== "owner") {
+      forbidden("Only an owner can lock another owner");
+    }
+  }
+  if (caller.role === "admin" && target.role !== "member") {
+    forbidden("Admins can only lock members");
+  }
+
+  const { error } = await supabase
+    .from("organization_members")
+    .update({
+      status: "locked",
+      locked_at: new Date().toISOString(),
+      locked_by: user.id,
+    })
+    .eq("organization_id", organizationId)
+    .eq("user_id", userId);
+  if (error !== null) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: error.message,
+    });
+  }
+
+  await writeAuditEvent(supabase, {
+    organizationId,
+    actorUserId: user.id,
+    action: "member.lock",
+    resourceType: "member",
+    resourceId: userId,
+  });
 }
 
 export function isAssignableRole(

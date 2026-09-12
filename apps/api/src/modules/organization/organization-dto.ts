@@ -97,6 +97,10 @@ export function canManageOrganization(role: string): boolean {
   return role === "owner" || role === "admin";
 }
 
+export function isMembershipLocked(membership: OrganizationMemberRow): boolean {
+  return membership.status === "locked" || membership.locked_at !== null;
+}
+
 export function inviteRole(
   value: string | null,
 ): Exclude<OrganizationRole, "owner"> {
@@ -140,5 +144,34 @@ export function toInviteDto(row: OrganizationInviteRow): OrganizationInvite {
     role: inviteRole(row.preset_role),
     expiresAt: row.expires_at,
     createdAt: row.created_at,
+  };
+}
+
+export type OrganizationDefaultsDto = {
+  timezone: string;
+  defaultRegions: string[];
+  supportEmail: string | null;
+};
+
+export type OrganizationOidcDto = {
+  issuer: string | null;
+  clientId: string | null;
+  configured: boolean;
+};
+
+export function toDefaultsDto(row: OrganizationRow): OrganizationDefaultsDto {
+  return {
+    timezone: row.timezone,
+    defaultRegions: [...row.default_regions],
+    supportEmail: row.support_email,
+  };
+}
+
+export function toOidcDto(row: OrganizationRow): OrganizationOidcDto {
+  return {
+    issuer: row.oidc_issuer,
+    clientId: row.oidc_client_id,
+    configured:
+      row.oidc_client_secret !== null && row.oidc_client_secret.length > 0,
   };
 }

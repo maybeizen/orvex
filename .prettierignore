@@ -1,1 +1,3 @@
 pnpm-lock.yaml
+packages/types/src/database.ts
+.superpowers/

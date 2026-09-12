@@ -1,7 +1,10 @@
+import { MemoryCache } from "@orvex/cache";
 import { TRPCError } from "@trpc/server";
 import { expect, test } from "vitest";
+import { cacheKeys } from "../../lib/cache-keys.js";
 import type { ContextRequest } from "../../trpc/context.js";
 import { appRouter } from "../../trpc/router.js";
+import { withCache } from "../../trpc/test-context.js";
 import {
   createOrganizationMemory,
   inviteRow,
@@ -18,11 +21,13 @@ function caller(
   supabase: ReturnType<typeof createOrganizationMemory>["supabase"],
   user = orgTestUser,
 ) {
-  return appRouter.createCaller({
-    user,
-    req,
-    supabase,
-  });
+  return appRouter.createCaller(
+    withCache({
+      user,
+      req,
+      supabase,
+    }),
+  );
 }
 
 const createFreeInput = {
@@ -159,6 +164,36 @@ test("organization.list returns memberships and the active id", async () => {
   ]);
 });
 
+test("organization.list is cache-aside per user", async () => {
+  const org = organizationRow();
+  const cache = new MemoryCache();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+    profiles: [
+      profileFixture({
+        user_id: orgTestUser.id,
+        active_organization_id: org.id,
+      }),
+    ],
+  });
+  const api = appRouter.createCaller(
+    withCache({
+      user: orgTestUser,
+      req,
+      supabase: memory.supabase,
+      cache,
+    }),
+  );
+
+  const first = await api.organization.list();
+  expect(await cache.getJson(cacheKeys.orgList(orgTestUser.id))).toEqual(first);
+
+  memory.members.splice(0, memory.members.length);
+  const second = await api.organization.list();
+  expect(second).toEqual(first);
+});
+
 test("organization.setActive is forbidden for non-members", async () => {
   const org = organizationRow({ created_by: otherUserId });
   const memory = createOrganizationMemory({
@@ -208,6 +243,31 @@ test("organization.update changes name and slug for managers", async () => {
   expect(updated.name).toBe("Ada Desk");
   expect(updated.slug).toBe("ada-desk");
   expect(memory.organizations[0]?.name).toBe("Ada Desk");
+});
+
+test("organization.update is forbidden for a locked owner", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [
+      memberRow({
+        status: "locked",
+        locked_at: "2026-01-02T00:00:00.000Z",
+        locked_by: orgTestUser.id,
+      }),
+    ],
+  });
+
+  const error = await caller(memory.supabase)
+    .organization.update({
+      organizationId: org.id,
+      name: "Nope",
+    })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+  expect(memory.organizations[0]?.name).toBe(org.name);
 });
 
 test("organization.update is forbidden for members", async () => {
@@ -321,6 +381,142 @@ test("organization.delete is forbidden for a non-owner", async () => {
   expect(memory.organizations).toHaveLength(1);
 });
 
+test("organization.updateDefaults writes timezone, regions, and support email", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const updated = await caller(memory.supabase).organization.updateDefaults({
+    organizationId: org.id,
+    timezone: "America/New_York",
+    defaultRegions: ["IAD", "LHR"],
+    supportEmail: "desk@orvex.dev",
+  });
+  expect(updated).toEqual({
+    timezone: "America/New_York",
+    defaultRegions: ["IAD", "LHR"],
+    supportEmail: "desk@orvex.dev",
+  });
+  expect(memory.organizations[0]?.timezone).toBe("America/New_York");
+  expect(memory.organizations[0]?.default_regions).toEqual(["IAD", "LHR"]);
+});
+
+test("organization.updateOidc rejects plans without SSO", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const updated = await caller(memory.supabase)
+    .organization.updateOidc({
+      organizationId: org.id,
+      issuer: "https://idp.example.com",
+      clientId: "oidc-client",
+      clientSecret: "super-secret",
+    })
+    .catch((caught: unknown) => caught);
+  expect(updated).toBeInstanceOf(TRPCError);
+  expect((updated as TRPCError).code).toBe("PRECONDITION_FAILED");
+});
+
+test("organization.updateOidc stores an encrypted client secret when a key is set", async () => {
+  const org = organizationRow({ kind: "team", plan_id: "command" });
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const previous = process.env.CRYPTO_SECRET;
+  process.env.CRYPTO_SECRET = "test-crypto-secret";
+  try {
+    const updated = await caller(memory.supabase).organization.updateOidc({
+      organizationId: org.id,
+      issuer: "https://idp.example.com",
+      clientId: "oidc-client",
+      clientSecret: "super-secret",
+    });
+    expect(updated.issuer).toBe("https://idp.example.com");
+    expect(updated.clientId).toBe("oidc-client");
+    expect(updated.configured).toBe(true);
+    expect(memory.organizations[0]?.oidc_client_secret).not.toBe(
+      "super-secret",
+    );
+    expect(memory.organizations[0]?.oidc_client_secret).toEqual(
+      expect.any(String),
+    );
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CRYPTO_SECRET;
+    } else {
+      process.env.CRYPTO_SECRET = previous;
+    }
+  }
+});
+
+test("organization.transferOwnership promotes the target and demotes the caller", async () => {
+  const nextOwnerId = "22222222-2222-4222-8222-222222222222";
+  const org = organizationRow({ kind: "team", plan_id: "sentinel" });
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow(), memberRow({ user_id: nextOwnerId, role: "admin" })],
+  });
+
+  const result = await caller(memory.supabase).organization.transferOwnership({
+    organizationId: org.id,
+    userId: nextOwnerId,
+  });
+  expect(result).toEqual({ ok: true });
+  expect(memory.members.find((row) => row.user_id === nextOwnerId)?.role).toBe(
+    "owner",
+  );
+  expect(
+    memory.members.find((row) => row.user_id === orgTestUser.id)?.role,
+  ).toBe("admin");
+});
+
+test("organization.leave removes a non-owner membership", async () => {
+  const org = organizationRow({ kind: "team", plan_id: "sentinel" });
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow(), memberRow({ user_id: otherUserId, role: "member" })],
+    profiles: [
+      profileFixture(),
+      profileFixture({
+        user_id: otherUserId,
+        active_organization_id: org.id,
+      }),
+    ],
+  });
+
+  const result = await caller(memory.supabase, {
+    ...orgTestUser,
+    id: otherUserId,
+  }).organization.leave({ organizationId: org.id });
+  expect(result).toEqual({ ok: true });
+  expect(memory.members.map((row) => row.user_id)).toEqual([orgTestUser.id]);
+  expect(
+    memory.profiles.find((row) => row.user_id === otherUserId)
+      ?.active_organization_id,
+  ).toBeNull();
+});
+
+test("organization.leave is forbidden for the owner", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const error = await caller(memory.supabase)
+    .organization.leave({ organizationId: org.id })
+    .catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+  expect(memory.members).toHaveLength(1);
+});
+
 test("single orgs cannot add a second member", async () => {
   const org = organizationRow();
   const memory = createOrganizationMemory({
@@ -334,6 +530,9 @@ test("single orgs cannot add a second member", async () => {
       organization_id: org.id,
       user_id: otherUserId,
       role: "member",
+      access_mode: "preset",
+      permission_mask: "5469",
+      status: "active",
     })
     .single();
 

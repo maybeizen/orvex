@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/orvex/agent/internal/config"
 )
@@ -35,6 +36,9 @@ func TestParseFileValid(t *testing.T) {
 	if cfg.Interval != config.DefaultInterval {
 		t.Fatalf("Interval = %s, want %s", cfg.Interval, config.DefaultInterval)
 	}
+	if !cfg.Collectors.Host || cfg.Collectors.Services || cfg.Collectors.Disk || cfg.Collectors.Raid {
+		t.Fatalf("Collectors = %+v", cfg.Collectors)
+	}
 }
 
 func TestParseExampleConfig(t *testing.T) {
@@ -52,6 +56,12 @@ func TestParseExampleConfig(t *testing.T) {
 	}
 	if cfg.Token != "" {
 		t.Fatal("example config must not embed a token")
+	}
+	if cfg.Interval != config.DefaultInterval {
+		t.Fatalf("example Interval = %s", cfg.Interval)
+	}
+	if !cfg.Collectors.Host {
+		t.Fatal("example collectors.host must be true")
 	}
 }
 
@@ -87,6 +97,12 @@ func TestWriteFileRoundTrip(t *testing.T) {
 	}
 	if got.Token != want.Token || got.AgentID != want.AgentID || got.APIURL != want.APIURL || got.Mode != want.Mode {
 		t.Fatalf("got %+v, want %+v", got, want)
+	}
+	if got.Interval != config.DefaultInterval {
+		t.Fatalf("Interval = %s", got.Interval)
+	}
+	if !got.Collectors.Host {
+		t.Fatal("Collectors.Host defaulted to false")
 	}
 }
 
@@ -157,6 +173,25 @@ func TestParseFlagsRejectsInvalidMode(t *testing.T) {
 	_, err := config.ParseFlags([]string{"-mode", "watch"})
 	if !errors.Is(err, config.ErrInvalidMode) {
 		t.Fatalf("got %v, want ErrInvalidMode", err)
+	}
+}
+
+func TestParseIntervalAcceptsSecondsAndDuration(t *testing.T) {
+	t.Parallel()
+
+	fromInt, err := config.ParseInterval("45")
+	if err != nil {
+		t.Fatalf("ParseInterval seconds: %v", err)
+	}
+	if fromInt != 45*time.Second {
+		t.Fatalf("ParseInterval(45) = %s", fromInt)
+	}
+	fromDur, err := config.ParseInterval("1m")
+	if err != nil {
+		t.Fatalf("ParseInterval duration: %v", err)
+	}
+	if fromDur != time.Minute {
+		t.Fatalf("ParseInterval(1m) = %s", fromDur)
 	}
 }
 

@@ -1,6 +1,20 @@
 import { expect, test } from "vitest";
 import * as types from "./index.js";
 
-test("types package is a type-only module", () => {
-  expect(Object.keys(types)).toEqual([]);
+test("types package exports permission and channel catalogs", () => {
+  expect(Object.keys(types).sort()).toEqual(
+    [
+      "NOTIFICATION_CHANNELS",
+      "PERMISSION_BITS",
+      "PERMISSION_BIT_KEYS",
+      "PERMISSION_PRESETS",
+      "PERMISSION_PRESET_MASKS",
+      "PROBE_REGION_CODES",
+      "hasPermission",
+      "isNotificationChannel",
+      "isProbeRegionCode",
+      "parsePermissionMask",
+      "presetMaskForRole",
+    ].sort(),
+  );
 });

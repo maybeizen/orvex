@@ -160,8 +160,8 @@ export function LandingPricing() {
           ))}
         </div>
         <p className="text-center text-sm text-muted-foreground text-pretty">
-          Free stays available: 5 HTTP checks, one region, 5-minute interval,
-          email when something breaks.
+          Free stays available: 15 monitors, two seats, one region, a 60-second
+          interval, email, one status page, and 7-day audit.
         </p>
       </div>
     </MarketingSection>

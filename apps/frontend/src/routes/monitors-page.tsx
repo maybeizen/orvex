@@ -1,11 +1,12 @@
 import { getPlan } from "@orvex/types/plans";
 import { RequireSession } from "@/components/auth/require-session";
 import { MonitorList } from "@/components/monitors/monitor-list";
-import { MONITORS } from "@/lib/console";
+import { useOrgMonitors } from "@/components/monitors/use-org-monitors";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
 export function MonitorsPage() {
   const organization = useOrgStore(selectActiveOrganization);
+  const { monitors, error } = useOrgMonitors(organization?.id ?? null);
   const planLimit =
     organization === null
       ? "—"
@@ -16,7 +17,7 @@ export function MonitorsPage() {
       title="Monitors"
       description="Sign in to see your monitors."
     >
-      <MonitorList monitors={MONITORS} planLimit={planLimit} />
+      <MonitorList monitors={monitors} planLimit={planLimit} error={error} />
     </RequireSession>
   );
 }

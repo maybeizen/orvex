@@ -15,7 +15,7 @@ import (
 	"github.com/orvex/agent/internal/security"
 )
 
-const version = "0.0.0"
+var version = "dev"
 
 func main() {
 	if len(os.Args) >= 2 && os.Args[1] == "install" {
@@ -72,7 +72,7 @@ func run(args []string) error {
 			ID:       cfg.AgentID,
 			Version:  version,
 			Hostname: hostname,
-			Metrics:  heartbeat.AgentHeartbeatMetrics(collectors.Gather(cfg.RunAsRoot)),
+			Metrics:  heartbeat.AgentHeartbeatMetrics(collectors.Gather(cfg.RunAsRoot, cfg.Collectors)),
 		})
 	})
 }

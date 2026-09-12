@@ -7,7 +7,10 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
+
+const warmCPUDelay = 80 * time.Millisecond
 
 type host struct{}
 
@@ -26,7 +29,12 @@ var (
 
 func (host) Collect() (Snapshot, error) {
 	snap := Snapshot{}
-	if cpu, ok := readCPU(); ok {
+	cpu, ok := readCPU()
+	if !ok || cpu == 0 {
+		time.Sleep(warmCPUDelay)
+		cpu, ok = readCPU()
+	}
+	if ok {
 		snap["cpu"] = cpu
 	}
 	if used, total, ok := readMem("/proc/meminfo"); ok {

@@ -1,4 +1,10 @@
-import type { AuthUser, Organization } from "@orvex/types";
+import { encrypt } from "@orvex/crypto";
+import {
+  isProbeRegionCode,
+  type AuthUser,
+  type Organization,
+} from "@orvex/types";
+import { presetMaskForRole } from "@orvex/types/permissions";
 import {
   isPaidPlan,
   isPlanId,
@@ -6,14 +12,25 @@ import {
   type BillingCycle,
 } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
+import { cryptoKeyFromSecret } from "../../lib/crypto-key.js";
 import { HttpError } from "../../utils/http-error.js";
+import { writeAuditEvent } from "../audit/audit-service.js";
+import {
+  creditReferral,
+  resolveReferrerOrganizationId,
+} from "../referral/referral-service.js";
 import {
   canManageOrganization,
+  isMembershipLocked,
   orgIconObjectPath,
+  toDefaultsDto,
+  toOidcDto,
   toOrganizationDto,
   type OrganizationClient,
+  type OrganizationDefaultsDto,
   type OrganizationListDto,
   type OrganizationMemberRow,
+  type OrganizationOidcDto,
   type OrganizationRow,
 } from "./organization-dto.js";
 import { isReservedOrgSlug } from "./slugs.js";
@@ -31,6 +48,7 @@ export type CreateOrganizationInput = {
   billingCycle: BillingCycle;
   tosAccepted: true;
   marketingOptIn: boolean;
+  referralCode?: string | undefined;
 };
 
 function isUniqueViolation(error: DbError | null): boolean {
@@ -197,6 +215,15 @@ export async function resolveAccessibleOrganization(
   return { organization, membership };
 }
 
+function assertActiveMembership(membership: OrganizationMemberRow): void {
+  if (isMembershipLocked(membership)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "This membership is locked",
+    });
+  }
+}
+
 export function hasActiveSubscription(organization: OrganizationRow): boolean {
   const planId = isPlanId(organization.plan_id) ? organization.plan_id : "free";
   if (!isPaidPlan(planId)) {
@@ -339,6 +366,11 @@ export async function createOrganization(
     ? "pending_checkout"
     : "active";
 
+  const referrerOrganizationId =
+    input.referralCode !== undefined && input.referralCode.length > 0
+      ? await resolveReferrerOrganizationId(supabase, input.referralCode)
+      : null;
+
   const { data: org, error: orgError } = await supabase
     .from("organizations")
     .insert({
@@ -362,6 +394,9 @@ export async function createOrganization(
       organization_id: org.id,
       user_id: user.id,
       role: "owner",
+      access_mode: "preset",
+      permission_mask: presetMaskForRole("owner"),
+      status: "active",
     });
 
   if (memberError !== null) {
@@ -380,6 +415,10 @@ export async function createOrganization(
 
   if (profileError !== null) {
     throwWriteError(profileError, true);
+  }
+
+  if (referrerOrganizationId !== null) {
+    await creditReferral(supabase, org.id, referrerOrganizationId, user.id);
   }
 
   return toOrganizationDto(supabase, org, "owner");
@@ -419,6 +458,7 @@ export async function updateOrganization(
     user,
     input,
   );
+  assertActiveMembership(membership);
   if (!canManageOrganization(membership.role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -491,6 +531,7 @@ export async function deleteOrganization(
     user,
     ref,
   );
+  assertActiveMembership(membership);
   if (membership.role !== "owner") {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -603,4 +644,232 @@ export async function setOrganizationIcon(
   }
 
   return toOrganizationDto(supabase, data, membership.role);
+}
+
+export function organizationDefaults(
+  organization: OrganizationRow,
+): OrganizationDefaultsDto {
+  return toDefaultsDto(organization);
+}
+
+export function organizationOidc(
+  organization: OrganizationRow,
+): OrganizationOidcDto {
+  return toOidcDto(organization);
+}
+
+export async function updateOrganizationDefaults(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  organizationId: string,
+  input: {
+    timezone: string;
+    defaultRegions: string[];
+    supportEmail: string | null;
+  },
+): Promise<OrganizationDefaultsDto> {
+  const unique = new Set(input.defaultRegions);
+  if (unique.size !== input.defaultRegions.length) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Regions must be unique",
+    });
+  }
+  if (!input.defaultRegions.every((region) => isProbeRegionCode(region))) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Invalid probe region",
+    });
+  }
+
+  const { data, error } = await supabase
+    .from("organizations")
+    .update({
+      timezone: input.timezone,
+      default_regions: input.defaultRegions,
+      support_email: input.supportEmail,
+    })
+    .eq("id", organizationId)
+    .select("*")
+    .single();
+  if (error !== null) {
+    throwWriteError(error, true);
+  }
+
+  await writeAuditEvent(supabase, {
+    organizationId,
+    actorUserId: user.id,
+    action: "organization.defaults.update",
+    resourceType: "organization",
+    resourceId: organizationId,
+    payload: {
+      timezone: input.timezone,
+      defaultRegions: input.defaultRegions,
+    },
+  });
+
+  return toDefaultsDto(data);
+}
+
+export async function updateOrganizationOidc(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  organizationId: string,
+  input: {
+    issuer: string;
+    clientId: string;
+    clientSecret: string;
+  },
+): Promise<OrganizationOidcDto> {
+  const key = cryptoKeyFromSecret(process.env.CRYPTO_SECRET);
+  const secret = key === null ? null : encrypt(input.clientSecret, key);
+
+  const { data, error } = await supabase
+    .from("organizations")
+    .update({
+      oidc_issuer: input.issuer,
+      oidc_client_id: input.clientId,
+      oidc_client_secret: secret,
+    })
+    .eq("id", organizationId)
+    .select("*")
+    .single();
+  if (error !== null) {
+    throwWriteError(error, true);
+  }
+
+  await writeAuditEvent(supabase, {
+    organizationId,
+    actorUserId: user.id,
+    action: "organization.oidc.update",
+    resourceType: "organization",
+    resourceId: organizationId,
+    payload: { issuer: input.issuer },
+  });
+
+  return toOidcDto(data);
+}
+
+export async function transferOrganizationOwnership(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  organizationId: string,
+  userId: string,
+): Promise<{ ok: true }> {
+  const { organization, membership } = await resolveAccessibleOrganization(
+    supabase,
+    user,
+    { organizationId },
+  );
+  assertActiveMembership(membership);
+  if (membership.role !== "owner") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only an owner can transfer this organization",
+    });
+  }
+  if (userId === user.id) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Ownership is already yours",
+    });
+  }
+
+  const target = await fetchMembership(supabase, organization.id, userId);
+  if (target === null) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Member not found",
+    });
+  }
+
+  const { error: promoteError } = await supabase
+    .from("organization_members")
+    .update({
+      role: "owner",
+      permission_mask: presetMaskForRole("owner"),
+    })
+    .eq("organization_id", organization.id)
+    .eq("user_id", userId);
+  if (promoteError !== null) {
+    throwWriteError(promoteError, true);
+  }
+
+  const { error: demoteError } = await supabase
+    .from("organization_members")
+    .update({
+      role: "admin",
+      permission_mask: presetMaskForRole("admin"),
+    })
+    .eq("organization_id", organization.id)
+    .eq("user_id", user.id);
+  if (demoteError !== null) {
+    throwWriteError(demoteError, true);
+  }
+
+  await writeAuditEvent(supabase, {
+    organizationId: organization.id,
+    actorUserId: user.id,
+    action: "organization.transfer_ownership",
+    resourceType: "organization",
+    resourceId: organization.id,
+    payload: { userId },
+  });
+
+  return { ok: true as const };
+}
+
+export async function leaveOrganization(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  ref: OrganizationRef,
+): Promise<{ ok: true }> {
+  const { organization, membership } = await resolveAccessibleOrganization(
+    supabase,
+    user,
+    ref,
+  );
+  if (membership.role === "owner") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Owners cannot leave; transfer ownership first",
+    });
+  }
+
+  const { error } = await supabase
+    .from("organization_members")
+    .delete()
+    .eq("organization_id", organization.id)
+    .eq("user_id", user.id);
+  if (error !== null) {
+    throwWriteError(error, true);
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("active_organization_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (profileError !== null) {
+    throwWriteError(profileError, true);
+  }
+  if (profile?.active_organization_id === organization.id) {
+    const { error: clearError } = await supabase
+      .from("profiles")
+      .update({ active_organization_id: null })
+      .eq("user_id", user.id);
+    if (clearError !== null) {
+      throwWriteError(clearError, true);
+    }
+  }
+
+  await writeAuditEvent(supabase, {
+    organizationId: organization.id,
+    actorUserId: user.id,
+    action: "member.leave",
+    resourceType: "member",
+    resourceId: user.id,
+  });
+
+  return { ok: true as const };
 }

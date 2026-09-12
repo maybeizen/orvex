@@ -1,8 +1,53 @@
 package collectors
 
-import "maps"
+import (
+	"fmt"
+	"maps"
+)
 
 type Snapshot map[string]float64
+
+type Flags struct {
+	Host     bool
+	Services bool
+	Disk     bool
+	Raid     bool
+}
+
+func DefaultFlags() Flags {
+	return Flags{Host: true}
+}
+
+func (f Flags) Enabled(name string) bool {
+	switch name {
+	case "host":
+		return f.Host
+	case "services":
+		return f.Services
+	case "disk":
+		return f.Disk
+	case "raid":
+		return f.Raid
+	default:
+		return false
+	}
+}
+
+func (f *Flags) Set(name string, enabled bool) error {
+	switch name {
+	case "host":
+		f.Host = enabled
+	case "services":
+		f.Services = enabled
+	case "disk":
+		f.Disk = enabled
+	case "raid":
+		f.Raid = enabled
+	default:
+		return fmt.Errorf("unknown collector %q", name)
+	}
+	return nil
+}
 
 type Collector interface {
 	Name() string
@@ -35,9 +80,12 @@ func All() []Collector {
 	}
 }
 
-func Gather(allowRoot bool) Snapshot {
+func Gather(allowRoot bool, flags Flags) Snapshot {
 	metrics := make(Snapshot)
 	for _, collector := range All() {
+		if !flags.Enabled(collector.Name()) {
+			continue
+		}
 		if !collector.Enabled(allowRoot) {
 			continue
 		}

@@ -1,7 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
-import { ConsolePanel, EmptyPanel } from "@/components/console/console-panel";
+import {
+  ConsolePanel,
+  EmptyPanel,
+  ErrorPanel,
+  LoadingPanel,
+} from "@/components/console/console-panel";
 import {
   FilterBar,
   FilterChip,
@@ -26,18 +31,21 @@ import { useOrgLink } from "@/lib/use-org-link";
 export function MonitorList({
   monitors,
   planLimit,
+  error,
 }: {
-  monitors: readonly MonitorRecord[];
+  monitors: readonly MonitorRecord[] | null;
   planLimit: string;
+  error: string | null;
 }) {
   const orgLink = useOrgLink();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<CheckStatus | "all">("all");
   const [type, setType] = useState<MonitorType | "all">("all");
+  const rows = useMemo(() => monitors ?? [], [monitors]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return monitors.filter((monitor) => {
+    return rows.filter((monitor) => {
       if (status !== "all" && monitor.status !== status) {
         return false;
       }
@@ -52,10 +60,11 @@ export function MonitorList({
         monitor.target.toLowerCase().includes(needle)
       );
     });
-  }, [monitors, query, status, type]);
+  }, [rows, query, status, type]);
 
-  const emptyCatalog = monitors.length === 0;
-  const emptyFilter = !emptyCatalog && filtered.length === 0;
+  const loading = monitors === null && error === null;
+  const emptyCatalog = !loading && error === null && rows.length === 0;
+  const emptyFilter = !emptyCatalog && !loading && filtered.length === 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,9 +75,9 @@ export function MonitorList({
         meta={
           <>
             <span>
-              {String(monitors.length)} / {planLimit} on plan
+              {String(rows.length)} / {planLimit} on plan
             </span>
-            <span>{String(countByStatus(monitors, "up"))} up</span>
+            <span>{String(countByStatus(rows, "up"))} up</span>
           </>
         }
         actions={
@@ -82,27 +91,27 @@ export function MonitorList({
         items={[
           {
             label: "Armed",
-            value: String(monitors.length),
+            value: String(rows.length),
             hint: `limit ${planLimit}`,
           },
           {
             label: "Up",
-            value: String(countByStatus(monitors, "up")),
+            value: String(countByStatus(rows, "up")),
             tone: "up",
           },
           {
             label: "Down",
-            value: String(countByStatus(monitors, "down")),
+            value: String(countByStatus(rows, "down")),
             tone: "down",
           },
           {
             label: "Degraded",
-            value: String(countByStatus(monitors, "degraded")),
+            value: String(countByStatus(rows, "degraded")),
             tone: "degraded",
           },
           {
             label: "Paused",
-            value: String(countByStatus(monitors, "paused")),
+            value: String(countByStatus(rows, "paused")),
             tone: "paused",
           },
           {
@@ -157,7 +166,11 @@ export function MonitorList({
           />
         </FilterBar>
 
-        {emptyCatalog ? (
+        {error !== null ? (
+          <ErrorPanel title="Unable to load monitors" body={error} />
+        ) : loading ? (
+          <LoadingPanel />
+        ) : emptyCatalog ? (
           <EmptyPanel
             title="No monitors on this frequency"
             body="Create an HTTP, keyword, ping, port, heartbeat, or agent check. Rows will show status, target, last probe, latency, and uptime."

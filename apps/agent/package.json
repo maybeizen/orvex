@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "go run ./cmd/agent",
-    "build": "go build -trimpath -ldflags=\"-s -w\" -o dist/orvex-agent ./cmd/agent",
+    "build": "go build -trimpath -ldflags=\"-s -w -X main.version=dev\" -o dist/orvex-agent ./cmd/agent",
     "lint": "go vet ./...",
     "typecheck": "go test ./... -count=0",
     "test": "go test ./...",

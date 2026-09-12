@@ -16,6 +16,7 @@ import { ChangelogPage } from "@/routes/changelog-page";
 import { ForgotPasswordPage } from "@/routes/forgot-password-page";
 import { IncidentDetailPage } from "@/routes/incident-detail-page";
 import { IncidentsPage } from "@/routes/incidents-page";
+import { MaintenancePage } from "@/routes/maintenance-page";
 import { LandingPage } from "@/routes/landing-page";
 import { LoginPage } from "@/routes/login-page";
 import { MonitorCreatePage } from "@/routes/monitor-create-page";
@@ -40,14 +41,16 @@ import { TeamMembersPage } from "@/routes/team-members-page";
 import { TermsPage } from "@/routes/terms-page";
 import { TwoFactorPage } from "@/routes/two-factor-page";
 import { DocsPage } from "@/routes/docs-page";
+import { AuditLogPage } from "@/routes/audit-log-page";
+import { OrdersPage } from "@/routes/orders-page";
+import { ReferralsPage } from "@/routes/referrals-page";
+import { SupportPage } from "@/routes/support-page";
+import { ContactListsPage } from "@/routes/contact-lists-page";
 import {
-  AuditLogPage,
-  ContactListsPage,
-  OrdersPage,
-  ReferralsPage,
-  SupportPage,
-  WhiteLabelPage,
-} from "@/routes/workspace-pages";
+  PublicStatusPage,
+  StatusConfirmRedirect,
+} from "@/routes/public-status-page";
+import { WhiteLabelPage } from "@/routes/white-label-page";
 import { Providers } from "./providers";
 
 const orgChildren = [
@@ -58,6 +61,7 @@ const orgChildren = [
   { path: "monitors/:monitorId/edit", element: <MonitorEditPage /> },
   { path: "incidents", element: <IncidentsPage /> },
   { path: "incidents/:incidentId", element: <IncidentDetailPage /> },
+  { path: "maintenance", element: <MaintenancePage /> },
   { path: "status-pages", element: <StatusPagesPage /> },
   { path: "status-pages/:pageId", element: <StatusPageDetailPage /> },
   { path: "contact-lists", element: <ContactListsPage /> },
@@ -122,6 +126,15 @@ export const router = createBrowserRouter([
       { path: "/pricing", element: <PricingPage /> },
       { path: "/forbidden", element: <ForbiddenPage /> },
       { path: "/invite/:token", element: <InvitePage /> },
+      { path: "/s/:pageSlug", element: <PublicStatusPage /> },
+      {
+        path: "/status/:pageSlug/confirm",
+        element: <StatusConfirmRedirect />,
+      },
+      {
+        path: "/status/:orgSlug/:pageSlug/confirm",
+        element: <StatusConfirmRedirect />,
+      },
       {
         element: <AccountShell />,
         children: [
@@ -147,6 +160,7 @@ export const router = createBrowserRouter([
       },
       { path: "/monitors/*", element: <LegacyAppRedirect /> },
       { path: "/incidents/*", element: <LegacyAppRedirect /> },
+      { path: "/maintenance/*", element: <LegacyAppRedirect /> },
       { path: "/status-pages/*", element: <LegacyAppRedirect /> },
       { path: "/contact-lists", element: <LegacyAppRedirect /> },
       { path: "/white-label", element: <LegacyAppRedirect /> },
@@ -158,6 +172,7 @@ export const router = createBrowserRouter([
       { path: "/support", element: <LegacyAppRedirect /> },
       { path: "/docs", element: <LegacyAppRedirect /> },
       { path: "/settings/organization", element: <LegacyAppRedirect /> },
+      { path: "/billing", element: <LegacyAppRedirect /> },
       { path: "/settings/billing", element: <LegacyAppRedirect /> },
       { path: "*", element: <NotFoundPage /> },
     ],

@@ -1,4 +1,6 @@
+import { randomBytes } from "node:crypto";
 import { Redis } from "ioredis";
+import { getOrSetJson, readJson, writeJson } from "./json.js";
 import type { CacheClient } from "./types.js";
 
 export class RedisCache implements CacheClient {
@@ -26,6 +28,58 @@ export class RedisCache implements CacheClient {
 
   async del(key: string): Promise<void> {
     await this.#client.del(key);
+  }
+
+  async incr(key: string, ttlSeconds?: number): Promise<number> {
+    const count = await this.#client.incr(key);
+    if (ttlSeconds !== undefined && count === 1) {
+      await this.#client.expire(key, ttlSeconds);
+    }
+    return count;
+  }
+
+  async decr(key: string): Promise<number> {
+    return this.#client.decr(key);
+  }
+
+  getJson<T>(key: string): Promise<T | undefined> {
+    return readJson<T>(this, key);
+  }
+
+  setJson(key: string, value: unknown, ttlSeconds?: number): Promise<void> {
+    return writeJson(this, key, value, ttlSeconds);
+  }
+
+  getOrSet<T>(
+    key: string,
+    ttlSeconds: number,
+    factory: () => Promise<T>,
+  ): Promise<T> {
+    return getOrSetJson(this, key, ttlSeconds, factory);
+  }
+
+  async acquireLock(key: string, ttlSeconds: number): Promise<string | null> {
+    const token = randomBytes(16).toString("hex");
+    const result = await this.#client.set(key, token, "EX", ttlSeconds, "NX");
+    return result === "OK" ? token : null;
+  }
+
+  async releaseLock(key: string, token: string): Promise<void> {
+    await this.#client.eval(
+      'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end',
+      1,
+      key,
+      token,
+    );
+  }
+
+  async ping(): Promise<boolean> {
+    try {
+      await this.#client.ping();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async quit(): Promise<void> {

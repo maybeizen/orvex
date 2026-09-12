@@ -1,6 +1,7 @@
 import { useState, type SyntheticEvent } from "react";
-import { Link } from "react-router";
-import type { MonitorType } from "@orvex/types";
+import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
+import { isProbeRegionCode, type MonitorType } from "@orvex/types";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -11,9 +12,11 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { ConsolePanel, CoreNotice } from "@/components/console/console-panel";
-import { SelectMenu } from "@/components/ui/select-menu";
+import { ConsolePanel } from "@/components/console/console-panel";
+import { SelectMenu, type SelectMenuOption } from "@/components/ui/select-menu";
+import { Spinner } from "@/components/ui/spinner";
 import { PageHeader } from "@/components/console/page-header";
+import { monitorApi } from "@/components/monitors/monitor-api";
 import { useOrgLink } from "@/lib/use-org-link";
 import {
   MONITOR_TYPE_LABEL,
@@ -48,8 +51,11 @@ function draftFromMonitor(monitor: MonitorRecord, regionLimit: string): Draft {
     name: monitor.name,
     type: monitor.type,
     target: monitor.target,
-    keyword: "",
-    port: "",
+    keyword: monitor.keyword ?? "",
+    port:
+      monitor.port === undefined || monitor.port === null
+        ? ""
+        : String(monitor.port),
     regionCodes:
       monitor.regionCodes.length > 0
         ? [...monitor.regionCodes]
@@ -57,10 +63,44 @@ function draftFromMonitor(monitor: MonitorRecord, regionLimit: string): Draft {
   };
 }
 
-function validate(draft: Draft): Record<string, string> {
+function monitorTypeOptions(
+  allowsHeartbeat: boolean,
+  allowsAgent: boolean,
+  current: MonitorType,
+): SelectMenuOption<MonitorType>[] {
+  return MONITOR_TYPES.map((value) => {
+    const allowed =
+      (value !== "heartbeat" || allowsHeartbeat || current === "heartbeat") &&
+      (value !== "agent" || allowsAgent || current === "agent");
+    if (allowed) {
+      return {
+        value,
+        label: MONITOR_TYPE_LABEL[value],
+      };
+    }
+    return {
+      value,
+      label: MONITOR_TYPE_LABEL[value],
+      disabled: true,
+      hint: "Upgrade",
+    };
+  });
+}
+
+function validate(
+  draft: Draft,
+  allowsHeartbeat: boolean,
+  allowsAgent: boolean,
+): Record<string, string> {
   const errors: Record<string, string> = {};
   if (draft.name.trim().length === 0) {
     errors.name = "Name is required.";
+  }
+  if (draft.type === "heartbeat" && !allowsHeartbeat) {
+    errors.target = "Heartbeat is not available on this plan.";
+  }
+  if (draft.type === "agent" && !allowsAgent) {
+    errors.target = "Agent is not available on this plan.";
   }
   if (draft.type !== "heartbeat" && draft.type !== "agent") {
     if (draft.target.trim().length === 0) {
@@ -82,25 +122,54 @@ function validate(draft: Draft): Record<string, string> {
   return errors;
 }
 
+function writePayload(
+  draft: Draft,
+  organizationId: string,
+  intervalSeconds: number,
+) {
+  const regions = draft.regionCodes.filter(isProbeRegionCode);
+  return {
+    organizationId,
+    name: draft.name.trim(),
+    type: draft.type,
+    intervalSeconds,
+    regions,
+    ...(draft.type === "heartbeat" || draft.type === "agent"
+      ? {}
+      : { target: draft.target.trim() }),
+    ...(draft.type === "keyword" ? { keyword: draft.keyword.trim() } : {}),
+    ...(draft.type === "port" ? { port: Number.parseInt(draft.port, 10) } : {}),
+  };
+}
+
 export function MonitorForm({
   mode,
   monitor,
+  organizationId,
   regionLimit,
   interval,
+  intervalSeconds,
+  allowsHeartbeat,
+  allowsAgent,
 }: {
   mode: "create" | "edit";
   monitor?: MonitorRecord;
+  organizationId: string | null;
   regionLimit: string;
   interval: string;
+  intervalSeconds: number;
+  allowsHeartbeat: boolean;
+  allowsAgent: boolean;
 }) {
   const orgLink = useOrgLink();
+  const navigate = useNavigate();
   const [draft, setDraft] = useState<Draft>(() =>
     monitor === undefined
       ? emptyDraft(regionLimit)
       : draftFromMonitor(monitor, regionLimit),
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
+  const [pending, setPending] = useState(false);
 
   const allowed = new Set(enabledRegionCodes(regionLimit));
   const targetLabel =
@@ -112,11 +181,41 @@ export function MonitorForm({
           ? "Host"
           : "URL";
 
+  async function persist(): Promise<void> {
+    if (organizationId === null) {
+      toast.error("Select a workspace first");
+      return;
+    }
+    setPending(true);
+    try {
+      const client = monitorApi();
+      const payload = writePayload(draft, organizationId, intervalSeconds);
+      const saved =
+        mode === "create"
+          ? await client.create.mutate(payload)
+          : await client.update.mutate({
+              ...payload,
+              monitorId: monitor?.id ?? "",
+            });
+      toast.success(mode === "create" ? "Monitor armed" : "Monitor saved");
+      void navigate(orgLink(`/monitors/${saved.id}`));
+    } catch (caught: unknown) {
+      toast.error(
+        caught instanceof Error ? caught.message : "Unable to save monitor",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
   function onSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const next = validate(draft);
+    const next = validate(draft, allowsHeartbeat, allowsAgent);
     setErrors(next);
-    setSubmitted(Object.keys(next).length === 0);
+    if (Object.keys(next).length > 0) {
+      return;
+    }
+    void persist();
   }
 
   return (
@@ -126,8 +225,8 @@ export function MonitorForm({
         title={mode === "create" ? "New monitor" : "Edit monitor"}
         description={
           mode === "create"
-            ? "Arm a target. The probe core is not connected yet — the form validates locally."
-            : "Adjust this check. Changes will persist when the core is wired."
+            ? "Arm a target. The first probe uses your plan interval and selected regions."
+            : "Adjust this check. Save writes to the live catalog."
         }
         meta={
           <>
@@ -167,7 +266,7 @@ export function MonitorForm({
                     ...current,
                     name: event.target.value,
                   }));
-                  setSubmitted(false);
+                  setErrors({});
                 }}
                 placeholder="api-prod"
                 autoComplete="off"
@@ -187,12 +286,13 @@ export function MonitorForm({
                     ...current,
                     type: next,
                   }));
-                  setSubmitted(false);
+                  setErrors({});
                 }}
-                options={MONITOR_TYPES.map((value) => ({
-                  value,
-                  label: MONITOR_TYPE_LABEL[value],
-                }))}
+                options={monitorTypeOptions(
+                  allowsHeartbeat,
+                  allowsAgent,
+                  draft.type,
+                )}
               />
             </Field>
 
@@ -207,13 +307,13 @@ export function MonitorForm({
                     ...current,
                     target: event.target.value,
                   }));
-                  setSubmitted(false);
+                  setErrors({});
                 }}
                 placeholder={
                   draft.type === "http" || draft.type === "keyword"
                     ? "https://api.example.com/health"
                     : draft.type === "heartbeat"
-                      ? "Issued when the core is live"
+                      ? "Token is issued after save"
                       : "db.internal.example"
                 }
                 autoComplete="off"
@@ -241,7 +341,7 @@ export function MonitorForm({
                       ...current,
                       keyword: event.target.value,
                     }));
-                    setSubmitted(false);
+                    setErrors({});
                   }}
                   placeholder='"status":"ok"'
                   autoComplete="off"
@@ -264,7 +364,7 @@ export function MonitorForm({
                       ...current,
                       port: event.target.value,
                     }));
-                    setSubmitted(false);
+                    setErrors({});
                   }}
                   placeholder="443"
                   autoComplete="off"
@@ -304,7 +404,7 @@ export function MonitorForm({
                           }
                           return { ...current, regionCodes: [...next] };
                         });
-                        setSubmitted(false);
+                        setErrors({});
                       }}
                     />
                     <span className="font-mono text-[11px] tracking-wide uppercase">
@@ -320,16 +420,16 @@ export function MonitorForm({
             </fieldset>
           </ConsolePanel>
 
-          {submitted ? (
-            <CoreNotice
-              title="Check accepted locally"
-              body="The monitoring core is not connected, so this target was not stored. Your validation passed."
-            />
-          ) : null}
-
           <div className="flex items-center gap-2">
-            <Button type="submit" size="sm">
-              {mode === "create" ? "Arm monitor" : "Save monitor"}
+            <Button type="submit" size="sm" disabled={pending}>
+              {pending ? <Spinner data-icon="inline-start" /> : null}
+              {mode === "create"
+                ? pending
+                  ? "Arming"
+                  : "Arm monitor"
+                : pending
+                  ? "Saving"
+                  : "Save monitor"}
             </Button>
             <Button asChild type="button" variant="ghost" size="sm">
               <Link to={orgLink("/monitors")}>Back to list</Link>

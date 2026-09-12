@@ -1,3 +1,4 @@
+import type { NotificationChannel } from "./channel.js";
 import type { OrganizationKind, OrganizationPlanId } from "./organization.js";
 
 export type BillingCycle = "monthly" | "quarterly" | "yearly";
@@ -9,8 +10,10 @@ export const PRICING_FEATURE_KEYS = [
   "regions",
   "routing",
   "statusPage",
+  "heartbeat",
   "agent",
   "sso",
+  "audit",
 ] as const;
 
 export type PricingFeatureKey = (typeof PRICING_FEATURE_KEYS)[number];
@@ -22,8 +25,25 @@ export const PRICING_FEATURE_LABELS: Record<PricingFeatureKey, string> = {
   regions: "Regions",
   routing: "Routing",
   statusPage: "Status page",
+  heartbeat: "Heartbeat",
   agent: "Go agent",
   sso: "SSO",
+  audit: "Audit",
+};
+
+export type PlanEntitlements = {
+  monitors: number;
+  seats: number;
+  intervalSeconds: number;
+  regions: number;
+  statusPages: number;
+  auditRetentionDays: number;
+  channels: readonly NotificationChannel[];
+  heartbeat: boolean;
+  agent: boolean;
+  sso: boolean;
+  customDomain: boolean;
+  whiteLabel: boolean;
 };
 
 export type PricingPlan = {
@@ -35,6 +55,7 @@ export type PricingPlan = {
   seats: number;
   kinds: readonly OrganizationKind[];
   limits: Record<PricingFeatureKey, string | null>;
+  entitlements: PlanEntitlements;
 };
 
 export const BILLING_CYCLES: readonly BillingCycle[] = [
@@ -50,6 +71,34 @@ export const PLAN_IDS: readonly OrganizationPlanId[] = [
   "command",
 ];
 
+const FREE_CHANNELS = [
+  "email",
+] as const satisfies readonly NotificationChannel[];
+
+const PROBE_CHANNELS = [
+  "email",
+  "slack",
+  "discord",
+  "webhook",
+] as const satisfies readonly NotificationChannel[];
+
+const SENTINEL_CHANNELS = [
+  ...PROBE_CHANNELS,
+  "sms",
+  "telegram",
+  "msteams",
+  "pushover",
+] as const satisfies readonly NotificationChannel[];
+
+const COMMAND_CHANNELS = [
+  ...SENTINEL_CHANNELS,
+  "voice",
+  "pagerduty",
+  "opsgenie",
+  "googlechat",
+  "mattermost",
+] as const satisfies readonly NotificationChannel[];
+
 export const PLAN_CATALOG: readonly PricingPlan[] = [
   {
     id: "free",
@@ -57,18 +106,34 @@ export const PLAN_CATALOG: readonly PricingPlan[] = [
     monthlyUsd: 0,
     featured: false,
     description:
-      "A handful of HTTP checks from one region, with email when something breaks.",
-    seats: 1,
+      "HTTP checks from one region, email when something breaks, and a public status page.",
+    seats: 2,
     kinds: ["single", "team"],
     limits: {
-      monitors: "5",
-      seats: "1",
-      interval: "5 min",
+      monitors: "15",
+      seats: "2",
+      interval: "60s",
       regions: "1",
       routing: "Email",
-      statusPage: null,
+      statusPage: "1 page",
+      heartbeat: null,
       agent: null,
       sso: null,
+      audit: "7 days",
+    },
+    entitlements: {
+      monitors: 15,
+      seats: 2,
+      intervalSeconds: 60,
+      regions: 1,
+      statusPages: 1,
+      auditRetentionDays: 7,
+      channels: FREE_CHANNELS,
+      heartbeat: false,
+      agent: false,
+      sso: false,
+      customDomain: false,
+      whiteLabel: false,
     },
   },
   {
@@ -77,18 +142,34 @@ export const PLAN_CATALOG: readonly PricingPlan[] = [
     monthlyUsd: 12,
     featured: false,
     description:
-      "HTTP, TLS, keyword, and heartbeat from one region for a single operator.",
-    seats: 1,
+      "HTTP, TLS, keyword, and heartbeat from two regions for a small desk.",
+    seats: 3,
     kinds: ["single", "team"],
     limits: {
-      monitors: "20",
-      seats: "1",
-      interval: "60s",
-      regions: "1",
-      routing: "Email",
-      statusPage: null,
+      monitors: "50",
+      seats: "3",
+      interval: "30s",
+      regions: "2",
+      routing: "Email, Slack, Discord, webhook",
+      statusPage: "1 page",
+      heartbeat: "Included",
       agent: null,
       sso: null,
+      audit: "30 days",
+    },
+    entitlements: {
+      monitors: 50,
+      seats: 3,
+      intervalSeconds: 30,
+      regions: 2,
+      statusPages: 1,
+      auditRetentionDays: 30,
+      channels: PROBE_CHANNELS,
+      heartbeat: true,
+      agent: false,
+      sso: false,
+      customDomain: false,
+      whiteLabel: false,
     },
   },
   {
@@ -97,18 +178,34 @@ export const PLAN_CATALOG: readonly PricingPlan[] = [
     monthlyUsd: 36,
     featured: true,
     description:
-      "Faster probes across three regions, five seats, and chat on the same incidents.",
-    seats: 5,
+      "Faster probes across four regions, ten seats, SMS, and the Go agent.",
+    seats: 10,
     kinds: ["team"],
     limits: {
-      monitors: "100",
-      seats: "5",
+      monitors: "200",
+      seats: "10",
       interval: "15s",
-      regions: "3",
-      routing: "Slack, Discord",
-      statusPage: "1 page",
-      agent: null,
+      regions: "4",
+      routing: "Email, Slack, Discord, webhook, SMS, Telegram, Teams, Pushover",
+      statusPage: "3 pages",
+      heartbeat: "Included",
+      agent: "Included",
       sso: null,
+      audit: "90 days",
+    },
+    entitlements: {
+      monitors: 200,
+      seats: 10,
+      intervalSeconds: 15,
+      regions: 4,
+      statusPages: 3,
+      auditRetentionDays: 90,
+      channels: SENTINEL_CHANNELS,
+      heartbeat: true,
+      agent: true,
+      sso: false,
+      customDomain: false,
+      whiteLabel: false,
     },
   },
   {
@@ -117,18 +214,34 @@ export const PLAN_CATALOG: readonly PricingPlan[] = [
     monthlyUsd: 96,
     featured: false,
     description:
-      "All six edges, the Go agent, a custom status page, and OIDC for the rotation.",
-    seats: 15,
+      "All six edges, every destination, white-label status pages, and SSO settings.",
+    seats: 25,
     kinds: ["team"],
     limits: {
-      monitors: "500",
-      seats: "15",
+      monitors: "1000",
+      seats: "25",
       interval: "5s",
       regions: "All 6",
       routing: "All destinations",
-      statusPage: "Custom domain",
+      statusPage: "Unlimited + white label",
+      heartbeat: "Included",
       agent: "Included",
       sso: "OIDC",
+      audit: "365 days",
+    },
+    entitlements: {
+      monitors: 1000,
+      seats: 25,
+      intervalSeconds: 5,
+      regions: 6,
+      statusPages: -1,
+      auditRetentionDays: 365,
+      channels: COMMAND_CHANNELS,
+      heartbeat: true,
+      agent: true,
+      sso: true,
+      customDomain: true,
+      whiteLabel: true,
     },
   },
 ];
@@ -161,7 +274,14 @@ export function plansForKind(kind: OrganizationKind): PricingPlan[] {
 }
 
 export function planSeatLimit(planId: OrganizationPlanId): number {
-  return getPlan(planId).seats;
+  return getPlan(planId).entitlements.seats;
+}
+
+export function planAllowsChannel(
+  planId: OrganizationPlanId,
+  channel: NotificationChannel,
+): boolean {
+  return getPlan(planId).entitlements.channels.includes(channel);
 }
 
 export function isPlanId(value: string): value is OrganizationPlanId {

@@ -1,5 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import type { BillingInvoice } from "@orvex/types";
 import { RequireSession } from "@/components/auth/require-session";
+import { queryInvoices } from "@/components/billing/client";
+import { InvoiceLedger } from "@/components/billing/invoice-ledger";
 import { ConsolePanel } from "@/components/console/console-panel";
 import { PageHeader } from "@/components/console/page-header";
 import { Button } from "@/components/ui/button";
@@ -8,7 +12,37 @@ import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
 export function InvoicesPage() {
   const organization = useOrgStore(selectActiveOrganization);
+  const organizationId = organization?.id;
   const orgLink = useOrgLink();
+  const [invoices, setInvoices] = useState<BillingInvoice[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (organizationId === undefined) {
+      return;
+    }
+    let active = true;
+    void queryInvoices(organizationId)
+      .then((next) => {
+        if (active) {
+          setInvoices(next);
+          setError(null);
+        }
+      })
+      .catch((caught: unknown) => {
+        if (active) {
+          setInvoices([]);
+          setError(
+            caught instanceof Error
+              ? caught.message
+              : "Unable to load invoices",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [organizationId]);
 
   return (
     <RequireSession title="Invoices" description="Sign in to review invoices.">
@@ -19,7 +53,7 @@ export function InvoicesPage() {
           description={
             organization === null
               ? "Receipts for paid plans on this organization."
-              : `Receipts for ${organization.name}. Stripe invoices will list here when checkout is live.`
+              : `Receipts for ${organization.name}.`
           }
           actions={
             <Button asChild size="sm" variant="outline">
@@ -28,28 +62,7 @@ export function InvoicesPage() {
           }
         />
         <ConsolePanel padded={false} title="Ledger">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[32rem] text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs tracking-wide text-muted-foreground uppercase">
-                  <th className="px-3 py-2.5 font-medium">Date</th>
-                  <th className="px-3 py-2.5 font-medium">Amount</th>
-                  <th className="px-3 py-2.5 font-medium">Status</th>
-                  <th className="px-3 py-2.5 font-medium">Receipt</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-3 py-8 text-center text-sm text-muted-foreground"
-                  >
-                    No invoices yet.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <InvoiceLedger invoices={invoices} error={error} />
         </ConsolePanel>
       </div>
     </RequireSession>
