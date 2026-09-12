@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { RedirectIfAuthenticated } from "@/components/auth/redirect-if-authenticated";
 import { RequireOrganization } from "@/components/auth/require-organization";
+import { AccountShell } from "@/components/layout/account-shell";
 import { AppShell } from "@/components/layout/app-shell";
 import { LegacyAppRedirect } from "@/components/organization/legacy-redirect";
 import { RequireOrgSlug } from "@/components/organization/require-org-slug";
@@ -8,8 +9,9 @@ import { AuthCallbackPage } from "@/routes/auth-callback-page";
 import { BillingPage } from "@/routes/billing-page";
 import { DashboardPage } from "@/routes/dashboard-page";
 import { ErrorPage } from "@/routes/error-page";
-import { ForbiddenPage } from "@/routes/forbidden-page";
 import { AboutPage } from "@/routes/about-page";
+import { AdminPage } from "@/routes/admin-page";
+import { ForbiddenPage } from "@/routes/forbidden-page";
 import { ChangelogPage } from "@/routes/changelog-page";
 import { ForgotPasswordPage } from "@/routes/forgot-password-page";
 import { IncidentDetailPage } from "@/routes/incident-detail-page";
@@ -122,11 +124,12 @@ export const router = createBrowserRouter([
       { path: "/forbidden", element: <ForbiddenPage /> },
       { path: "/invite/:token", element: <InvitePage /> },
       {
-        element: <AppShell />,
+        element: <AccountShell />,
         children: [
           { path: "/organizations", element: <OrganizationsPage /> },
           { path: "/settings", element: <SettingsPage /> },
           { path: "/profile", element: <ProfilePage /> },
+          { path: "/admin", element: <AdminPage /> },
         ],
       },
       {

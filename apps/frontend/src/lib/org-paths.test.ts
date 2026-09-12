@@ -33,6 +33,7 @@ test("user-scoped paths never inherit an organization", () => {
   expect(isUserScopedPath("/settings")).toBe(true);
   expect(isUserScopedPath("/organizations")).toBe(true);
   expect(isUserScopedPath("/profile")).toBe(true);
+  expect(isUserScopedPath("/admin")).toBe(true);
   expect(isUserScopedPath("/organization/acme/settings")).toBe(false);
 });
 

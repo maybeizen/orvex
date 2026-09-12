@@ -21,6 +21,8 @@ test("app page titles resolve exact and nested product routes", () => {
   expect(appPageTitle("/organization/acme/settings")).toBe("Organization");
   expect(appPageTitle("/organization/acme/invoices")).toBe("Invoices");
   expect(appPageTitle("/settings")).toBe("Settings");
+  expect(appPageTitle("/profile")).toBe("Profile");
+  expect(appPageTitle("/admin")).toBe("Admin");
   expect(appPageTitle("/organizations")).toBe("Organizations");
   expect(appPageTitle("/docs")).toBe("Docs");
   expect(appPageTitle("/unknown")).toBe("Dashboard");

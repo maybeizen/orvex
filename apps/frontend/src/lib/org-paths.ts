@@ -1,7 +1,9 @@
 const ORG_PREFIX = "/organization/";
 
 export const USER_SETTINGS_PATH = "/settings";
+export const USER_PROFILE_PATH = "/settings#profile";
 export const ORGANIZATIONS_PATH = "/organizations";
+export const ADMIN_PATH = "/admin";
 
 const LEGACY_TO_SUFFIX: Record<string, string> = {
   "/dashboard": "",
@@ -60,7 +62,8 @@ export function isUserScopedPath(pathname: string): boolean {
   return (
     pathname === USER_SETTINGS_PATH ||
     pathname === ORGANIZATIONS_PATH ||
-    pathname === "/profile"
+    pathname === "/profile" ||
+    pathname === ADMIN_PATH
   );
 }
 
