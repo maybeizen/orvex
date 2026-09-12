@@ -1,7 +1,10 @@
 import {
   LayoutDashboard,
+  Radio,
   Settings,
+  TriangleAlert,
   UserRound,
+  Waypoints,
   type LucideIcon,
 } from "lucide-react";
 
@@ -19,7 +22,12 @@ export type AppNavSection = {
 export const APP_NAV_SECTIONS: readonly AppNavSection[] = [
   {
     label: "Observe",
-    items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+    items: [
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/monitors", label: "Monitors", icon: Waypoints },
+      { to: "/incidents", label: "Incidents", icon: TriangleAlert },
+      { to: "/status-pages", label: "Status pages", icon: Radio },
+    ],
   },
   {
     label: "Workspace",

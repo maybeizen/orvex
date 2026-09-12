@@ -85,6 +85,15 @@ test("sidebar collapses to icons and keeps accessible names", () => {
     within(sidebar as HTMLElement).getByRole("link", { name: "Settings" }),
   ).toBeInTheDocument();
   expect(
+    within(sidebar as HTMLElement).getByRole("link", { name: "Monitors" }),
+  ).toBeInTheDocument();
+  expect(
+    within(sidebar as HTMLElement).getByRole("link", { name: "Incidents" }),
+  ).toBeInTheDocument();
+  expect(
+    within(sidebar as HTMLElement).getByRole("link", { name: "Status pages" }),
+  ).toBeInTheDocument();
+  expect(
     within(sidebar as HTMLElement)
       .getByRole("link", { name: "Dashboard" })
       .querySelector("span"),
