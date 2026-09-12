@@ -61,12 +61,18 @@ func run(args []string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = ""
+	}
+
 	client := heartbeat.NewClient(cfg.APIURL, cfg.Token, nil)
 	return heartbeat.Loop(ctx, cfg.Mode, cfg.Interval, func(ctx context.Context) error {
 		return client.Send(ctx, heartbeat.AgentHeartbeatPayload{
-			ID:      cfg.AgentID,
-			Version: version,
-			Metrics: heartbeat.AgentHeartbeatMetrics(collectors.Gather(cfg.RunAsRoot)),
+			ID:       cfg.AgentID,
+			Version:  version,
+			Hostname: hostname,
+			Metrics:  heartbeat.AgentHeartbeatMetrics(collectors.Gather(cfg.RunAsRoot)),
 		})
 	})
 }

@@ -19,9 +19,10 @@ func TestPayloadJSONMatchesTypes(t *testing.T) {
 	t.Parallel()
 
 	payload := heartbeat.AgentHeartbeatPayload{
-		ID:      "agent-1",
-		Version: "0.0.0",
-		Metrics: heartbeat.AgentHeartbeatMetrics{"cpu": 0.12},
+		ID:       "agent-1",
+		Version:  "0.0.0",
+		Hostname: "edge-iad-1",
+		Metrics:  heartbeat.AgentHeartbeatMetrics{"cpu": 0.12},
 	}
 
 	raw, err := json.Marshal(payload)
@@ -39,6 +40,9 @@ func TestPayloadJSONMatchesTypes(t *testing.T) {
 	}
 	if got["version"] != "0.0.0" {
 		t.Fatalf("version = %v", got["version"])
+	}
+	if got["hostname"] != "edge-iad-1" {
+		t.Fatalf("hostname = %v", got["hostname"])
 	}
 	metrics, ok := got["metrics"].(map[string]any)
 	if !ok {
