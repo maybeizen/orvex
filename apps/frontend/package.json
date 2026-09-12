@@ -12,8 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fontsource-variable/geist": "catalog:",
-    "@fontsource-variable/geist-mono": "catalog:",
+    "@fontsource-variable/ibm-plex-sans": "catalog:",
+    "@fontsource/ibm-plex-mono": "catalog:",
+    "@fontsource/instrument-serif": "catalog:",
     "@orvex/api": "workspace:*",
     "@orvex/auth": "workspace:*",
     "@orvex/db": "workspace:*",
