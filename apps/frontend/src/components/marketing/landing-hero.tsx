@@ -5,21 +5,22 @@ import { Button } from "@/components/ui/button";
 export function LandingHero() {
   return (
     <section className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 marketing-hero-surface" />
-      <div className="relative mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-6xl items-center gap-16 px-6 py-24 md:py-28 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-20">
-        <div className="flex flex-col gap-8">
-          <p className="font-mono text-xs tracking-[0.22em] text-primary uppercase">
+      <div className="marketing-hero-wash pointer-events-none absolute inset-0" />
+      <div className="marketing-grid-bg pointer-events-none absolute inset-0" />
+      <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 md:py-20 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16 lg:py-24">
+        <div className="flex min-w-0 flex-col gap-6">
+          <p className="marketing-enter font-mono text-[0.68rem] tracking-[0.22em] text-primary uppercase">
             Uptime monitoring
           </p>
-          <h1 className="font-heading max-w-xl text-4xl leading-[1.1] tracking-tight text-balance md:text-5xl lg:text-[3.25rem]">
-            See every outage before your users do.
+          <h1 className="marketing-enter marketing-enter-1 font-display max-w-xl text-[2.35rem] leading-[1.08] text-balance sm:text-5xl lg:text-[3.35rem]">
+            Every check. Every edge. One timeline.
           </h1>
-          <p className="max-w-lg text-base text-muted-foreground text-pretty">
-            HTTP, TLS, keyword, and heartbeat checks from six regions. A Go
-            agent for hosts the public internet cannot reach. One timeline when
-            something fails.
+          <p className="marketing-enter marketing-enter-2 max-w-lg text-[0.98rem] leading-relaxed text-muted-foreground text-pretty">
+            HTTP, TLS, keyword, and heartbeat probes from six regions. A Go
+            agent when the public internet cannot see in. Incidents and the
+            status page share the same events.
           </p>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="marketing-enter marketing-enter-3 flex flex-wrap items-center gap-3 pt-1">
             <Button size="lg" asChild>
               <Link to="/register">Get started</Link>
             </Button>
@@ -28,9 +29,9 @@ export function LandingHero() {
             </Button>
           </div>
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="marketing-enter marketing-enter-4 flex min-w-0 flex-col gap-3">
           <HeroChecksPanel />
-          <p className="font-mono text-[0.65rem] tracking-[0.16em] text-muted-foreground uppercase">
+          <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted-foreground uppercase">
             IAD · FRA · LHR · SIN · SJC · SYD
           </p>
         </div>

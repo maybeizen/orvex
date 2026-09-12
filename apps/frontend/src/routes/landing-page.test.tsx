@@ -28,6 +28,6 @@ test("landing page renders chrome, plans, probes, and footer columns", () => {
   expect(screen.getByText("Ashburn")).toBeInTheDocument();
   expect(screen.getByText("Product")).toBeInTheDocument();
   expect(screen.getByText("Company")).toBeInTheDocument();
-  expect(screen.getByText("Resources")).toBeInTheDocument();
+  expect(screen.getByText("Account")).toBeInTheDocument();
   expect(screen.getByText("Legal")).toBeInTheDocument();
 });
