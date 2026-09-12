@@ -1,7 +1,6 @@
 const ORG_PREFIX = "/organization/";
 
 export const USER_SETTINGS_PATH = "/settings";
-export const USER_PROFILE_PATH = "/settings#profile";
 export const ORGANIZATIONS_PATH = "/organizations";
 export const ADMIN_PATH = "/admin";
 
