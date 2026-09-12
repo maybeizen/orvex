@@ -9,8 +9,14 @@ import { ForbiddenPage } from "@/routes/forbidden-page";
 import { AboutPage } from "@/routes/about-page";
 import { ChangelogPage } from "@/routes/changelog-page";
 import { ForgotPasswordPage } from "@/routes/forgot-password-page";
+import { IncidentDetailPage } from "@/routes/incident-detail-page";
+import { IncidentsPage } from "@/routes/incidents-page";
 import { LandingPage } from "@/routes/landing-page";
 import { LoginPage } from "@/routes/login-page";
+import { MonitorCreatePage } from "@/routes/monitor-create-page";
+import { MonitorDetailPage } from "@/routes/monitor-detail-page";
+import { MonitorEditPage } from "@/routes/monitor-edit-page";
+import { MonitorsPage } from "@/routes/monitors-page";
 import { NotFoundPage } from "@/routes/not-found-page";
 import { OnboardingCheckoutPage } from "@/routes/onboarding-checkout-page";
 import { OnboardingPage } from "@/routes/onboarding-page";
@@ -20,6 +26,8 @@ import { ProfilePage } from "@/routes/profile-page";
 import { RegisterPage } from "@/routes/register-page";
 import { ResetPasswordPage } from "@/routes/reset-password-page";
 import { SettingsPage } from "@/routes/settings-page";
+import { StatusPageDetailPage } from "@/routes/status-page-detail-page";
+import { StatusPagesPage } from "@/routes/status-pages-page";
 import { TermsPage } from "@/routes/terms-page";
 import { TwoFactorPage } from "@/routes/two-factor-page";
 import { Providers } from "./providers";
@@ -52,6 +60,14 @@ export const router = createBrowserRouter([
         ),
         children: [
           { path: "/dashboard", element: <DashboardPage /> },
+          { path: "/monitors", element: <MonitorsPage /> },
+          { path: "/monitors/new", element: <MonitorCreatePage /> },
+          { path: "/monitors/:monitorId", element: <MonitorDetailPage /> },
+          { path: "/monitors/:monitorId/edit", element: <MonitorEditPage /> },
+          { path: "/incidents", element: <IncidentsPage /> },
+          { path: "/incidents/:incidentId", element: <IncidentDetailPage /> },
+          { path: "/status-pages", element: <StatusPagesPage /> },
+          { path: "/status-pages/:pageId", element: <StatusPageDetailPage /> },
           { path: "/profile", element: <ProfilePage /> },
           { path: "/settings", element: <SettingsPage /> },
           { path: "/settings/billing", element: <BillingPage /> },

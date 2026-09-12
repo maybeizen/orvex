@@ -32,5 +32,9 @@ export function appPageTitle(pathname: string): string {
     .filter((path) => path !== "/" && pathname.startsWith(`${path}/`))
     .sort((left: string, right: string) => right.length - left.length)[0];
 
+  if (match === undefined) {
+    return "Dashboard";
+  }
+
   return PAGE_TITLES[match] ?? "Dashboard";
 }
