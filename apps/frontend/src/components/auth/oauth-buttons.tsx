@@ -60,6 +60,7 @@ export function OAuthButtons({
             key={provider.id}
             type="button"
             variant="outline"
+            className="w-full"
             disabled={pending}
             onClick={() => {
               onProvider(provider.id);

@@ -2,6 +2,7 @@ import { useState, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router";
 import type { OAuthProvider } from "@orvex/auth";
 import { toast } from "sonner";
+import { AuthFieldError } from "@/components/auth/auth-field-error";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { PasswordInput } from "@/components/auth/password-input";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,17 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [pending, setPending] = useState(false);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const configured = isAuthConfigured();
+  const mismatch = confirm.length > 0 && password !== confirm;
+  const canSubmit =
+    configured &&
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    password.length >= 8 &&
+    confirm.length >= 8 &&
+    !mismatch;
 
   async function submit() {
     if (!guardAuthConfigured()) {
@@ -35,18 +46,22 @@ export function RegisterForm() {
     const trimmedFirst = firstName.trim();
     const trimmedLast = lastName.trim();
     if (trimmedFirst.length === 0 || trimmedLast.length === 0) {
+      setFieldError("First and last name are required");
       toast.error("First and last name are required");
       return;
     }
     if (password !== confirm) {
+      setFieldError("Passwords do not match");
       toast.error("Passwords do not match");
       return;
     }
     if (password.length < 8) {
+      setFieldError("Use at least 8 characters");
       toast.error("Use at least 8 characters");
       return;
     }
 
+    setFieldError(null);
     setPending(true);
     try {
       const result = await getBrowserAuth().signUp({
@@ -66,6 +81,7 @@ export function RegisterForm() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to register";
+      setFieldError(message);
       toast.error(message);
     } finally {
       setPending(false);
@@ -93,7 +109,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
       <OAuthButtons
         pending={pending}
         onProvider={(provider) => {
@@ -102,38 +118,42 @@ export function RegisterForm() {
       />
       <FieldSeparator>or email</FieldSeparator>
       <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="first-name">First name</FieldLabel>
-          <Input
-            id="first-name"
-            type="text"
-            autoComplete="given-name"
-            required
-            value={firstName}
-            onChange={(event) => {
-              setFirstName(event.target.value);
-            }}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="last-name">Last name</FieldLabel>
-          <Input
-            id="last-name"
-            type="text"
-            autoComplete="family-name"
-            required
-            value={lastName}
-            onChange={(event) => {
-              setLastName(event.target.value);
-            }}
-          />
-        </Field>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="first-name">First name</FieldLabel>
+            <Input
+              id="first-name"
+              type="text"
+              autoComplete="given-name"
+              required
+              value={firstName}
+              onChange={(event) => {
+                setFirstName(event.target.value);
+              }}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="last-name">Last name</FieldLabel>
+            <Input
+              id="last-name"
+              type="text"
+              autoComplete="family-name"
+              required
+              value={lastName}
+              onChange={(event) => {
+                setLastName(event.target.value);
+              }}
+            />
+          </Field>
+        </div>
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
           <Input
             id="email"
             type="email"
             autoComplete="email"
+            inputMode="email"
+            spellCheck={false}
             required
             value={email}
             onChange={(event) => {
@@ -151,29 +171,40 @@ export function RegisterForm() {
             value={password}
             onChange={(event) => {
               setPassword(event.target.value);
+              if (fieldError !== null) {
+                setFieldError(null);
+              }
             }}
           />
         </Field>
-        <Field>
+        <Field data-invalid={mismatch}>
           <FieldLabel htmlFor="confirm">Confirm password</FieldLabel>
           <PasswordInput
             id="confirm"
             autoComplete="new-password"
             required
             minLength={8}
+            aria-invalid={mismatch}
             value={confirm}
             onChange={(event) => {
               setConfirm(event.target.value);
+              if (fieldError !== null) {
+                setFieldError(null);
+              }
             }}
           />
         </Field>
       </FieldGroup>
-      {configured ? null : (
-        <p className="text-sm text-muted-foreground">
+      {configured ? (
+        <AuthFieldError
+          message={mismatch ? "Passwords do not match" : fieldError}
+        />
+      ) : (
+        <p className="min-h-5 text-xs leading-5 text-muted-foreground">
           Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable sign-up.
         </p>
       )}
-      <Button type="submit" disabled={pending || !configured}>
+      <Button type="submit" className="w-full" disabled={pending || !canSubmit}>
         {pending ? <Spinner data-icon="inline-start" /> : null}
         {pending ? "Creating account" : "Create account"}
       </Button>
