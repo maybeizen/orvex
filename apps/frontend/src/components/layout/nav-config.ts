@@ -14,6 +14,7 @@ import {
   TriangleAlert,
   Users,
   Waypoints,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { organizationPath } from "@/lib/org-paths";
@@ -49,6 +50,11 @@ export function appNavSections(slug: string): readonly AppNavSection[] {
           to: organizationPath(slug, "/incidents"),
           label: "Incidents",
           icon: TriangleAlert,
+        },
+        {
+          to: organizationPath(slug, "/maintenance"),
+          label: "Maintenance",
+          icon: Wrench,
         },
         {
           to: organizationPath(slug, "/status-pages"),

@@ -13,6 +13,7 @@ const LEGACY_TO_SUFFIX: Record<string, string> = {
 const LEGACY_PREFIXES = [
   "/monitors",
   "/incidents",
+  "/maintenance",
   "/status-pages",
   "/contact-lists",
   "/white-label",

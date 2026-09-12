@@ -16,6 +16,7 @@ import { ChangelogPage } from "@/routes/changelog-page";
 import { ForgotPasswordPage } from "@/routes/forgot-password-page";
 import { IncidentDetailPage } from "@/routes/incident-detail-page";
 import { IncidentsPage } from "@/routes/incidents-page";
+import { MaintenancePage } from "@/routes/maintenance-page";
 import { LandingPage } from "@/routes/landing-page";
 import { LoginPage } from "@/routes/login-page";
 import { MonitorCreatePage } from "@/routes/monitor-create-page";
@@ -58,6 +59,7 @@ const orgChildren = [
   { path: "monitors/:monitorId/edit", element: <MonitorEditPage /> },
   { path: "incidents", element: <IncidentsPage /> },
   { path: "incidents/:incidentId", element: <IncidentDetailPage /> },
+  { path: "maintenance", element: <MaintenancePage /> },
   { path: "status-pages", element: <StatusPagesPage /> },
   { path: "status-pages/:pageId", element: <StatusPageDetailPage /> },
   { path: "contact-lists", element: <ContactListsPage /> },

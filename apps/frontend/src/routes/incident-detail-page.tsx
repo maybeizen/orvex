@@ -4,22 +4,28 @@ import {
   IncidentDetail,
   IncidentMissing,
 } from "@/components/incidents/incident-detail";
-import { findIncident } from "@/lib/console";
+import { isIncidentId } from "@/components/incidents/incident-format";
+import { Skeleton } from "@/components/ui/skeleton";
+import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
 export function IncidentDetailPage() {
   const { incidentId } = useParams();
-  const incident =
-    incidentId === undefined ? undefined : findIncident(incidentId);
+  const orgStatus = useOrgStore((state) => state.status);
+  const organization = useOrgStore(selectActiveOrganization);
+  const validId =
+    incidentId !== undefined && isIncidentId(incidentId) ? incidentId : null;
 
   return (
     <RequireSession
       title="Incident"
       description="Sign in to see this incident."
     >
-      {incident === undefined ? (
+      {validId === null ? (
         <IncidentMissing id={incidentId ?? "unknown"} />
+      ) : orgStatus !== "ready" || organization === null ? (
+        <Skeleton className="h-64 w-full" />
       ) : (
-        <IncidentDetail incident={incident} />
+        <IncidentDetail organization={organization} incidentId={validId} />
       )}
     </RequireSession>
   );

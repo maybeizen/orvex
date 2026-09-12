@@ -1,18 +1,21 @@
 import { RequireSession } from "@/components/auth/require-session";
-import { IncidentList } from "@/components/incidents/incident-list";
+import { MaintenanceBoard } from "@/components/incidents/maintenance-board";
 import { Skeleton } from "@/components/ui/skeleton";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
-export function IncidentsPage() {
+export function MaintenancePage() {
   const orgStatus = useOrgStore((state) => state.status);
   const organization = useOrgStore(selectActiveOrganization);
 
   return (
-    <RequireSession title="Incidents" description="Sign in to see incidents.">
+    <RequireSession
+      title="Maintenance"
+      description="Sign in to see maintenance windows."
+    >
       {orgStatus !== "ready" || organization === null ? (
         <Skeleton className="h-64 w-full" />
       ) : (
-        <IncidentList organization={organization} />
+        <MaintenanceBoard organization={organization} />
       )}
     </RequireSession>
   );
