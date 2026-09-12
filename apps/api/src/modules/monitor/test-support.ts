@@ -109,6 +109,7 @@ type Filter =
   | { op: "eq"; column: string; value: unknown }
   | { op: "in"; column: string; values: readonly unknown[] }
   | { op: "lte"; column: string; value: unknown }
+  | { op: "gte"; column: string; value: unknown }
   | { op: "contains"; column: string; value: unknown };
 
 function cell(row: object, column: string): unknown {
@@ -133,6 +134,12 @@ function matches(row: object, filters: readonly Filter[]): boolean {
         return current <= filter.value;
       }
       return String(current) <= String(filter.value);
+    }
+    if (filter.op === "gte") {
+      if (typeof current === "number" && typeof filter.value === "number") {
+        return current >= filter.value;
+      }
+      return String(current) >= String(filter.value);
     }
     if (!Array.isArray(current)) {
       return false;
@@ -393,6 +400,10 @@ export function createMonitorMemory(initial?: {
       },
       lte(column: string, value: unknown) {
         filters.push({ op: "lte", column, value });
+        return query;
+      },
+      gte(column: string, value: unknown) {
+        filters.push({ op: "gte", column, value });
         return query;
       },
       contains(column: string, value: unknown) {

@@ -64,11 +64,39 @@ test("memory backend acquireLock is exclusive", async () => {
   expect(first).toEqual(expect.any(String));
   expect(second).toBeNull();
 
+  await cache.releaseLock("lock:probe:m1:IAD", "wrong-token");
+  expect(await cache.get("lock:probe:m1:IAD")).toBe(first);
+
   await cache.releaseLock("lock:probe:m1:IAD", first ?? "");
   const third = await cache.acquireLock("lock:probe:m1:IAD", 30);
   expect(third).toEqual(expect.any(String));
 
   expect(await cache.ping()).toBe(true);
+
+  await cache.quit();
+});
+
+test("getOrSet coalesces concurrent misses on the same cache", async () => {
+  const cache = createCache();
+  let loads = 0;
+
+  const [first, second] = await Promise.all([
+    cache.getOrSet("auth:user:stampede", 30, async () => {
+      loads += 1;
+      await new Promise((resolve) => {
+        setTimeout(resolve, 20);
+      });
+      return { id: "u1" };
+    }),
+    cache.getOrSet("auth:user:stampede", 30, () => {
+      loads += 1;
+      return Promise.resolve({ id: "miss" });
+    }),
+  ]);
+
+  expect(first).toEqual({ id: "u1" });
+  expect(second).toEqual({ id: "u1" });
+  expect(loads).toBe(1);
 
   await cache.quit();
 });

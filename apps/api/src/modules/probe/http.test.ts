@@ -96,18 +96,24 @@ test("claim and result succeed with a matching probe token", async () => {
     body: JSON.stringify({ region: "IAD", limit: 5 }),
   });
   expect(claim.status).toBe(200);
-  const claimed = (await claim.json()) as { id: string }[];
+  const claimed = (await claim.json()) as {
+    id: string;
+    monitorId: string;
+  }[];
   expect(claimed).toEqual([
     expect.objectContaining({
-      id: monitorId,
+      monitorId,
       type: "http",
       target: "https://api.example.com/health",
       timeoutMs: 10000,
       intervalSeconds: 60,
+      region: "IAD",
     }),
   ]);
-  expect(await cache.get(cacheKeys.probeLock(monitorId, "IAD"))).toEqual(
-    expect.any(String),
+  expect(claimed[0]?.id).toEqual(expect.any(String));
+  expect(claimed[0]?.id).not.toBe(monitorId);
+  expect(await cache.get(cacheKeys.probeLock(monitorId, "IAD"))).toBe(
+    claimed[0]?.id,
   );
 
   const replay = await fetch(`${base}/internal/probes/claim`, {
@@ -122,6 +128,7 @@ test("claim and result succeed with a matching probe token", async () => {
     method: "POST",
     headers,
     body: JSON.stringify({
+      id: claimed[0]?.id,
       monitorId,
       region: "IAD",
       startedAt: "2026-09-12T00:00:00.000Z",
@@ -139,4 +146,10 @@ test("claim and result succeed with a matching probe token", async () => {
   expect(memory.monitors[0]?.status).toBe("down");
   expect(memory.monitors[0]?.uptime_pct).toBe(0);
   expect(await cache.get(cacheKeys.monitorStatus(monitorId))).toBe("down");
+  expect(await cache.get(cacheKeys.probeLock(monitorId, "IAD"))).toBeNull();
+  expect(
+    await cache.get(
+      cacheKeys.orgMonitors(memory.monitors[0]?.organization_id ?? ""),
+    ),
+  ).toBeNull();
 });

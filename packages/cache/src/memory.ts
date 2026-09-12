@@ -49,15 +49,15 @@ export class MemoryCache implements CacheClient {
     return next;
   }
 
-  async decr(key: string): Promise<number> {
+  decr(key: string): Promise<number> {
     const entry = this.#liveEntry(key);
     if (entry === null) {
-      return 0;
+      return Promise.resolve(0);
     }
 
     const next = Math.max(0, (Number.parseInt(entry.value, 10) || 0) - 1);
     this.#store.set(key, { value: String(next), expiresAt: entry.expiresAt });
-    return next;
+    return Promise.resolve(next);
   }
 
   getJson<T>(key: string): Promise<T | undefined> {

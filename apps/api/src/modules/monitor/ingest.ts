@@ -11,8 +11,12 @@ import {
 
 const CLAIMABLE_TYPES = ["http", "keyword", "ping", "port"] as const;
 
+const UPTIME_SAMPLE_LIMIT = 1440;
+const UPTIME_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
+
 export type ClaimedMonitor = {
   id: string;
+  monitorId: string;
   type: string;
   target: string;
   keyword: string | null;
@@ -30,6 +34,7 @@ export type ProbeResultInput = {
   status: MonitorStatus;
   httpCode: number | null;
   error: string | null;
+  lockToken?: string | undefined;
 };
 
 export type ApplyProbeResultOutput = {
@@ -83,7 +88,8 @@ export async function claimDueMonitors(
       continue;
     }
     claimed.push({
-      id: row.id,
+      id: lock,
+      monitorId: row.id,
       type: row.type,
       target: row.target,
       keyword: row.keyword,
@@ -154,10 +160,16 @@ export async function applyProbeResult(
     new Date(startedAt).getTime() + existing.interval_seconds * 1000,
   ).toISOString();
 
+  const lookbackStart = new Date(
+    new Date(startedAt).getTime() - UPTIME_LOOKBACK_MS,
+  ).toISOString();
   const { data: samples, error: sampleError } = await supabase
     .from("check_results")
     .select("status")
-    .eq("monitor_id", input.monitorId);
+    .eq("monitor_id", input.monitorId)
+    .gte("started_at", lookbackStart)
+    .order("started_at", { ascending: false })
+    .limit(UPTIME_SAMPLE_LIMIT);
 
   if (sampleError !== null) {
     throw new HttpError(500, sampleError.message);
@@ -190,6 +202,13 @@ export async function applyProbeResult(
     status,
     CACHE_TTL.orgMonitors,
   );
+  await cache.del(cacheKeys.orgMonitors(existing.organization_id));
+  if (input.lockToken !== undefined && input.lockToken.length > 0) {
+    await cache.releaseLock(
+      cacheKeys.probeLock(input.monitorId, input.region),
+      input.lockToken,
+    );
+  }
 
   return { monitor: updated, result: inserted };
 }

@@ -1,5 +1,17 @@
 import type { CacheClient } from "./types.js";
 
+const inflightByCache = new WeakMap<object, Map<string, Promise<unknown>>>();
+
+function inflightFor(cache: object): Map<string, Promise<unknown>> {
+  const existing = inflightByCache.get(cache);
+  if (existing !== undefined) {
+    return existing;
+  }
+  const created = new Map<string, Promise<unknown>>();
+  inflightByCache.set(cache, created);
+  return created;
+}
+
 export async function readJson<T>(
   cache: Pick<CacheClient, "get">,
   key: string,
@@ -36,7 +48,20 @@ export async function getOrSetJson<T>(
     return cached;
   }
 
-  const value = await factory();
-  await writeJson(cache, key, value, ttlSeconds);
-  return value;
+  const inflight = inflightFor(cache);
+  const pending = inflight.get(key);
+  if (pending !== undefined) {
+    return pending as Promise<T>;
+  }
+
+  const created = factory()
+    .then(async (value) => {
+      await writeJson(cache, key, value, ttlSeconds);
+      return value;
+    })
+    .finally(() => {
+      inflight.delete(key);
+    });
+  inflight.set(key, created);
+  return created;
 }

@@ -23,6 +23,7 @@ const claimBodySchema = z.object({
 });
 
 const resultBodySchema = z.object({
+  id: z.string().min(1).optional(),
   monitorId: z.uuid(),
   region: z.string().trim().min(1).max(16),
   startedAt: z.string().min(1),
@@ -119,7 +120,6 @@ export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
       res.status(200).json(
         claimed.map((job) => ({
           ...job,
-          monitorId: job.id,
           region: parsed.data.region,
         })),
       );
@@ -157,6 +157,7 @@ export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
         status: parsed.data.status,
         httpCode: parsed.data.httpCode,
         error: parsed.data.error,
+        lockToken: parsed.data.id,
       });
       await syncAutoIncident(deps.supabase, monitor, parsed.data.status);
       res.status(204).end();

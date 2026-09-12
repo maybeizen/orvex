@@ -65,16 +65,18 @@ export class RedisCache implements CacheClient {
   }
 
   async releaseLock(key: string, token: string): Promise<void> {
-    const current = await this.#client.get(key);
-    if (current === token) {
-      await this.#client.del(key);
-    }
+    await this.#client.eval(
+      'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end',
+      1,
+      key,
+      token,
+    );
   }
 
   async ping(): Promise<boolean> {
     try {
-      const result = await this.#client.ping();
-      return result === "PONG";
+      await this.#client.ping();
+      return true;
     } catch {
       return false;
     }

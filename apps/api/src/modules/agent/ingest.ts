@@ -83,20 +83,23 @@ export async function applyHeartbeat(
     return false;
   }
 
-  const { error: monitorError } = await supabase
+  const { data: monitor, error: monitorError } = await supabase
     .from("monitors")
     .update({
       last_check_at: nowIso,
       status: "up",
       consecutive_failures: 0,
     })
-    .eq("id", data.monitor_id);
+    .eq("id", data.monitor_id)
+    .select("id, organization_id")
+    .maybeSingle();
 
-  if (monitorError !== null) {
+  if (monitorError !== null || monitor === null) {
     return false;
   }
 
   await writeMonitorStatus(cache, data.monitor_id, "up");
+  await cache.del(cacheKeys.orgMonitors(monitor.organization_id));
   return true;
 }
 
@@ -128,7 +131,9 @@ export async function markMissedHeartbeats(
 
   const { data: monitorRows, error: monitorError } = await supabase
     .from("monitors")
-    .select("id, interval_seconds, status, paused, consecutive_failures")
+    .select(
+      "id, organization_id, interval_seconds, status, paused, consecutive_failures",
+    )
     .in("id", monitorIds);
 
   if (monitorError !== null) {
@@ -174,5 +179,6 @@ export async function markMissedHeartbeats(
     monitor.status = "down";
     monitor.consecutive_failures = nextFailures;
     await writeMonitorStatus(cache, monitor.id, "down");
+    await cache.del(cacheKeys.orgMonitors(monitor.organization_id));
   }
 }
