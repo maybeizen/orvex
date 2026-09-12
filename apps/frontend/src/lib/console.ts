@@ -1,4 +1,4 @@
-import type { MonitorType } from "@orvex/types";
+import type { AgentHeartbeatPayload, MonitorType } from "@orvex/types";
 
 export type { MonitorType };
 
@@ -60,6 +60,13 @@ export const PROBE_REGIONS: readonly ProbeRegion[] = [
   { code: "SYD", city: "Sydney", label: "Oceania" },
 ];
 
+export type LatencySample = {
+  at: string;
+  latencyMs: number | null;
+  status: CheckStatus;
+  regionCode?: string;
+};
+
 export type MonitorRecord = {
   id: string;
   name: string;
@@ -70,6 +77,12 @@ export type MonitorRecord = {
   latencyMs: number | null;
   uptimePct: number | null;
   regionCodes: readonly string[];
+  lastStatusCode?: number | null;
+  keyword?: string | null;
+  keywordFound?: boolean | null;
+  port?: number | null;
+  lastHeartbeat?: AgentHeartbeatPayload | null;
+  samples?: readonly LatencySample[];
 };
 
 export type IncidentSeverity = "down" | "degraded";
@@ -161,4 +174,92 @@ export function openIncidentCount(
   incidents: readonly IncidentRecord[],
 ): number {
   return incidents.filter((incident) => incident.status === "open").length;
+}
+
+export function isHostAgent(type: MonitorType): boolean {
+  return type === "heartbeat" || type === "agent";
+}
+
+export function samplesFromMonitors(
+  monitors: readonly MonitorRecord[],
+): LatencySample[] {
+  const points: LatencySample[] = [];
+  for (const monitor of monitors) {
+    if (isHostAgent(monitor.type)) {
+      continue;
+    }
+    if (monitor.samples !== undefined && monitor.samples.length > 0) {
+      points.push(...monitor.samples);
+      continue;
+    }
+    if (monitor.lastCheckAt !== null && monitor.latencyMs !== null) {
+      const regionCode = monitor.regionCodes[0];
+      points.push({
+        at: monitor.lastCheckAt,
+        latencyMs: monitor.latencyMs,
+        status: monitor.status,
+        ...(regionCode === undefined ? {} : { regionCode }),
+      });
+    }
+  }
+  return [...points].sort((a, b) => a.at.localeCompare(b.at));
+}
+
+export function worstChecks(
+  monitors: readonly MonitorRecord[],
+  limit = 5,
+): MonitorRecord[] {
+  const rank: Record<CheckStatus, number> = {
+    down: 0,
+    degraded: 1,
+    paused: 2,
+    up: 3,
+  };
+
+  return [...monitors]
+    .sort((a, b) => {
+      const statusDelta = rank[a.status] - rank[b.status];
+      if (statusDelta !== 0) {
+        return statusDelta;
+      }
+      return (b.latencyMs ?? -1) - (a.latencyMs ?? -1);
+    })
+    .slice(0, limit);
+}
+
+export function hostMonitors(
+  monitors: readonly MonitorRecord[],
+): MonitorRecord[] {
+  return monitors.filter((monitor) => isHostAgent(monitor.type));
+}
+
+export function openIncidents(
+  incidents: readonly IncidentRecord[],
+): IncidentRecord[] {
+  return incidents.filter((incident) => incident.status === "open");
+}
+
+export function recentEvents(
+  incidents: readonly IncidentRecord[],
+  monitors: readonly MonitorRecord[],
+  limit = 6,
+): Array<
+  | { kind: "incident"; at: string; incident: IncidentRecord }
+  | { kind: "check"; at: string; monitor: MonitorRecord }
+> {
+  const events: Array<
+    | { kind: "incident"; at: string; incident: IncidentRecord }
+    | { kind: "check"; at: string; monitor: MonitorRecord }
+  > = [];
+
+  for (const incident of incidents) {
+    events.push({ kind: "incident", at: incident.startedAt, incident });
+  }
+  for (const monitor of monitors) {
+    if (monitor.lastCheckAt !== null) {
+      events.push({ kind: "check", at: monitor.lastCheckAt, monitor });
+    }
+  }
+
+  return [...events].sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
 }

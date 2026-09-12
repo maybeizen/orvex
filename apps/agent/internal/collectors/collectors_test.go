@@ -10,13 +10,22 @@ func TestStubsStayDisabled(t *testing.T) {
 	t.Parallel()
 
 	all := collectors.All()
-	if len(all) != 3 {
-		t.Fatalf("All() len = %d, want 3", len(all))
+	if len(all) != 4 {
+		t.Fatalf("All() len = %d, want 4", len(all))
 	}
 
 	names := map[string]bool{}
 	for _, collector := range all {
 		names[collector.Name()] = true
+		if collector.Name() == "host" {
+			if collector.RequiresRoot() {
+				t.Fatal("host must not require root")
+			}
+			if !collector.Enabled(false) {
+				t.Fatal("host must be enabled")
+			}
+			continue
+		}
 		if !collector.RequiresRoot() {
 			t.Fatalf("%s should require root in the scaffold", collector.Name())
 		}
@@ -25,20 +34,22 @@ func TestStubsStayDisabled(t *testing.T) {
 		}
 	}
 
-	for _, name := range []string{"services", "disk", "raid"} {
+	for _, name := range []string{"host", "services", "disk", "raid"} {
 		if !names[name] {
 			t.Fatalf("missing collector %s", name)
 		}
 	}
 }
 
-func TestGatherEmptyWhileDisabled(t *testing.T) {
+func TestGatherIncludesHostKeys(t *testing.T) {
 	t.Parallel()
 
-	if got := collectors.Gather(false); len(got) != 0 {
-		t.Fatalf("Gather(false) = %#v", got)
+	got := collectors.Gather(false)
+	if got == nil {
+		t.Fatal("Gather returned nil")
 	}
-	if got := collectors.Gather(true); len(got) != 0 {
-		t.Fatalf("Gather(true) = %#v", got)
+	_, hasServices := got["services"]
+	if hasServices {
+		t.Fatal("disabled stubs must not contribute")
 	}
 }

@@ -3,10 +3,12 @@ import type { Organization } from "@orvex/types";
 import { getPlan } from "@orvex/types/plans";
 import { Link } from "react-router";
 import {
+  EventTape,
+  HostSnapshot,
   IncidentSnapshot,
-  MonitorSnapshot,
   RegionBoard,
   StatusPageSnapshot,
+  WorstChecks,
 } from "@/components/dashboard/dashboard-board";
 import { MetricStrip } from "@/components/console/metric-strip";
 import { PageHeader } from "@/components/console/page-header";
@@ -17,7 +19,9 @@ import {
   MONITORS,
   STATUS_PAGES,
   countByStatus,
+  hostMonitors,
   openIncidentCount,
+  samplesFromMonitors,
 } from "@/lib/console";
 import { orgPlanLabel } from "@/components/organization/org-avatar";
 
@@ -38,13 +42,15 @@ export function StatusOverview({
   const open = openIncidentCount(INCIDENTS);
   const monitorLimit = plan?.limits.monitors ?? "—";
   const regionLimit = plan?.limits.regions ?? "1";
+  const series = samplesFromMonitors(MONITORS);
+  const hosts = hostMonitors(MONITORS);
 
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="Signal room"
         title="Overview"
-        description="Live checks, incidents, and the public board for this workspace."
+        description="Operational console for this workspace. Charts and host instruments bind to the live catalog — nothing is invented."
         meta={
           organization === null ? (
             <span>Workspace pending</span>
@@ -56,6 +62,7 @@ export function StatusOverview({
               <span>
                 {String(MONITORS.length)} / {monitorLimit} monitors
               </span>
+              <span>{String(hosts.length)} agents</span>
             </>
           )
         }
@@ -108,23 +115,32 @@ export function StatusOverview({
         ]}
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <MonitorSnapshot />
-        <IncidentSnapshot />
-      </div>
-
       <ConsolePanel
-        title="Latency"
-        description="Sample envelope. Live series attach when the first check runs."
+        title="Latency envelope"
+        description={
+          series.length === 0
+            ? "Empty until an HTTP, keyword, ping, or port check reports."
+            : `${String(series.length)} samples from armed checks`
+        }
         padded
       >
         <Suspense fallback={<LoadingPanel rows={3} />}>
-          <StatusChart />
+          <StatusChart series={series} />
         </Suspense>
       </ConsolePanel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-2">
+        <IncidentSnapshot />
+        <WorstChecks />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <RegionBoard regionLimit={regionLimit} />
+        <HostSnapshot />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <EventTape />
         <StatusPageSnapshot />
       </div>
     </div>

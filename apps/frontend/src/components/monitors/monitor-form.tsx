@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ConsolePanel, CoreNotice } from "@/components/console/console-panel";
-import { NativeSelect } from "@/components/console/native-select";
+import { SelectMenu } from "@/components/ui/select-menu";
 import { PageHeader } from "@/components/console/page-header";
 import {
   MONITOR_TYPE_LABEL,
@@ -174,24 +174,22 @@ export function MonitorForm({
 
             <Field>
               <FieldLabel htmlFor="monitor-type">Type</FieldLabel>
-              <NativeSelect
+              <SelectMenu
                 id="monitor-type"
                 name="type"
                 value={draft.type}
-                onChange={(event) => {
+                onValueChange={(next) => {
                   setDraft((current) => ({
                     ...current,
-                    type: event.target.value as MonitorType,
+                    type: next,
                   }));
                   setSubmitted(false);
                 }}
-              >
-                {MONITOR_TYPES.map((value) => (
-                  <option key={value} value={value}>
-                    {MONITOR_TYPE_LABEL[value]}
-                  </option>
-                ))}
-              </NativeSelect>
+                options={MONITOR_TYPES.map((value) => ({
+                  value,
+                  label: MONITOR_TYPE_LABEL[value],
+                }))}
+              />
             </Field>
 
             <Field data-invalid={errors.target !== undefined || undefined}>

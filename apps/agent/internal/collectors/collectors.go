@@ -28,6 +28,7 @@ func (s stub) Collect() (Snapshot, error) {
 
 func All() []Collector {
 	return []Collector{
+		host{},
 		stub{name: "services", requiresRoot: true},
 		stub{name: "disk", requiresRoot: true},
 		stub{name: "raid", requiresRoot: true},

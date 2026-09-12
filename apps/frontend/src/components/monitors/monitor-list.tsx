@@ -7,7 +7,7 @@ import {
   FilterChip,
   FilterSearch,
 } from "@/components/console/filter-bar";
-import { NativeSelect } from "@/components/console/native-select";
+import { SelectMenu } from "@/components/ui/select-menu";
 import { MetricStrip } from "@/components/console/metric-strip";
 import { PageHeader } from "@/components/console/page-header";
 import { MonitorTable } from "@/components/monitors/monitor-table";
@@ -140,22 +140,19 @@ export function MonitorList({
               </FilterChip>
             ))}
           </div>
-          <NativeSelect
+          <SelectMenu
             aria-label="Monitor type"
             value={type}
-            onChange={(event) => {
-              const next = event.target.value;
-              setType(next === "all" ? "all" : (next as MonitorType));
-            }}
+            onValueChange={setType}
+            options={[
+              { value: "all" as const, label: "All types" },
+              ...MONITOR_TYPES.map((value) => ({
+                value,
+                label: MONITOR_TYPE_LABEL[value],
+              })),
+            ]}
             className="sm:ml-auto sm:w-40"
-          >
-            <option value="all">All types</option>
-            {MONITOR_TYPES.map((value) => (
-              <option key={value} value={value}>
-                {MONITOR_TYPE_LABEL[value]}
-              </option>
-            ))}
-          </NativeSelect>
+          />
         </FilterBar>
 
         {emptyCatalog ? (

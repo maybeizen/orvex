@@ -17,9 +17,10 @@ import (
 type AgentHeartbeatMetrics map[string]float64
 
 type AgentHeartbeatPayload struct {
-	ID      string                `json:"id"`
-	Version string                `json:"version"`
-	Metrics AgentHeartbeatMetrics `json:"metrics"`
+	ID       string                `json:"id"`
+	Version  string                `json:"version"`
+	Hostname string                `json:"hostname,omitempty"`
+	Metrics  AgentHeartbeatMetrics `json:"metrics"`
 }
 
 type Doer interface {
