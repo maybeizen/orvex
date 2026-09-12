@@ -4,7 +4,6 @@ import { MemoryRouter } from "react-router";
 import { expect, test } from "vitest";
 import { ForbiddenPage } from "./forbidden-page.js";
 import { NotFoundPage } from "./not-found-page.js";
-import { TermsPage } from "./terms-page.js";
 
 test("not found page offers home and sign in", () => {
   render(
@@ -40,18 +39,4 @@ test("forbidden page offers dashboard and sign in", () => {
     "href",
     "/dashboard",
   );
-});
-
-test("terms page keeps the legal sections", () => {
-  render(
-    <MemoryRouter>
-      <TermsPage />
-    </MemoryRouter>,
-  );
-
-  expect(
-    screen.getByRole("heading", { name: "Terms of Service" }),
-  ).toBeInTheDocument();
-  expect(screen.getByText("The service")).toBeInTheDocument();
-  expect(screen.getByText("Billing")).toBeInTheDocument();
 });

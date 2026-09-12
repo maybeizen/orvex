@@ -5,7 +5,7 @@ import "@/styles/marketing.css";
 
 export function MarketingShell({ children }: { children: ReactNode }) {
   return (
-    <div className="marketing-root dark min-h-svh overflow-x-hidden bg-background text-foreground">
+    <div className="marketing-root min-h-svh overflow-x-hidden bg-background text-foreground">
       <MarketingNavbar />
       {children}
       <MarketingFooter />

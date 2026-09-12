@@ -6,12 +6,14 @@ import { AboutPage } from "./about-page.js";
 import { ChangelogPage } from "./changelog-page.js";
 import { PricingPage } from "./pricing-page.js";
 import { PrivacyPage } from "./privacy-page.js";
+import { TermsPage } from "./terms-page.js";
 
-test("about, changelog, privacy, and pricing stay reachable", () => {
+test("about, changelog, privacy, pricing, and terms stay reachable", () => {
   const pages = [
     { node: <AboutPage />, heading: "A desk for when something fails" },
     { node: <ChangelogPage />, heading: "Changelog" },
     { node: <PrivacyPage />, heading: "Privacy" },
+    { node: <TermsPage />, heading: "Terms of Service" },
     { node: <PricingPage />, heading: "Pay for the desk you run" },
   ];
 
@@ -25,4 +27,15 @@ test("about, changelog, privacy, and pricing stay reachable", () => {
     ).toBeInTheDocument();
     unmount();
   }
+});
+
+test("terms page keeps the legal sections", () => {
+  render(
+    <MemoryRouter>
+      <TermsPage />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByText("The service")).toBeInTheDocument();
+  expect(screen.getByText("Billing")).toBeInTheDocument();
 });

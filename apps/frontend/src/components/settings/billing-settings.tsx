@@ -58,7 +58,7 @@ export function BillingSettings({
             </p>
           </div>
           <p className="shrink-0 font-mono text-lg tabular-nums">
-            {paid ? `${formatUsd(plan.monthlyUsd)}` : formatUsd(0)}
+            {paid ? formatUsd(plan.monthlyUsd) : formatUsd(0)}
             <span className="ml-1 text-sm text-muted-foreground">/ month</span>
           </p>
         </div>

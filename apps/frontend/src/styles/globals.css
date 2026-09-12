@@ -174,40 +174,6 @@
   }
 }
 
-@keyframes marketing-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.marketing-hero-surface {
-  background-color: var(--background);
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--border) 70%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--border) 70%, transparent) 1px,
-      transparent 1px
-    );
-  background-size: 48px 48px;
-  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
-}
-
-.auth-panel-wash {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--well) 55%, transparent),
-    transparent 72%
-  );
-}
-
 @keyframes hero-status-pulse {
   0% {
     transform: scale(1);
@@ -221,17 +187,6 @@
 
 .hero-status-pulse {
   animation: hero-status-pulse 1.8s ease-out infinite;
-}
-
-.hero-instrument-scan {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 3px,
-    color-mix(in srgb, var(--foreground) 4%, transparent) 3px,
-    color-mix(in srgb, var(--foreground) 4%, transparent) 4px
-  );
-  opacity: 0.28;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,4 @@
-import { Link } from "react-router";
-import { AuthFooter } from "@/components/auth/auth-footer";
-import { PublicChrome } from "@/components/auth/public-chrome";
+import { MarketingDocument } from "@/components/marketing/marketing-document";
 
 const SECTIONS = [
   {
@@ -31,43 +29,23 @@ const SECTIONS = [
 
 export function TermsPage() {
   return (
-    <PublicChrome align="start" width="document">
-      <div className="flex flex-col gap-10 pb-16">
-        <div className="flex flex-col gap-3">
-          <p className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
-            Legal
-          </p>
-          <h1 className="font-display text-[2.25rem] leading-tight">
-            Terms of Service
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Last updated 23 August 2026. Creating an organization means you
-            accept these terms for that workspace.
-          </p>
-        </div>
-        <div className="flex flex-col gap-8">
-          {SECTIONS.map((section) => (
-            <section key={section.title} className="flex flex-col gap-2">
-              <h2 className="text-base font-medium tracking-tight">
-                {section.title}
-              </h2>
-              <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
-                {section.body}
-              </p>
-            </section>
-          ))}
-        </div>
-        <AuthFooter>
-          <p className="text-center text-sm text-muted-foreground">
-            <Link
-              className="text-foreground underline-offset-4 hover:underline"
-              to="/register"
-            >
-              Create an account
-            </Link>
-          </p>
-        </AuthFooter>
+    <MarketingDocument
+      eyebrow="Legal"
+      title="Terms of Service"
+      lede="Last updated 23 August 2026. Creating an organization means you accept these terms for that workspace."
+    >
+      <div className="flex flex-col gap-8">
+        {SECTIONS.map((section) => (
+          <section key={section.title} className="flex flex-col gap-2">
+            <h2 className="text-lg font-medium tracking-tight">
+              {section.title}
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
+              {section.body}
+            </p>
+          </section>
+        ))}
       </div>
-    </PublicChrome>
+    </MarketingDocument>
   );
 }

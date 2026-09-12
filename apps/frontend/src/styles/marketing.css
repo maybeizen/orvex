@@ -64,6 +64,15 @@
   animation-delay: 160ms;
 }
 
+@keyframes marketing-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 .marketing-marquee-track {
   animation: marketing-marquee 36s linear infinite;
 }
