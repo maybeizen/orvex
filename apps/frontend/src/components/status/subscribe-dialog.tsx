@@ -26,8 +26,8 @@ export function SubscribeDialog({
   open: boolean;
   pageSlug: string;
   pageName: string;
-  organizationSlug?: string;
-  token?: string;
+  organizationSlug?: string | undefined;
+  token?: string | undefined;
   onOpenChange: (open: boolean) => void;
 }) {
   const [email, setEmail] = useState("");

@@ -22,7 +22,7 @@ export function SettingsBlock({
   description: string;
   action?: ReactNode;
   footer?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   if (!framed) {
     return (

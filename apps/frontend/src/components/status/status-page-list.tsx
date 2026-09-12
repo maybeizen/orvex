@@ -96,7 +96,7 @@ export function StatusPageList({
           {
             label: "Pages",
             value: pages === null ? "—" : String(pages.length),
-            hint: plan.limits.statusPage,
+            hint: plan.limits.statusPage ?? "not on plan",
           },
           {
             label: "Plan cap",

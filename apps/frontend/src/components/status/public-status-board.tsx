@@ -16,8 +16,8 @@ export function PublicStatusBoard({
   token,
 }: {
   payload: StatusPagePublicPayload;
-  organizationSlug?: string;
-  token?: string;
+  organizationSlug?: string | undefined;
+  token?: string | undefined;
 }) {
   const [subscribeOpen, setSubscribeOpen] = useState(false);
   const status = overallStatus(payload.components);
