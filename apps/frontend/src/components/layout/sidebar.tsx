@@ -2,6 +2,7 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLink, useLocation } from "react-router";
 import { AuthNavCluster } from "@/components/auth/auth-nav-cluster";
 import { APP_NAV_SECTIONS } from "@/components/layout/nav-config";
+import { SidebarOrgControl } from "@/components/layout/sidebar-org-control";
 import { SidebarTooltip } from "@/components/layout/sidebar-tooltip";
 import { BrandMark, OrvexMark } from "@/components/marketing/brand-mark";
 import { Button } from "@/components/ui/button";
@@ -66,19 +67,21 @@ export function SidebarNav({
         collapsed ? "items-center p-2" : "p-3",
       )}
     >
-      {APP_NAV_SECTIONS.map((section) => (
+      {APP_NAV_SECTIONS.map((section, index) => (
         <div
-          key={section.label}
+          key={section.label ?? `section-${String(index)}`}
           className={cn("flex flex-col gap-1", collapsed && "items-center")}
         >
-          <p
-            className={cn(
-              "px-2 font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase",
-              collapsed && "sr-only",
-            )}
-          >
-            {section.label}
-          </p>
+          {section.label === null ? null : (
+            <p
+              className={cn(
+                "px-2 font-mono text-[10px] tracking-[0.14em] text-muted-foreground uppercase",
+                collapsed && "sr-only",
+              )}
+            >
+              {section.label}
+            </p>
+          )}
           {section.items.map((link) => {
             const Icon = link.icon;
             const isActive =
@@ -115,6 +118,36 @@ export function SidebarNav({
   );
 }
 
+export function SidebarAccount({
+  collapsed = false,
+  onNavigate,
+}: {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "mt-auto border-t border-sidebar-border",
+        collapsed ? "p-2" : "p-3",
+      )}
+    >
+      <div
+        className={cn(
+          "flex flex-col",
+          collapsed ? "items-center gap-1" : "gap-2",
+        )}
+      >
+        <SidebarOrgControl
+          collapsed={collapsed}
+          {...(onNavigate === undefined ? {} : { onNavigate })}
+        />
+        <AuthNavCluster guest="signin" layout="sidebar" />
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const collapsed = useSidebarStore((state) => state.collapsed);
 
@@ -124,14 +157,7 @@ export function Sidebar() {
       className="flex min-h-0 flex-1 flex-col overflow-hidden"
     >
       <SidebarNav collapsed={collapsed} />
-      <div
-        className={cn(
-          "mt-auto border-t border-sidebar-border",
-          collapsed ? "p-2" : "p-3",
-        )}
-      >
-        <AuthNavCluster guest="signin" layout="sidebar" />
-      </div>
+      <SidebarAccount collapsed={collapsed} />
     </aside>
   );
 }
