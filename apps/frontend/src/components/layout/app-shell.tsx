@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { AppBreadcrumb } from "@/components/organization/app-breadcrumb";
+import { AppTopbar } from "@/components/layout/app-topbar";
 import { Sidebar, SidebarBrand } from "@/components/layout/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
@@ -10,23 +10,22 @@ export function AppShell() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div
-        className={cn(
-          "grid h-svh overflow-hidden bg-background transition-[grid-template-columns] duration-200 ease-out",
-          "grid-rows-[3.5rem_minmax(0,1fr)]",
-          collapsed
-            ? "grid-cols-[4rem_minmax(0,1fr)]"
-            : "grid-cols-[15rem_minmax(0,1fr)]",
-        )}
-      >
-        <SidebarBrand />
-        <header className="flex min-w-0 items-center overflow-hidden border-b border-border px-4">
-          <AppBreadcrumb />
-        </header>
-        <Sidebar />
-        <main className="min-w-0 overflow-y-auto p-6">
-          <Outlet />
-        </main>
+      <div className="flex h-svh overflow-hidden bg-background">
+        <div
+          className={cn(
+            "hidden h-full shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-out md:flex",
+            collapsed ? "w-16" : "w-60",
+          )}
+        >
+          <SidebarBrand />
+          <Sidebar />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AppTopbar />
+          <main className="min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 md:p-6">
+            <Outlet />
+          </main>
+        </div>
       </div>
     </TooltipProvider>
   );

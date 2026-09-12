@@ -112,3 +112,14 @@ test("breadcrumb header shows settings", () => {
     screen.getByRole("navigation", { name: "breadcrumb" }),
   ).toHaveTextContent("Settings");
 });
+
+test("mobile navigation opens application links", () => {
+  renderShell();
+
+  fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(
+    screen.getAllByRole("link", { name: "Dashboard" }).length,
+  ).toBeGreaterThan(0);
+});
