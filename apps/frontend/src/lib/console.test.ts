@@ -1,6 +1,6 @@
 /** @vitest-environment node */
 import { expect, test } from "vitest";
-import type { CheckResult, Monitor } from "@orvex/types";
+import type { CheckResult, Incident, Monitor, StatusPage } from "@orvex/types";
 import {
   countByStatus,
   enabledRegionCodes,
@@ -14,7 +14,9 @@ import {
   isHostAgent,
   openIncidentCount,
   samplesFromMonitors,
+  toIncidentRecord,
   toMonitorRecord,
+  toStatusPageRecord,
   worstChecks,
   type MonitorRecord,
 } from "./console.js";
@@ -74,6 +76,50 @@ test("host agents and worst-check ranking use real catalog rows", () => {
   expect(hostMonitors([http, beat])).toEqual([beat]);
   expect(worstChecks([http, beat], 1)).toEqual([http]);
   expect(samplesFromMonitors([http, beat])).toHaveLength(1);
+});
+
+test("toIncidentRecord treats acknowledged as open", () => {
+  const incident: Incident = {
+    id: "inc-1",
+    organizationId: "org-1",
+    monitorId: null,
+    monitorName: null,
+    status: "acknowledged",
+    severity: "degraded",
+    source: "manual",
+    summary: "Latency",
+    startedAt: "2026-01-01T00:00:00.000Z",
+    resolvedAt: null,
+    acknowledgedAt: "2026-01-01T00:01:00.000Z",
+  };
+  expect(toIncidentRecord(incident)).toMatchObject({
+    monitorId: "",
+    monitorName: "Manual incident",
+    status: "open",
+  });
+});
+
+test("toStatusPageRecord maps private visibility to unlisted", () => {
+  const page: StatusPage = {
+    id: "page-1",
+    organizationId: "org-1",
+    name: "Ada Status",
+    slug: "ada-status",
+    visibility: "private",
+    theme: { accent: null, logoUrl: null },
+    customDomain: null,
+    domainVerifiedAt: null,
+    hideBranding: false,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+  expect(toStatusPageRecord(page)).toEqual({
+    id: "page-1",
+    name: "Ada Status",
+    slug: "ada-status",
+    visibility: "unlisted",
+    monitorIds: [],
+  });
 });
 
 test("toMonitorRecord maps live list rows and sorts samples", () => {

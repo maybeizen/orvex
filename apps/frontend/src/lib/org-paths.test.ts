@@ -51,6 +51,12 @@ test("legacy app routes redirect into the slug scheme", () => {
   expect(legacyAppRedirect("/settings/billing", "acme")).toBe(
     "/organization/acme/invoices",
   );
+  expect(legacyAppRedirect("/billing", "acme")).toBe(
+    "/organization/acme/billing",
+  );
+  expect(legacyAppRedirect("/maintenance", "acme")).toBe(
+    "/organization/acme/maintenance",
+  );
   expect(legacyAppRedirect("/profile", "acme")).toBe("/settings");
   expect(legacyAppRedirect("/dashboard", null)).toBe("/organizations");
   expect(legacyAppRedirect("/settings", "acme")).toBeNull();

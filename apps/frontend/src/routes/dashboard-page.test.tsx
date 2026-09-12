@@ -8,11 +8,19 @@ import { useOrgStore } from "@/stores/org-store";
 import { useSessionStore } from "@/stores/session-store";
 
 const list = vi.fn();
+const incidentList = vi.fn();
+const statusPageList = vi.fn();
 
 vi.mock("@/lib/trpc", () => ({
   createVanillaTrpcClient: () => ({
     monitor: {
       list: { query: list },
+    },
+    incident: {
+      list: { query: incidentList },
+    },
+    statusPage: {
+      list: { query: statusPageList },
     },
   }),
 }));
@@ -68,7 +76,11 @@ const apiProd: Monitor = {
 
 beforeEach(() => {
   list.mockReset();
+  incidentList.mockReset();
+  statusPageList.mockReset();
   list.mockResolvedValue([]);
+  incidentList.mockResolvedValue([]);
+  statusPageList.mockResolvedValue([]);
 });
 
 test("dashboard asks guests to sign in", () => {

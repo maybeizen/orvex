@@ -66,14 +66,12 @@ export async function sendSubscribeConfirmation(
   }
 
   const origin = process.env.FRONTEND_ORIGIN ?? "";
-  const path =
-    input.organizationSlug === undefined
-      ? `/status/${input.pageSlug}/confirm`
-      : `/status/${input.organizationSlug}/${input.pageSlug}/confirm`;
-  const confirmUrl =
-    origin.length === 0
-      ? `${path}?token=${encodeURIComponent(input.confirmToken)}`
-      : `${origin}${path}?token=${encodeURIComponent(input.confirmToken)}`;
+  const params = new URLSearchParams({ confirm: input.confirmToken });
+  if (input.organizationSlug !== undefined) {
+    params.set("org", input.organizationSlug);
+  }
+  const path = `/s/${input.pageSlug}?${params.toString()}`;
+  const confirmUrl = origin.length === 0 ? path : `${origin}${path}`;
 
   const message: MailMessage = {
     to: input.email,

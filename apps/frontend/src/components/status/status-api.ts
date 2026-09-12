@@ -97,6 +97,9 @@ type StatusPageApi = {
   listSubscribers: {
     query: (input: OrgRef & { pageId: string }) => Promise<StatusSubscriber[]>;
   };
+  confirmSubscriber: {
+    mutate: (input: { token: string }) => Promise<StatusSubscriber>;
+  };
   subscribe: {
     mutate: (input: {
       pageSlug: string;

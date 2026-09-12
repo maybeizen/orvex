@@ -45,10 +45,12 @@ import { AuditLogPage } from "@/routes/audit-log-page";
 import { OrdersPage } from "@/routes/orders-page";
 import { ReferralsPage } from "@/routes/referrals-page";
 import { SupportPage } from "@/routes/support-page";
+import { ContactListsPage } from "@/routes/contact-lists-page";
 import {
-  ContactListsPage,
-  WhiteLabelPage,
-} from "@/routes/workspace-pages";
+  PublicStatusPage,
+  StatusConfirmRedirect,
+} from "@/routes/public-status-page";
+import { WhiteLabelPage } from "@/routes/white-label-page";
 import { Providers } from "./providers";
 
 const orgChildren = [
@@ -124,6 +126,15 @@ export const router = createBrowserRouter([
       { path: "/pricing", element: <PricingPage /> },
       { path: "/forbidden", element: <ForbiddenPage /> },
       { path: "/invite/:token", element: <InvitePage /> },
+      { path: "/s/:pageSlug", element: <PublicStatusPage /> },
+      {
+        path: "/status/:pageSlug/confirm",
+        element: <StatusConfirmRedirect />,
+      },
+      {
+        path: "/status/:orgSlug/:pageSlug/confirm",
+        element: <StatusConfirmRedirect />,
+      },
       {
         element: <AccountShell />,
         children: [
@@ -149,6 +160,7 @@ export const router = createBrowserRouter([
       },
       { path: "/monitors/*", element: <LegacyAppRedirect /> },
       { path: "/incidents/*", element: <LegacyAppRedirect /> },
+      { path: "/maintenance/*", element: <LegacyAppRedirect /> },
       { path: "/status-pages/*", element: <LegacyAppRedirect /> },
       { path: "/contact-lists", element: <LegacyAppRedirect /> },
       { path: "/white-label", element: <LegacyAppRedirect /> },
@@ -160,6 +172,7 @@ export const router = createBrowserRouter([
       { path: "/support", element: <LegacyAppRedirect /> },
       { path: "/docs", element: <LegacyAppRedirect /> },
       { path: "/settings/organization", element: <LegacyAppRedirect /> },
+      { path: "/billing", element: <LegacyAppRedirect /> },
       { path: "/settings/billing", element: <LegacyAppRedirect /> },
       { path: "*", element: <NotFoundPage /> },
     ],

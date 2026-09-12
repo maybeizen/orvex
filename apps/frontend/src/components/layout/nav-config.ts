@@ -1,6 +1,7 @@
 import {
   BookOpen,
   BookUser,
+  CreditCard,
   FileText,
   Gift,
   LayoutDashboard,
@@ -91,6 +92,11 @@ export function appNavSections(slug: string): readonly AppNavSection[] {
     {
       label: "Billing",
       items: [
+        {
+          to: organizationPath(slug, "/billing"),
+          label: "Plan",
+          icon: CreditCard,
+        },
         {
           to: organizationPath(slug, "/orders"),
           label: "Orders",

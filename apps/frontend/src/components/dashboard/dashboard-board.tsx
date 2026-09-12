@@ -4,9 +4,7 @@ import { ConsolePanel, EmptyPanel } from "@/components/console/console-panel";
 import { StatusMark, StatusPip } from "@/components/console/status-pip";
 import { cn } from "@/lib/cn";
 import {
-  INCIDENTS,
   PROBE_REGIONS,
-  STATUS_PAGES,
   enabledRegionCodes,
   formatCheckTime,
   formatLatency,
@@ -14,7 +12,9 @@ import {
   recentEvents,
   worstChecks,
   type CheckStatus,
+  type IncidentRecord,
   type MonitorRecord,
+  type StatusPageRecord,
 } from "@/lib/console";
 import { HostInstrumentBoard } from "@/components/monitors/host-instrument";
 import { MonitorTable } from "@/components/monitors/monitor-table";
@@ -54,9 +54,13 @@ export function MonitorSnapshot({
   );
 }
 
-export function IncidentSnapshot() {
+export function IncidentSnapshot({
+  incidents,
+}: {
+  incidents: readonly IncidentRecord[];
+}) {
   const orgLink = useOrgLink();
-  const open = openIncidents(INCIDENTS);
+  const open = openIncidents(incidents);
 
   return (
     <ConsolePanel
@@ -239,10 +243,12 @@ export function RegionBoard({
 
 export function EventTape({
   monitors,
+  incidents,
 }: {
   monitors: readonly MonitorRecord[];
+  incidents: readonly IncidentRecord[];
 }) {
-  const events = recentEvents(INCIDENTS, monitors);
+  const events = recentEvents(incidents, monitors);
 
   return (
     <ConsolePanel
@@ -320,8 +326,13 @@ export function HostSnapshot({
   );
 }
 
-export function StatusPageSnapshot() {
+export function StatusPageSnapshot({
+  pages,
+}: {
+  pages: readonly StatusPageRecord[];
+}) {
   const orgLink = useOrgLink();
+  const first = pages[0];
   return (
     <ConsolePanel
       title="Status page"
@@ -332,7 +343,7 @@ export function StatusPageSnapshot() {
         </Button>
       }
     >
-      {STATUS_PAGES.length === 0 ? (
+      {first === undefined ? (
         <div className="flex items-start gap-3">
           <StatusPip status="paused" className="mt-1.5" />
           <div className="min-w-0">
@@ -343,7 +354,20 @@ export function StatusPageSnapshot() {
             </p>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <Link
+          to={orgLink(`/status-pages/${first.id}`)}
+          className="flex items-start gap-3"
+        >
+          <StatusPip status="up" className="mt-1.5" />
+          <div className="min-w-0">
+            <p className="truncate text-sm">{first.name}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              /s/{first.slug}
+            </p>
+          </div>
+        </Link>
+      )}
     </ConsolePanel>
   );
 }

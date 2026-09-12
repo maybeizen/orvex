@@ -21,6 +21,7 @@ const LEGACY_PREFIXES = [
   "/audit-log",
   "/orders",
   "/invoices",
+  "/billing",
   "/referrals",
   "/support",
   "/docs",

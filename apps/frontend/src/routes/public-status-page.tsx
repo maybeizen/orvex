@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams } from "react-router";
+import { Navigate, useParams, useSearchParams } from "react-router";
 import {
   PublicStatusBoard,
   PublicStatusMissing,
@@ -12,14 +12,36 @@ import {
 } from "@/components/status/status-helpers";
 import { Skeleton } from "@/components/ui/skeleton";
 
+export function StatusConfirmRedirect() {
+  const { pageSlug, orgSlug } = useParams();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") ?? "";
+  const params = new URLSearchParams();
+  if (token.length > 0) {
+    params.set("confirm", token);
+  }
+  if (orgSlug !== undefined && orgSlug.length > 0) {
+    params.set("org", orgSlug);
+  }
+  const query = params.toString();
+  return (
+    <Navigate
+      to={`/s/${pageSlug ?? ""}${query.length > 0 ? `?${query}` : ""}`}
+      replace
+    />
+  );
+}
+
 export function PublicStatusPage() {
   const { pageSlug } = useParams();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") ?? undefined;
+  const confirmToken = searchParams.get("confirm");
   const organizationSlug = searchParams.get("org") ?? undefined;
   const [payload, setPayload] = useState<StatusPagePublicPayload | null>(null);
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmNote, setConfirmNote] = useState<string | null>(null);
 
   useEffect(() => {
     if (pageSlug === undefined || pageSlug.length === 0) {
@@ -61,6 +83,30 @@ export function PublicStatusPage() {
     };
   }, [pageSlug, organizationSlug, token]);
 
+  useEffect(() => {
+    if (confirmToken === null || confirmToken.length === 0) {
+      return;
+    }
+    let active = true;
+    void statusPageApi()
+      .confirmSubscriber.mutate({ token: confirmToken })
+      .then(() => {
+        if (active) {
+          setConfirmNote("Subscription confirmed.");
+        }
+      })
+      .catch((caught: unknown) => {
+        if (active) {
+          setConfirmNote(
+            faultMessage(caught, "Unable to confirm this subscription"),
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [confirmToken]);
+
   if (pageSlug === undefined || pageSlug.length === 0 || missing) {
     return <PublicStatusMissing />;
   }
@@ -87,10 +133,17 @@ export function PublicStatusPage() {
   }
 
   return (
-    <PublicStatusBoard
-      payload={payload}
-      organizationSlug={organizationSlug}
-      token={token}
-    />
+    <div className="flex min-h-svh flex-col">
+      {confirmNote === null ? null : (
+        <p className="bg-muted px-5 py-2 text-center text-sm text-foreground">
+          {confirmNote}
+        </p>
+      )}
+      <PublicStatusBoard
+        payload={payload}
+        organizationSlug={organizationSlug}
+        token={token}
+      />
+    </div>
   );
 }

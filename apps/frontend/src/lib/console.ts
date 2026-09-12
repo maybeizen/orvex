@@ -1,4 +1,10 @@
-import type { CheckResult, Monitor, MonitorType } from "@orvex/types";
+import type {
+  CheckResult,
+  Incident,
+  Monitor,
+  MonitorType,
+  StatusPage,
+} from "@orvex/types";
 
 export type { MonitorType };
 
@@ -121,6 +127,29 @@ export function toLatencySample(result: CheckResult): LatencySample {
     latencyMs: result.latencyMs,
     status: result.status,
     regionCode: result.region,
+  };
+}
+
+export function toIncidentRecord(incident: Incident): IncidentRecord {
+  return {
+    id: incident.id,
+    monitorId: incident.monitorId ?? "",
+    monitorName: incident.monitorName ?? "Manual incident",
+    status: incident.status === "resolved" ? "resolved" : "open",
+    severity: incident.severity,
+    startedAt: incident.startedAt,
+    resolvedAt: incident.resolvedAt,
+    summary: incident.summary,
+  };
+}
+
+export function toStatusPageRecord(page: StatusPage): StatusPageRecord {
+  return {
+    id: page.id,
+    name: page.name,
+    slug: page.slug,
+    visibility: page.visibility === "public" ? "public" : "unlisted",
+    monitorIds: [],
   };
 }
 

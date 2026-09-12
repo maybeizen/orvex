@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { Organization } from "@orvex/types";
 import { getPlan } from "@orvex/types/plans";
 import { Link } from "react-router";
@@ -18,14 +18,18 @@ import {
   LoadingPanel,
 } from "@/components/console/console-panel";
 import { Button } from "@/components/ui/button";
+import { createIncidentClient } from "@/components/incidents/incident-client";
 import { useOrgMonitors } from "@/components/monitors/use-org-monitors";
+import { statusPageApi } from "@/components/status/status-api";
 import {
-  INCIDENTS,
-  STATUS_PAGES,
   countByStatus,
   hostMonitors,
   openIncidentCount,
   samplesFromMonitors,
+  toIncidentRecord,
+  toStatusPageRecord,
+  type IncidentRecord,
+  type StatusPageRecord,
 } from "@/lib/console";
 import { orgPlanLabel } from "@/components/organization/org-avatar";
 import { useOrgLink } from "@/lib/use-org-link";
@@ -42,13 +46,52 @@ export function StatusOverview({
 }) {
   const orgLink = useOrgLink();
   const { monitors, error } = useOrgMonitors(organization?.id ?? null);
+  const [incidents, setIncidents] = useState<IncidentRecord[]>([]);
+  const [pages, setPages] = useState<StatusPageRecord[]>([]);
   const plan = organization === null ? null : getPlan(organization.planId);
   const ready = monitors !== null;
   const rows = monitors ?? [];
   const up = countByStatus(rows, "up");
   const down = countByStatus(rows, "down");
   const degraded = countByStatus(rows, "degraded");
-  const open = openIncidentCount(INCIDENTS);
+  const open = openIncidentCount(incidents);
+
+  useEffect(() => {
+    const organizationId = organization?.id;
+    if (organizationId === undefined) {
+      setIncidents([]);
+      setPages([]);
+      return;
+    }
+    let active = true;
+    void createIncidentClient()
+      .incident.list.query({ organizationId })
+      .then((rows) => {
+        if (active) {
+          setIncidents(rows.map(toIncidentRecord));
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setIncidents([]);
+        }
+      });
+    void statusPageApi()
+      .list.query({ organizationId })
+      .then((rows) => {
+        if (active) {
+          setPages(rows.map(toStatusPageRecord));
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setPages([]);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [organization?.id]);
   const monitorLimit = plan?.limits.monitors ?? "—";
   const regionLimit = plan?.limits.regions ?? "1";
   const series = samplesFromMonitors(rows);
@@ -128,7 +171,7 @@ export function StatusOverview({
               },
               {
                 label: "Status pages",
-                value: String(STATUS_PAGES.length),
+                value: String(pages.length),
                 hint: plan?.limits.statusPage ?? "not on plan",
               },
             ]}
@@ -149,7 +192,7 @@ export function StatusOverview({
           </ConsolePanel>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            <IncidentSnapshot />
+            <IncidentSnapshot incidents={incidents} />
             <WorstChecks monitors={rows} />
           </div>
 
@@ -159,8 +202,8 @@ export function StatusOverview({
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <EventTape monitors={rows} />
-            <StatusPageSnapshot />
+            <EventTape monitors={rows} incidents={incidents} />
+            <StatusPageSnapshot pages={pages} />
           </div>
         </>
       )}

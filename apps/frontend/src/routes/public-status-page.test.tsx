@@ -7,12 +7,14 @@ import type { StatusPagePublicPayload } from "@/components/status/status-helpers
 
 const publicGet = vi.fn();
 const subscribe = vi.fn();
+const confirmSubscriber = vi.fn();
 
 vi.mock("@/lib/trpc", () => ({
   createVanillaTrpcClient: () => ({
     statusPage: {
       publicGet: { query: publicGet },
       subscribe: { mutate: subscribe },
+      confirmSubscriber: { mutate: confirmSubscriber },
     },
   }),
 }));
@@ -64,7 +66,15 @@ const payload: StatusPagePublicPayload = {
 beforeEach(() => {
   publicGet.mockReset();
   subscribe.mockReset();
+  confirmSubscriber.mockReset();
   publicGet.mockResolvedValue(payload);
+  confirmSubscriber.mockResolvedValue({
+    id: "s1",
+    statusPageId: payload.page.id,
+    email: "ada@orvex.dev",
+    confirmedAt: "2026-01-01T00:10:00.000Z",
+    unsubscribedAt: null,
+  });
   subscribe.mockResolvedValue({
     subscriber: {
       id: "s1",
@@ -130,4 +140,19 @@ test("public status page is a designed miss without access", async () => {
   expect(
     await screen.findByRole("heading", { name: "Status page not found" }),
   ).toBeInTheDocument();
+});
+
+test("public status page confirms a subscriber from the confirm query", async () => {
+  render(
+    <MemoryRouter initialEntries={["/s/ada-status?confirm=confirm-token"]}>
+      <Routes>
+        <Route path="/s/:pageSlug" element={<PublicStatusPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect(
+    await screen.findByText("Subscription confirmed."),
+  ).toBeInTheDocument();
+  expect(confirmSubscriber).toHaveBeenCalledWith({ token: "confirm-token" });
 });
