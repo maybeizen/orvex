@@ -15,6 +15,7 @@ import {
   Waypoints,
   type LucideIcon,
 } from "lucide-react";
+import { organizationPath } from "@/lib/org-paths";
 
 export type AppNavItem = {
   to: string;
@@ -28,34 +29,86 @@ export type AppNavSection = {
   items: readonly AppNavItem[];
 };
 
-export const APP_NAV_SECTIONS: readonly AppNavSection[] = [
-  {
-    label: null,
-    items: [
-      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { to: "/monitors", label: "Uptime Monitors", icon: Waypoints },
-      { to: "/incidents", label: "Incidents", icon: TriangleAlert },
-      { to: "/status-pages", label: "Status Pages", icon: Radio },
-      { to: "/contact-lists", label: "Contact Lists", icon: BookUser },
-      { to: "/white-label", label: "White Label", icon: Paintbrush },
-      { to: "/team", label: "Team Members", icon: Users },
-      { to: "/audit-log", label: "Audit Log", icon: ScrollText },
-    ],
-  },
-  {
-    label: "Billing",
-    items: [
-      { to: "/orders", label: "Orders", icon: Package },
-      { to: "/invoices", label: "Invoices", icon: FileText },
-      { to: "/referrals", label: "Referrals", icon: Gift },
-    ],
-  },
-  {
-    label: null,
-    items: [
-      { to: "/support", label: "Support", icon: LifeBuoy },
-      { to: "/docs", label: "Docs", icon: BookOpen },
-      { to: "/changelog", label: "Changelog", icon: Newspaper },
-    ],
-  },
-];
+export function appNavSections(slug: string): readonly AppNavSection[] {
+  return [
+    {
+      label: null,
+      items: [
+        {
+          to: organizationPath(slug),
+          label: "Dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          to: organizationPath(slug, "/monitors"),
+          label: "Uptime Monitors",
+          icon: Waypoints,
+        },
+        {
+          to: organizationPath(slug, "/incidents"),
+          label: "Incidents",
+          icon: TriangleAlert,
+        },
+        {
+          to: organizationPath(slug, "/status-pages"),
+          label: "Status Pages",
+          icon: Radio,
+        },
+        {
+          to: organizationPath(slug, "/contact-lists"),
+          label: "Contact Lists",
+          icon: BookUser,
+        },
+        {
+          to: organizationPath(slug, "/white-label"),
+          label: "White Label",
+          icon: Paintbrush,
+        },
+        {
+          to: organizationPath(slug, "/team"),
+          label: "Team Members",
+          icon: Users,
+        },
+        {
+          to: organizationPath(slug, "/audit-log"),
+          label: "Audit Log",
+          icon: ScrollText,
+        },
+      ],
+    },
+    {
+      label: "Billing",
+      items: [
+        {
+          to: organizationPath(slug, "/orders"),
+          label: "Orders",
+          icon: Package,
+        },
+        {
+          to: organizationPath(slug, "/invoices"),
+          label: "Invoices",
+          icon: FileText,
+        },
+        {
+          to: organizationPath(slug, "/referrals"),
+          label: "Referrals",
+          icon: Gift,
+        },
+      ],
+    },
+    {
+      label: null,
+      items: [
+        {
+          to: organizationPath(slug, "/support"),
+          label: "Support",
+          icon: LifeBuoy,
+        },
+        { to: organizationPath(slug, "/docs"), label: "Docs", icon: BookOpen },
+        { to: "/changelog", label: "Changelog", icon: Newspaper },
+      ],
+    },
+  ];
+}
+
+export const APP_NAV_SECTIONS: readonly AppNavSection[] = appNavSections("org");

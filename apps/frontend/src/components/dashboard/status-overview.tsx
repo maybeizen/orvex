@@ -24,6 +24,7 @@ import {
   samplesFromMonitors,
 } from "@/lib/console";
 import { orgPlanLabel } from "@/components/organization/org-avatar";
+import { useOrgLink } from "@/lib/use-org-link";
 
 const StatusChart = lazy(async () => {
   const module = await import("./status-chart");
@@ -35,6 +36,7 @@ export function StatusOverview({
 }: {
   organization: Organization | null;
 }) {
+  const orgLink = useOrgLink();
   const plan = organization === null ? null : getPlan(organization.planId);
   const up = countByStatus(MONITORS, "up");
   const down = countByStatus(MONITORS, "down");
@@ -69,10 +71,10 @@ export function StatusOverview({
         actions={
           <>
             <Button asChild variant="outline" size="sm">
-              <Link to="/incidents">Incidents</Link>
+              <Link to={orgLink("/incidents")}>Incidents</Link>
             </Button>
             <Button asChild size="sm">
-              <Link to="/monitors/new">New monitor</Link>
+              <Link to={orgLink("/monitors/new")}>New monitor</Link>
             </Button>
           </>
         }

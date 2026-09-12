@@ -72,7 +72,7 @@ test("auth callback sends empty memberships to onboarding", async () => {
   renderCallback("?code=org-callback-1");
 
   expect(await screen.findByText("Onboarding page")).toBeInTheDocument();
-  expect(pathAfterAuth).toHaveBeenCalledWith("/dashboard");
+  expect(pathAfterAuth).toHaveBeenCalledWith("/organizations");
 });
 
 test("auth callback recovery skips the organization gate", async () => {

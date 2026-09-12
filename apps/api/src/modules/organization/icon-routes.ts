@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import type { ServerAuth } from "../../trpc/context.js";
@@ -9,13 +10,21 @@ import {
 import { requireBearerUser } from "../profile/require-user.js";
 import type { OrganizationClient } from "./organization-dto.js";
 import {
-  requireOrganizationManager,
+  resolveAccessibleOrganization,
   setOrganizationIcon,
 } from "./organization-service.js";
 
 const MAX_ICON_BYTES = 2 * 1024 * 1024;
 const ORGANIZATION_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const TRPC_HTTP_STATUS: Record<string, number> = {
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  PRECONDITION_FAILED: 412,
+};
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -47,6 +56,12 @@ function sendHttpError(
     res.status(error.status).json({ error: error.message });
     return;
   }
+  if (error instanceof TRPCError) {
+    res
+      .status(TRPC_HTTP_STATUS[error.code] ?? 500)
+      .json({ error: error.message });
+    return;
+  }
   next(error);
 }
 
@@ -70,9 +85,9 @@ export function createOrganizationIconRouter(
       }
 
       void (async () => {
-        const organizationId = req.params.organizationId;
-        if (!ORGANIZATION_ID_PATTERN.test(organizationId)) {
-          throw new HttpError(400, "Organization id is invalid");
+        const organizationKey = req.params.organizationId;
+        if (organizationKey.length === 0) {
+          throw new HttpError(400, "Organization id or slug is required");
         }
 
         const user = await requireBearerUser(req, deps.auth);
@@ -81,12 +96,19 @@ export function createOrganizationIconRouter(
           throw new HttpError(400, "Icon file is required");
         }
 
-        await requireOrganizationManager(deps.supabase, user, organizationId);
+        const ref = ORGANIZATION_ID_PATTERN.test(organizationKey)
+          ? { organizationId: organizationKey }
+          : { organizationSlug: organizationKey };
+        const { organization: existing } = await resolveAccessibleOrganization(
+          deps.supabase,
+          user,
+          ref,
+        );
         const webp = await processAvatar(file.buffer);
         const organization = await setOrganizationIcon(
           deps.supabase,
           user,
-          organizationId,
+          existing.id,
           webp,
         );
         res.status(200).json(organization);

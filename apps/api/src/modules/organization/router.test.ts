@@ -4,6 +4,7 @@ import type { ContextRequest } from "../../trpc/context.js";
 import { appRouter } from "../../trpc/router.js";
 import {
   createOrganizationMemory,
+  inviteRow,
   memberRow,
   organizationRow,
   orgTestUser,
@@ -228,6 +229,96 @@ test("organization.update is forbidden for members", async () => {
 
   expect(error).toBeInstanceOf(TRPCError);
   expect((error as TRPCError).code).toBe("FORBIDDEN");
+});
+
+test("organization.get resolves a membership by slug", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const found = await caller(memory.supabase).organization.get({
+    organizationSlug: "ada-labs",
+  });
+  expect(found.id).toBe(org.id);
+  expect(found.slug).toBe("ada-labs");
+  expect(found.memberCount).toBe(1);
+  expect(found.updatedAt).toEqual(expect.any(String));
+});
+
+test("organization.get is forbidden for non-members", async () => {
+  const org = organizationRow({ created_by: otherUserId });
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow({ user_id: otherUserId })],
+  });
+
+  const error = await caller(memory.supabase)
+    .organization.get({ organizationSlug: org.slug })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+});
+
+test("organization.delete removes an unsubscribed org for the owner", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+    invites: [inviteRow()],
+  });
+
+  const result = await caller(memory.supabase).organization.delete({
+    organizationSlug: org.slug,
+  });
+  expect(result).toEqual({ ok: true });
+  expect(memory.organizations).toHaveLength(0);
+  expect(memory.members).toHaveLength(0);
+  expect(memory.invites).toHaveLength(0);
+});
+
+test("organization.delete is blocked when a paid subscription is active", async () => {
+  const org = organizationRow({
+    kind: "team",
+    plan_id: "sentinel",
+    billing_status: "active",
+  });
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+
+  const error = await caller(memory.supabase)
+    .organization.delete({ organizationId: org.id })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("PRECONDITION_FAILED");
+  expect((error as TRPCError).message).toBe(
+    "Cancel or end billing for this organization before deleting it",
+  );
+  expect(memory.organizations).toHaveLength(1);
+});
+
+test("organization.delete is forbidden for a non-owner", async () => {
+  const org = organizationRow();
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow(), memberRow({ user_id: otherUserId, role: "admin" })],
+  });
+
+  const error = await caller(memory.supabase, {
+    ...orgTestUser,
+    id: otherUserId,
+  })
+    .organization.delete({ organizationId: org.id })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("FORBIDDEN");
+  expect(memory.organizations).toHaveLength(1);
 });
 
 test("single orgs cannot add a second member", async () => {

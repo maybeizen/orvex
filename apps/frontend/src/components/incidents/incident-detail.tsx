@@ -5,8 +5,10 @@ import { MetricStrip } from "@/components/console/metric-strip";
 import { PageHeader } from "@/components/console/page-header";
 import { StatusMark } from "@/components/console/status-pip";
 import { formatCheckTime, type IncidentRecord } from "@/lib/console";
+import { useOrgLink } from "@/lib/use-org-link";
 
 export function IncidentMissing({ id }: { id: string }) {
+  const orgLink = useOrgLink();
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -19,7 +21,7 @@ export function IncidentMissing({ id }: { id: string }) {
         body="Incidents are created from monitor failures. None are stored until the probe core is connected."
         action={
           <Button asChild size="sm">
-            <Link to="/incidents">Back to incidents</Link>
+            <Link to={orgLink("/incidents")}>Back to incidents</Link>
           </Button>
         }
       />
@@ -28,6 +30,7 @@ export function IncidentMissing({ id }: { id: string }) {
 }
 
 export function IncidentDetail({ incident }: { incident: IncidentRecord }) {
+  const orgLink = useOrgLink();
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -43,10 +46,12 @@ export function IncidentDetail({ incident }: { incident: IncidentRecord }) {
         actions={
           <>
             <Button asChild variant="outline" size="sm">
-              <Link to={`/monitors/${incident.monitorId}`}>Open monitor</Link>
+              <Link to={orgLink(`/monitors/${incident.monitorId}`)}>
+                Open monitor
+              </Link>
             </Button>
             <Button asChild variant="ghost" size="sm">
-              <Link to="/incidents">All incidents</Link>
+              <Link to={orgLink("/incidents")}>All incidents</Link>
             </Button>
           </>
         }

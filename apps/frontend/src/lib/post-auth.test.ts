@@ -31,6 +31,8 @@ const acme = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  memberCount: 1,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 const jwtUser = {
@@ -70,13 +72,14 @@ test("pathAfterAuth sends empty memberships to onboarding", async () => {
   expect(await pathAfterAuth("/dashboard")).toBe("/onboarding");
 });
 
-test("pathAfterAuth keeps the intended path when memberships exist", async () => {
+test("pathAfterAuth sends memberships to the organizations list", async () => {
   listQuery.mockResolvedValue({
     items: [acme],
     activeOrganizationId: acme.id,
   });
-  expect(await pathAfterAuth("/dashboard")).toBe("/dashboard");
-  expect(await pathAfterAuth("/profile")).toBe("/profile");
+  expect(await pathAfterAuth()).toBe("/organizations");
+  expect(await pathAfterAuth("/dashboard")).toBe("/organizations");
+  expect(await pathAfterAuth("/settings")).toBe("/settings");
 });
 
 test("pathAfterAuth never hijacks password recovery", async () => {
@@ -86,7 +89,7 @@ test("pathAfterAuth never hijacks password recovery", async () => {
 
 test("pathAfterAuth falls back to the intended path when list fails", async () => {
   listQuery.mockRejectedValue(new Error("offline"));
-  expect(await pathAfterAuth("/dashboard")).toBe("/dashboard");
+  expect(await pathAfterAuth("/dashboard")).toBe("/organizations");
 });
 
 test("hydrateSessionUser merges username and avatar from auth.me", async () => {

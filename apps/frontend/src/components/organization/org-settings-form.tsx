@@ -22,14 +22,17 @@ import {
   slugFromName,
   slugHint,
 } from "@/lib/organization-slug";
+import { organizationPath } from "@/lib/org-paths";
 import { createVanillaTrpcClient } from "@/lib/trpc";
 import { useOrgStore } from "@/stores/org-store";
+import { useNavigate } from "react-router";
 
 export function OrgSettingsForm({
   organization,
 }: {
   organization: Organization;
 }) {
+  const navigate = useNavigate();
   const canManage =
     organization.role === "owner" || organization.role === "admin";
   const [name, setName] = useState(organization.name);
@@ -71,11 +74,17 @@ export function OrgSettingsForm({
     try {
       const next = await createVanillaTrpcClient().organization.update.mutate({
         organizationId: organization.id,
+        organizationSlug: organization.slug,
         name: name.trim(),
         slug,
       });
       useOrgStore.getState().upsert(next);
       toast.success("Organization saved");
+      if (next.slug !== organization.slug) {
+        void navigate(organizationPath(next.slug, "/settings"), {
+          replace: true,
+        });
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to save organization";

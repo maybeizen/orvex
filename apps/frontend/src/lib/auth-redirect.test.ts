@@ -11,8 +11,8 @@ test("safeInternalPath keeps site-relative paths", () => {
 });
 
 test("safeInternalPath rejects open redirects", () => {
-  expect(safeInternalPath("//evil.example")).toBe("/dashboard");
-  expect(safeInternalPath("https://evil.example")).toBe("/dashboard");
+  expect(safeInternalPath("//evil.example")).toBe("/organizations");
+  expect(safeInternalPath("https://evil.example")).toBe("/organizations");
   expect(safeInternalPath(null, "/login")).toBe("/login");
 });
 
@@ -29,7 +29,7 @@ test("callbackNextPath routes recovery and email change", () => {
     "/settings",
   );
   expect(callbackNextPath(new URLSearchParams("type=signup"))).toBe(
-    "/dashboard",
+    "/organizations",
   );
   expect(
     callbackNextPath(new URLSearchParams("type=email_change&next=/settings")),

@@ -14,7 +14,7 @@ export function guardAuthConfigured(): boolean {
 
 export async function startOAuth(
   provider: OAuthProvider,
-  next = "/dashboard",
+  next = "/organizations",
 ): Promise<boolean> {
   if (!guardAuthConfigured()) {
     return false;

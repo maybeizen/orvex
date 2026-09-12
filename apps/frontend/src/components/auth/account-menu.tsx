@@ -1,5 +1,5 @@
 import type { AuthUser } from "@orvex/types";
-import { ChevronDown, LogOut, Palette, UserRound } from "lucide-react";
+import { Building2, ChevronDown, LogOut, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -16,7 +16,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AccountOrgSwitcher } from "@/components/organization/org-switcher";
 import { accountHandle, userInitials } from "@/lib/user-display";
+import { ORGANIZATIONS_PATH, USER_SETTINGS_PATH } from "@/lib/org-paths";
 import { cn } from "@/lib/cn";
 import { getBrowserAuth } from "@/lib/supabase";
 import { useSidebarStore } from "@/stores/sidebar-store";
@@ -98,7 +100,7 @@ export function AccountMenu({
       <DropdownMenuContent
         align={sidebar ? "start" : "end"}
         side={rail ? "right" : sidebar ? "top" : "bottom"}
-        className="min-w-52 duration-200"
+        className="min-w-56 duration-200"
       >
         <DropdownMenuLabel className="flex flex-col gap-0.5">
           <span className="truncate text-sm font-medium text-foreground">
@@ -109,15 +111,18 @@ export function AccountMenu({
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link to="/profile">
-              <UserRound />
-              Profile
+            <Link to={ORGANIZATIONS_PATH}>
+              <Building2 />
+              Organizations
             </Link>
           </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <AccountOrgSwitcher />
+        <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link to="/settings">
-              <Palette />
-              Appearance
+            <Link to={USER_SETTINGS_PATH}>
+              <UserRound />
+              User settings
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>

@@ -1,12 +1,14 @@
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { NavLink, useLocation } from "react-router";
 import { AuthNavCluster } from "@/components/auth/auth-nav-cluster";
-import { APP_NAV_SECTIONS } from "@/components/layout/nav-config";
+import { appNavSections } from "@/components/layout/nav-config";
 import { SidebarOrgControl } from "@/components/layout/sidebar-org-control";
 import { SidebarTooltip } from "@/components/layout/sidebar-tooltip";
 import { BrandMark, OrvexMark } from "@/components/marketing/brand-mark";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { parseOrganizationSlug } from "@/lib/org-paths";
+import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 import { useSidebarStore } from "@/stores/sidebar-store";
 
 export function SidebarBrand() {
@@ -58,6 +60,10 @@ export function SidebarNav({
   onNavigate?: () => void;
 }) {
   const location = useLocation();
+  const routeSlug = parseOrganizationSlug(location.pathname);
+  const active = useOrgStore(selectActiveOrganization);
+  const slug = routeSlug ?? active?.slug;
+  const sections = slug === undefined ? [] : appNavSections(slug);
 
   return (
     <nav
@@ -67,7 +73,7 @@ export function SidebarNav({
         collapsed ? "items-center p-2" : "p-3",
       )}
     >
-      {APP_NAV_SECTIONS.map((section, index) => (
+      {sections.map((section, index) => (
         <div
           key={section.label ?? `section-${String(index)}`}
           className={cn("flex flex-col gap-1", collapsed && "items-center")}

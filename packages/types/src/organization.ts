@@ -16,6 +16,8 @@ export type Organization = {
   planId: OrganizationPlanId;
   billingStatus: OrganizationBillingStatus;
   role: OrganizationRole;
+  memberCount: number;
+  updatedAt: string;
 };
 
 export type OrganizationMember = {

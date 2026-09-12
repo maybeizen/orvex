@@ -1,6 +1,7 @@
 import type { AuthUser, Organization } from "@orvex/types";
 import {
   isPaidPlan,
+  isPlanId,
   planAllowsKind,
   type BillingCycle,
 } from "@orvex/types/plans";
@@ -111,6 +112,130 @@ async function fetchOrganization(
   return data;
 }
 
+async function fetchOrganizationBySlug(
+  supabase: OrganizationClient,
+  slug: string,
+): Promise<OrganizationRow | null> {
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error !== null) {
+    throw new HttpError(500, error.message);
+  }
+
+  return data;
+}
+
+export type OrganizationRef = {
+  organizationId?: string | undefined;
+  organizationSlug?: string | undefined;
+};
+
+export type ResolvedOrganization = {
+  organization: OrganizationRow;
+  membership: OrganizationMemberRow;
+};
+
+function missingOrgRef(): never {
+  throw new TRPCError({
+    code: "BAD_REQUEST",
+    message: "Organization id or slug is required",
+  });
+}
+
+export async function resolveAccessibleOrganization(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  ref: OrganizationRef,
+): Promise<ResolvedOrganization> {
+  const organizationId = ref.organizationId;
+  const organizationSlug = ref.organizationSlug;
+  if (organizationId === undefined && organizationSlug === undefined) {
+    missingOrgRef();
+  }
+
+  const organization =
+    organizationSlug !== undefined
+      ? await fetchOrganizationBySlug(supabase, organizationSlug)
+      : await fetchOrganization(supabase, organizationId as string);
+
+  if (organization === null) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Organization not found",
+    });
+  }
+
+  if (organizationId !== undefined && organization.id !== organizationId) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Organization not found",
+    });
+  }
+
+  if (
+    organizationSlug !== undefined &&
+    organization.slug !== organizationSlug
+  ) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Organization not found",
+    });
+  }
+
+  const membership = await fetchMembership(supabase, organization.id, user.id);
+  if (membership === null) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You are not a member of that organization",
+    });
+  }
+
+  return { organization, membership };
+}
+
+export function hasActiveSubscription(organization: OrganizationRow): boolean {
+  const planId = isPlanId(organization.plan_id) ? organization.plan_id : "free";
+  if (!isPaidPlan(planId)) {
+    return false;
+  }
+  return (
+    organization.billing_status === "active" ||
+    organization.billing_status === "past_due"
+  );
+}
+
+async function memberCountsByOrganization(
+  supabase: OrganizationClient,
+  organizationIds: string[],
+): Promise<Map<string, number>> {
+  const counts = new Map<string, number>();
+  if (organizationIds.length === 0) {
+    return counts;
+  }
+
+  const { data, error } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .in("organization_id", organizationIds);
+
+  if (error !== null) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: error.message,
+    });
+  }
+
+  for (const row of data) {
+    const current = counts.get(row.organization_id) ?? 0;
+    counts.set(row.organization_id, current + 1);
+  }
+  return counts;
+}
+
 async function fetchActiveOrganizationId(
   supabase: OrganizationClient,
   userId: string,
@@ -169,12 +294,20 @@ export async function listOrganizations(
   }
 
   const byId = new Map(orgs.map((org) => [org.id, org]));
+  const counts = await memberCountsByOrganization(supabase, ids);
   const items = rows.flatMap((membership) => {
     const org = byId.get(membership.organization_id);
     if (org === undefined) {
       return [];
     }
-    return [toOrganizationDto(supabase, org, membership.role)];
+    return [
+      toOrganizationDto(
+        supabase,
+        org,
+        membership.role,
+        counts.get(org.id) ?? 1,
+      ),
+    ];
   });
 
   return {
@@ -252,28 +385,40 @@ export async function createOrganization(
   return toOrganizationDto(supabase, org, "owner");
 }
 
-export type UpdateOrganizationInput = {
-  organizationId: string;
+export type UpdateOrganizationInput = OrganizationRef & {
   name?: string | undefined;
   slug?: string | undefined;
 };
+
+export async function getOrganization(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  ref: OrganizationRef,
+): Promise<Organization> {
+  const { organization, membership } = await resolveAccessibleOrganization(
+    supabase,
+    user,
+    ref,
+  );
+  const counts = await memberCountsByOrganization(supabase, [organization.id]);
+  return toOrganizationDto(
+    supabase,
+    organization,
+    membership.role,
+    counts.get(organization.id) ?? 1,
+  );
+}
 
 export async function updateOrganization(
   supabase: OrganizationClient,
   user: AuthUser,
   input: UpdateOrganizationInput,
 ): Promise<Organization> {
-  const membership = await fetchMembership(
+  const { organization, membership } = await resolveAccessibleOrganization(
     supabase,
-    input.organizationId,
-    user.id,
+    user,
+    input,
   );
-  if (membership === null) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You are not a member of that organization",
-    });
-  }
   if (!canManageOrganization(membership.role)) {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -281,17 +426,9 @@ export async function updateOrganization(
     });
   }
 
-  const existing = await fetchOrganization(supabase, input.organizationId);
-  if (existing === null) {
-    throw new TRPCError({
-      code: "NOT_FOUND",
-      message: "Organization not found",
-    });
-  }
-
-  const name = input.name ?? existing.name;
-  const slug = input.slug ?? existing.slug;
-  if (isReservedOrgSlug(slug)) {
+  const name = input.name ?? organization.name;
+  const nextSlug = input.slug ?? organization.slug;
+  if (isReservedOrgSlug(nextSlug)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "That organization slug is not allowed",
@@ -300,8 +437,8 @@ export async function updateOrganization(
 
   const { data, error } = await supabase
     .from("organizations")
-    .update({ name, slug })
-    .eq("id", input.organizationId)
+    .update({ name, slug: nextSlug })
+    .eq("id", organization.id)
     .select("*")
     .single();
 
@@ -309,25 +446,29 @@ export async function updateOrganization(
     throwWriteError(error, true);
   }
 
-  return toOrganizationDto(supabase, data, membership.role);
+  const counts = await memberCountsByOrganization(supabase, [organization.id]);
+  return toOrganizationDto(
+    supabase,
+    data,
+    membership.role,
+    counts.get(organization.id) ?? 1,
+  );
 }
 
 export async function setActiveOrganization(
   supabase: OrganizationClient,
   user: AuthUser,
-  organizationId: string,
+  ref: OrganizationRef,
 ): Promise<OrganizationListDto> {
-  const membership = await fetchMembership(supabase, organizationId, user.id);
-  if (membership === null) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You are not a member of that organization",
-    });
-  }
+  const { organization } = await resolveAccessibleOrganization(
+    supabase,
+    user,
+    ref,
+  );
 
   const { error } = await supabase
     .from("profiles")
-    .update({ active_organization_id: organizationId })
+    .update({ active_organization_id: organization.id })
     .eq("user_id", user.id);
 
   if (error !== null) {
@@ -335,6 +476,71 @@ export async function setActiveOrganization(
   }
 
   return listOrganizations(supabase, user);
+}
+
+const ACTIVE_SUBSCRIPTION_MESSAGE =
+  "Cancel or end billing for this organization before deleting it";
+
+export async function deleteOrganization(
+  supabase: OrganizationClient,
+  user: AuthUser,
+  ref: OrganizationRef,
+): Promise<{ ok: true }> {
+  const { organization, membership } = await resolveAccessibleOrganization(
+    supabase,
+    user,
+    ref,
+  );
+  if (membership.role !== "owner") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only an owner can delete this organization",
+    });
+  }
+  if (hasActiveSubscription(organization)) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: ACTIVE_SUBSCRIPTION_MESSAGE,
+    });
+  }
+
+  if (organization.icon_path !== null && organization.icon_path.length > 0) {
+    const { error: storageError } = await supabase.storage
+      .from("org-icons")
+      .remove([organization.icon_path]);
+    if (storageError !== null) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: storageError.message,
+      });
+    }
+  }
+
+  const { error: inviteError } = await supabase
+    .from("organization_invites")
+    .delete()
+    .eq("organization_id", organization.id);
+  if (inviteError !== null) {
+    throwWriteError(inviteError, true);
+  }
+
+  const { error: memberError } = await supabase
+    .from("organization_members")
+    .delete()
+    .eq("organization_id", organization.id);
+  if (memberError !== null) {
+    throwWriteError(memberError, true);
+  }
+
+  const { error } = await supabase
+    .from("organizations")
+    .delete()
+    .eq("id", organization.id);
+  if (error !== null) {
+    throwWriteError(error, true);
+  }
+
+  return { ok: true as const };
 }
 
 export async function requireOrganizationManager(

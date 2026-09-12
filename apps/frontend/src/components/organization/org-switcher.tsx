@@ -2,7 +2,7 @@ import type { Organization } from "@orvex/types";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { OrgAvatar, orgPlanLabel } from "@/components/organization/org-avatar";
 import { Badge } from "@/components/ui/badge";
@@ -15,23 +15,46 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/cn";
+import {
+  isUserScopedPath,
+  organizationHomePath,
+  organizationPath,
+  organizationSuffix,
+} from "@/lib/org-paths";
 import { createVanillaTrpcClient } from "@/lib/trpc";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
 async function activateOrganization(organization: Organization): Promise<void> {
   const result = await createVanillaTrpcClient().organization.setActive.mutate({
     organizationId: organization.id,
+    organizationSlug: organization.slug,
   });
   useOrgStore.getState().hydrate(result.items, result.activeOrganizationId);
   toast.success(`Switched to ${organization.name}`);
 }
 
-function handleSwitch(organization: Organization): void {
-  void activateOrganization(organization).catch((error: unknown) => {
-    const message =
-      error instanceof Error ? error.message : "Unable to switch organization";
-    toast.error(message);
-  });
+function useSwitchOrganization(): (organization: Organization) => void {
+  const navigate = useNavigate();
+  const pathname = useLocation().pathname;
+
+  return (organization: Organization) => {
+    void activateOrganization(organization)
+      .then(() => {
+        if (isUserScopedPath(pathname)) {
+          void navigate(organizationHomePath(organization.slug));
+          return;
+        }
+        const suffix = organizationSuffix(pathname);
+        void navigate(organizationPath(organization.slug, suffix));
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to switch organization";
+        toast.error(message);
+      });
+  };
 }
 
 function OrgRow({
@@ -74,6 +97,7 @@ export function AccountOrgSwitcher() {
   const [expanded, setExpanded] = useState(false);
   const items = useOrgStore((state) => state.items);
   const active = useOrgStore(selectActiveOrganization);
+  const handleSwitch = useSwitchOrganization();
 
   if (active === null || items.length === 0) {
     return null;
@@ -149,6 +173,7 @@ export function AccountOrgSwitcher() {
 export function HeaderOrgControl() {
   const items = useOrgStore((state) => state.items);
   const active = useOrgStore(selectActiveOrganization);
+  const handleSwitch = useSwitchOrganization();
 
   if (active === null) {
     return null;

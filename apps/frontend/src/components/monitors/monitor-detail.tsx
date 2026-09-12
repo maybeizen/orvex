@@ -9,6 +9,7 @@ import { MetricStrip } from "@/components/console/metric-strip";
 import { PageHeader } from "@/components/console/page-header";
 import { StatusMark } from "@/components/console/status-pip";
 import { ProbeReadout } from "@/components/monitors/probe-readout";
+import { useOrgLink } from "@/lib/use-org-link";
 import {
   MONITOR_TYPE_LABEL,
   PROBE_REGIONS,
@@ -25,6 +26,7 @@ import { formatPct, parseHostTelemetry } from "@/lib/host-telemetry";
 const HISTORY_SLOTS = 36;
 
 export function MonitorMissing({ id }: { id: string }) {
+  const orgLink = useOrgLink();
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -37,7 +39,7 @@ export function MonitorMissing({ id }: { id: string }) {
         body="The probe core is not connected, so there are no stored monitors to open. Create a check from the list when you are ready."
         action={
           <Button asChild size="sm">
-            <Link to="/monitors">Back to monitors</Link>
+            <Link to={orgLink("/monitors")}>Back to monitors</Link>
           </Button>
         }
       />
@@ -105,6 +107,7 @@ function stripFor(monitor: MonitorRecord) {
 }
 
 export function MonitorDetail({ monitor }: { monitor: MonitorRecord }) {
+  const orgLink = useOrgLink();
   const regions = PROBE_REGIONS.filter((region) =>
     monitor.regionCodes.includes(region.code),
   );
@@ -128,10 +131,10 @@ export function MonitorDetail({ monitor }: { monitor: MonitorRecord }) {
         actions={
           <>
             <Button asChild variant="outline" size="sm">
-              <Link to={`/monitors/${monitor.id}/edit`}>Edit</Link>
+              <Link to={orgLink(`/monitors/${monitor.id}/edit`)}>Edit</Link>
             </Button>
             <Button asChild variant="ghost" size="sm">
-              <Link to="/monitors">All monitors</Link>
+              <Link to={orgLink("/monitors")}>All monitors</Link>
             </Button>
           </>
         }

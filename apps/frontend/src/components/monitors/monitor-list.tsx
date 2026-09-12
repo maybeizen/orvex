@@ -21,6 +21,7 @@ import {
   type MonitorRecord,
   type MonitorType,
 } from "@/lib/console";
+import { useOrgLink } from "@/lib/use-org-link";
 
 export function MonitorList({
   monitors,
@@ -29,6 +30,7 @@ export function MonitorList({
   monitors: readonly MonitorRecord[];
   planLimit: string;
 }) {
+  const orgLink = useOrgLink();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<CheckStatus | "all">("all");
   const [type, setType] = useState<MonitorType | "all">("all");
@@ -71,7 +73,7 @@ export function MonitorList({
         }
         actions={
           <Button asChild size="sm">
-            <Link to="/monitors/new">New monitor</Link>
+            <Link to={orgLink("/monitors/new")}>New monitor</Link>
           </Button>
         }
       />
@@ -161,7 +163,7 @@ export function MonitorList({
             body="Create an HTTP, keyword, ping, port, heartbeat, or agent check. Rows will show status, target, last probe, latency, and uptime."
             action={
               <Button asChild size="sm">
-                <Link to="/monitors/new">Create monitor</Link>
+                <Link to={orgLink("/monitors/new")}>Create monitor</Link>
               </Button>
             }
           />

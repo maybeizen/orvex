@@ -666,6 +666,14 @@ export function createOrganizationMemory(initial?: {
               },
             };
           },
+          remove(paths: string[]) {
+            const remaining = uploads.filter(
+              (item) => !(item.bucket === bucket && paths.includes(item.path)),
+            );
+            uploads.length = 0;
+            uploads.push(...remaining);
+            return Promise.resolve({ data: paths, error: null });
+          },
         };
       },
     },

@@ -3,10 +3,12 @@ import { RequireSession } from "@/components/auth/require-session";
 import { ConsolePanel } from "@/components/console/console-panel";
 import { PageHeader } from "@/components/console/page-header";
 import { Button } from "@/components/ui/button";
+import { useOrgLink } from "@/lib/use-org-link";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
 export function InvoicesPage() {
   const organization = useOrgStore(selectActiveOrganization);
+  const orgLink = useOrgLink();
 
   return (
     <RequireSession title="Invoices" description="Sign in to review invoices.">
@@ -21,7 +23,7 @@ export function InvoicesPage() {
           }
           actions={
             <Button asChild size="sm" variant="outline">
-              <Link to="/settings/billing">Plan</Link>
+              <Link to={orgLink("/billing")}>Plan</Link>
             </Button>
           }
         />

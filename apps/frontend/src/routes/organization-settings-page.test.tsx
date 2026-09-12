@@ -11,6 +11,7 @@ vi.mock("@/lib/trpc", () => ({
   createVanillaTrpcClient: () => ({
     organization: {
       update: { mutate: vi.fn() },
+      delete: { mutate: vi.fn() },
     },
   }),
 }));
@@ -36,9 +37,11 @@ const workspace: Organization = {
   planId: "sentinel",
   billingStatus: "active",
   role: "owner",
+  memberCount: 2,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
-test("organization settings shows name, slug, and members entry", () => {
+test("organization settings shows name, slug, and delete without user chrome", () => {
   useSessionStore.setState({ status: "ready", user: ada });
   useOrgStore.getState().hydrate([workspace], workspace.id);
 
@@ -54,6 +57,10 @@ test("organization settings shows name, slug, and members entry", () => {
   expect(screen.getByLabelText("Name")).toHaveValue("Lovelace Lab");
   expect(screen.getByLabelText("Slug")).toHaveValue("lovelace-lab");
   expect(
-    screen.getByRole("link", { name: "Open team members" }),
-  ).toHaveAttribute("href", "/team");
+    screen.getByRole("button", { name: "Delete organization" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText("Team members")).not.toBeInTheDocument();
+  expect(screen.queryByText("Switch organization")).not.toBeInTheDocument();
+  expect(screen.queryByText("Appearance")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("First name")).not.toBeInTheDocument();
 });

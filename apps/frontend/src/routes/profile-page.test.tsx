@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { AuthUser } from "@orvex/types";
-import { ProfilePage } from "./profile-page.js";
+import { SettingsPage } from "./settings-page.js";
 import { useSessionStore } from "@/stores/session-store";
 
 const { mockAuth, mockTrpc } = vi.hoisted(() => ({
@@ -64,7 +64,7 @@ function renderProfile(user: AuthUser | null = ada) {
   useSessionStore.setState({ status: "ready", user });
   return render(
     <MemoryRouter>
-      <ProfilePage />
+      <SettingsPage />
     </MemoryRouter>,
   );
 }
@@ -97,7 +97,7 @@ beforeEach(() => {
 test("profile page asks guests to sign in", () => {
   renderProfile(null);
 
-  expect(screen.getByRole("heading", { name: "Profile" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Settings" })).toBeInTheDocument();
   expect(
     screen.getByText("Sign in to manage your account."),
   ).toBeInTheDocument();

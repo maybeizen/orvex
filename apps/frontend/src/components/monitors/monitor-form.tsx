@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { ConsolePanel, CoreNotice } from "@/components/console/console-panel";
 import { SelectMenu } from "@/components/ui/select-menu";
 import { PageHeader } from "@/components/console/page-header";
+import { useOrgLink } from "@/lib/use-org-link";
 import {
   MONITOR_TYPE_LABEL,
   MONITOR_TYPES,
@@ -92,6 +93,7 @@ export function MonitorForm({
   regionLimit: string;
   interval: string;
 }) {
+  const orgLink = useOrgLink();
   const [draft, setDraft] = useState<Draft>(() =>
     monitor === undefined
       ? emptyDraft(regionLimit)
@@ -137,7 +139,9 @@ export function MonitorForm({
           <Button asChild variant="outline" size="sm">
             <Link
               to={
-                monitor === undefined ? "/monitors" : `/monitors/${monitor.id}`
+                monitor === undefined
+                  ? orgLink("/monitors")
+                  : orgLink(`/monitors/${monitor.id}`)
               }
             >
               Cancel
@@ -328,7 +332,7 @@ export function MonitorForm({
               {mode === "create" ? "Arm monitor" : "Save monitor"}
             </Button>
             <Button asChild type="button" variant="ghost" size="sm">
-              <Link to="/monitors">Back to list</Link>
+              <Link to={orgLink("/monitors")}>Back to list</Link>
             </Button>
           </div>
         </div>
