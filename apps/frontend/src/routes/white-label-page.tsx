@@ -1,21 +1,21 @@
 import { RequireSession } from "@/components/auth/require-session";
-import { StatusPageList } from "@/components/status/status-page-list";
+import { WhiteLabelBoard } from "@/components/status/white-label-board";
 import { Skeleton } from "@/components/ui/skeleton";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
 
-export function StatusPagesPage() {
+export function WhiteLabelPage() {
   const orgStatus = useOrgStore((state) => state.status);
   const organization = useOrgStore(selectActiveOrganization);
 
   return (
     <RequireSession
-      title="Status pages"
-      description="Sign in to manage status pages."
+      title="White Label"
+      description="Sign in to open white label."
     >
       {orgStatus !== "ready" || organization === null ? (
         <Skeleton className="h-64 w-full" />
       ) : (
-        <StatusPageList organization={organization} />
+        <WhiteLabelBoard organization={organization} />
       )}
     </RequireSession>
   );
