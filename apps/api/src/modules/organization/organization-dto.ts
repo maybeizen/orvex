@@ -75,6 +75,7 @@ export function toOrganizationDto(
   supabase: OrganizationClient,
   row: OrganizationRow,
   role: string,
+  memberCount = 1,
 ): Organization {
   return {
     id: row.id,
@@ -87,6 +88,8 @@ export function toOrganizationDto(
       ? row.billing_status
       : "active",
     role: isOrganizationRole(role) ? role : "member",
+    memberCount,
+    updatedAt: row.updated_at,
   };
 }
 
