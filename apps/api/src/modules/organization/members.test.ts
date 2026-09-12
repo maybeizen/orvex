@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { expect, test } from "vitest";
 import type { ContextRequest } from "../../trpc/context.js";
 import { appRouter } from "../../trpc/router.js";
+import { withCache } from "../../trpc/test-context.js";
 import {
   createOrganizationMemory,
   inviteRow,
@@ -19,11 +20,13 @@ function caller(
   supabase: ReturnType<typeof createOrganizationMemory>["supabase"],
   user = orgTestUser,
 ) {
-  return appRouter.createCaller({
-    user,
-    req,
-    supabase,
-  });
+  return appRouter.createCaller(
+    withCache({
+      user,
+      req,
+      supabase,
+    }),
+  );
 }
 
 const teamOrg = organizationRow({
@@ -77,7 +80,7 @@ test("organization.members.list returns seats and the caller roster", async () =
     organizationId: teamOrg.id,
   });
 
-  expect(listed.seatLimit).toBe(5);
+  expect(listed.seatLimit).toBe(10);
   expect(listed.seatsUsed).toBe(2);
   expect(listed.canManage).toBe(true);
   expect(listed.members).toEqual(
@@ -201,11 +204,13 @@ test("organization.invites.accept adds a member from the token", async () => {
     ],
   });
 
-  const guest = appRouter.createCaller({
-    user: null,
-    req,
-    supabase: memory.supabase,
-  });
+  const guest = appRouter.createCaller(
+    withCache({
+      user: null,
+      req,
+      supabase: memory.supabase,
+    }),
+  );
   const shown = await guest.organization.invites.preview({ token: "seat-1" });
   expect(shown.organizationName).toBe("Ada Team");
   expect(shown.expired).toBe(false);

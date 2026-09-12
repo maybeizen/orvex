@@ -37,7 +37,7 @@ export function createApp(env: Env): CreatedApp {
     "/trpc",
     createExpressMiddleware({
       router: appRouter,
-      createContext: createContext({ auth, supabase }),
+      createContext: createContext({ auth, supabase, cache }),
     }),
   );
   app.use(

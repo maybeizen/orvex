@@ -9,6 +9,7 @@ import {
 } from "../modules/profile/test-support.js";
 import type { ContextRequest } from "./context.js";
 import { appRouter } from "./router.js";
+import { withCache } from "./test-context.js";
 
 const req: ContextRequest = { headers: {} };
 const stubSupabase = {
@@ -23,20 +24,31 @@ const stubSupabase = {
 } as unknown as SupabaseClient<Database>;
 
 test("health.live returns ok", async () => {
-  const caller = appRouter.createCaller({
-    user: null,
-    req,
-    supabase: stubSupabase,
-  });
+  const caller = appRouter.createCaller(
+    withCache({
+      user: null,
+      req,
+      supabase: {
+        from: () => ({
+          select: () => ({
+            limit: () => Promise.resolve({ data: [], error: null }),
+          }),
+        }),
+        storage: stubSupabase.storage,
+      } as typeof stubSupabase,
+    }),
+  );
   await expect(caller.health.live()).resolves.toEqual({ ok: true });
 });
 
 test("auth.me requires a user", async () => {
-  const caller = appRouter.createCaller({
-    user: null,
-    req,
-    supabase: stubSupabase,
-  });
+  const caller = appRouter.createCaller(
+    withCache({
+      user: null,
+      req,
+      supabase: stubSupabase,
+    }),
+  );
   const error = await caller.auth.me().catch((caught: unknown) => caught);
   expect(error).toBeInstanceOf(TRPCError);
   expect((error as TRPCError).code).toEqual("UNAUTHORIZED");
@@ -47,11 +59,13 @@ test("auth.me returns the current user when profile lookup fails", async () => {
     ...testUser,
     username: null,
   };
-  const caller = appRouter.createCaller({
-    user,
-    req,
-    supabase: stubSupabase,
-  });
+  const caller = appRouter.createCaller(
+    withCache({
+      user,
+      req,
+      supabase: stubSupabase,
+    }),
+  );
   await expect(caller.auth.me()).resolves.toEqual(user);
 });
 
@@ -66,11 +80,13 @@ test("auth.me merges profile fields", async () => {
       updated_at: "2026-08-22T00:00:00.000Z",
     }),
   ]);
-  const caller = appRouter.createCaller({
-    user: { ...testUser, username: null, avatarUrl: null },
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(
+    withCache({
+      user: { ...testUser, username: null, avatarUrl: null },
+      req,
+      supabase,
+    }),
+  );
 
   const me = await caller.auth.me();
   expect(me.id).toBe(testUser.id);
@@ -85,11 +101,13 @@ test("auth.me merges profile fields", async () => {
 
 test("profile.get creates a missing profile", async () => {
   const { supabase, rows } = createMemorySupabase();
-  const caller = appRouter.createCaller({
-    user: testUser,
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(
+    withCache({
+      user: testUser,
+      req,
+      supabase,
+    }),
+  );
 
   const profile = await caller.profile.get();
   expect(profile.username).toBe("ada");
@@ -106,11 +124,13 @@ test("profile.updateIdentity maps unique violations", async () => {
       username: "taken",
     }),
   ]);
-  const caller = appRouter.createCaller({
-    user: testUser,
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(
+    withCache({
+      user: testUser,
+      req,
+      supabase,
+    }),
+  );
 
   const error = await caller.profile
     .updateIdentity({ username: "taken" })
@@ -122,11 +142,13 @@ test("profile.updateIdentity maps unique violations", async () => {
 
 test("profile.usernameAvailable excludes self", async () => {
   const { supabase } = createMemorySupabase([profileRow()]);
-  const caller = appRouter.createCaller({
-    user: testUser,
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(
+    withCache({
+      user: testUser,
+      req,
+      supabase,
+    }),
+  );
 
   await expect(
     caller.profile.usernameAvailable({ username: "ada" }),
@@ -144,11 +166,13 @@ test("profile.usernameAvailable is false for another account", async () => {
       username: "taken",
     }),
   ]);
-  const caller = appRouter.createCaller({
-    user: testUser,
-    req,
-    supabase,
-  });
+  const caller = appRouter.createCaller(
+    withCache({
+      user: testUser,
+      req,
+      supabase,
+    }),
+  );
 
   await expect(
     caller.profile.usernameAvailable({ username: "taken" }),

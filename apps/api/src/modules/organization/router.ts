@@ -1,5 +1,7 @@
 import { planAllowsKind } from "@orvex/types/plans";
 import { z } from "zod";
+import { CACHE_TTL, cacheKeys } from "../../lib/cache-keys.js";
+import { invalidateOrgCaches } from "../../lib/cached.js";
 import {
   protectedProcedure,
   publicProcedure,
@@ -72,7 +74,11 @@ const memberRoleSchema = z.enum(["admin", "member"]);
 
 export const organizationRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
-    return listOrganizations(ctx.supabase, ctx.user);
+    return ctx.cache.getOrSet(
+      cacheKeys.orgList(ctx.user.id),
+      CACHE_TTL.orgList,
+      () => listOrganizations(ctx.supabase, ctx.user),
+    );
   }),
   get: protectedProcedure.input(orgRefSchema).query(async ({ ctx, input }) => {
     return getOrganization(ctx.supabase, ctx.user, input);
@@ -80,7 +86,9 @@ export const organizationRouter = router({
   create: protectedProcedure
     .input(createSchema)
     .mutation(async ({ ctx, input }) => {
-      return createOrganization(ctx.supabase, ctx.user, input);
+      const created = await createOrganization(ctx.supabase, ctx.user, input);
+      await invalidateOrgCaches(ctx.cache, created.id, [ctx.user.id]);
+      return created;
     }),
   update: protectedProcedure
     .input(
@@ -92,17 +100,28 @@ export const organizationRouter = router({
       ),
     )
     .mutation(async ({ ctx, input }) => {
-      return updateOrganization(ctx.supabase, ctx.user, input);
+      const updated = await updateOrganization(ctx.supabase, ctx.user, input);
+      await invalidateOrgCaches(ctx.cache, updated.id, [ctx.user.id]);
+      return updated;
     }),
   setActive: protectedProcedure
     .input(orgRefSchema)
     .mutation(async ({ ctx, input }) => {
-      return setActiveOrganization(ctx.supabase, ctx.user, input);
+      const active = await setActiveOrganization(ctx.supabase, ctx.user, input);
+      await ctx.cache.del(cacheKeys.orgList(ctx.user.id));
+      return active;
     }),
   delete: protectedProcedure
     .input(orgRefSchema)
     .mutation(async ({ ctx, input }) => {
-      return deleteOrganization(ctx.supabase, ctx.user, input);
+      const { organization } = await resolveAccessibleOrganization(
+        ctx.supabase,
+        ctx.user,
+        input,
+      );
+      const deleted = await deleteOrganization(ctx.supabase, ctx.user, input);
+      await invalidateOrgCaches(ctx.cache, organization.id, [ctx.user.id]);
+      return deleted;
     }),
   members: router({
     list: protectedProcedure
@@ -130,13 +149,15 @@ export const organizationRouter = router({
           ctx.user,
           input,
         );
-        return inviteMember(
+        const invited = await inviteMember(
           ctx.supabase,
           ctx.user,
           organization.id,
           input.email,
           input.role,
         );
+        await invalidateOrgCaches(ctx.cache, organization.id, [ctx.user.id]);
+        return invited;
       }),
     updateRole: protectedProcedure
       .input(
@@ -160,6 +181,10 @@ export const organizationRouter = router({
           input.userId,
           input.role,
         );
+        await invalidateOrgCaches(ctx.cache, organization.id, [
+          ctx.user.id,
+          input.userId,
+        ]);
         return { ok: true as const };
       }),
     remove: protectedProcedure
@@ -176,6 +201,10 @@ export const organizationRouter = router({
           organization.id,
           input.userId,
         );
+        await invalidateOrgCaches(ctx.cache, organization.id, [
+          ctx.user.id,
+          input.userId,
+        ]);
         return { ok: true as const };
       }),
   }),
@@ -204,7 +233,13 @@ export const organizationRouter = router({
     accept: protectedProcedure
       .input(z.object({ token: z.string().min(1) }))
       .mutation(async ({ ctx, input }) => {
-        return acceptInvite(ctx.supabase, ctx.user, input.token);
+        const accepted = await acceptInvite(
+          ctx.supabase,
+          ctx.user,
+          input.token,
+        );
+        await ctx.cache.del(cacheKeys.orgList(ctx.user.id));
+        return accepted;
       }),
   }),
 });

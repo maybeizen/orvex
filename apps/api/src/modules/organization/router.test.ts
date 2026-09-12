@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { expect, test } from "vitest";
 import type { ContextRequest } from "../../trpc/context.js";
 import { appRouter } from "../../trpc/router.js";
+import { withCache } from "../../trpc/test-context.js";
 import {
   createOrganizationMemory,
   inviteRow,
@@ -18,11 +19,13 @@ function caller(
   supabase: ReturnType<typeof createOrganizationMemory>["supabase"],
   user = orgTestUser,
 ) {
-  return appRouter.createCaller({
-    user,
-    req,
-    supabase,
-  });
+  return appRouter.createCaller(
+    withCache({
+      user,
+      req,
+      supabase,
+    }),
+  );
 }
 
 const createFreeInput = {
