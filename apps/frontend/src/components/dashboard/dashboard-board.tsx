@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ConsolePanel, EmptyPanel } from "@/components/console/console-panel";
-import { StatusPip } from "@/components/console/status-pip";
+import { StatusMark, StatusPip } from "@/components/console/status-pip";
 import { cn } from "@/lib/cn";
 import {
   INCIDENTS,
@@ -9,14 +9,22 @@ import {
   PROBE_REGIONS,
   STATUS_PAGES,
   enabledRegionCodes,
+  formatCheckTime,
+  formatLatency,
+  openIncidents,
+  recentEvents,
+  worstChecks,
+  type CheckStatus,
+  type MonitorRecord,
 } from "@/lib/console";
+import { HostInstrumentBoard } from "@/components/monitors/host-instrument";
 import { MonitorTable } from "@/components/monitors/monitor-table";
 
 export function MonitorSnapshot() {
   return (
     <ConsolePanel
-      title="Monitors"
-      description="Checks on this frequency"
+      title="Armed checks"
+      description="Worst first when the catalog has rows"
       padded={MONITORS.length === 0}
       action={
         <Button asChild variant="ghost" size="xs">
@@ -27,7 +35,7 @@ export function MonitorSnapshot() {
       {MONITORS.length === 0 ? (
         <EmptyPanel
           title="No checks armed"
-          body="HTTP, keyword, ping, port, heartbeat, and agent targets will land here once the probe core is connected."
+          body="HTTP, keyword, ping, port, heartbeat, and agent targets land here from the same catalog the list uses."
           action={
             <Button asChild size="sm">
               <Link to="/monitors/new">Create monitor</Link>
@@ -42,38 +50,142 @@ export function MonitorSnapshot() {
 }
 
 export function IncidentSnapshot() {
+  const open = openIncidents(INCIDENTS);
+
   return (
     <ConsolePanel
-      title="Incidents"
+      title="Current incidents"
       description="Open faults on this workspace"
-      padded={INCIDENTS.length === 0}
+      padded={open.length === 0}
       action={
         <Button asChild variant="ghost" size="xs">
           <Link to="/incidents">All events</Link>
         </Button>
       }
     >
-      {INCIDENTS.length === 0 ? (
+      {open.length === 0 ? (
         <EmptyPanel
           title="Board is clear"
           body="When a check fails consecutive probes, the incident opens here with the same event the status page will publish."
         />
-      ) : null}
+      ) : (
+        <ul className="flex flex-col">
+          {open.map((incident) => (
+            <li
+              key={incident.id}
+              className="border-b border-border last:border-b-0"
+            >
+              <Link
+                to={`/incidents/${incident.id}`}
+                className="flex items-start justify-between gap-3 px-1 py-2.5"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{incident.monitorName}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {incident.summary}
+                  </p>
+                </div>
+                <StatusMark status={incident.severity} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </ConsolePanel>
+  );
+}
+
+export function WorstChecks() {
+  const worst = worstChecks(MONITORS);
+
+  return (
+    <ConsolePanel
+      title="Worst checks"
+      description="Down and degraded before quiet rows"
+      padded={worst.length === 0}
+    >
+      {worst.length === 0 ? (
+        <EmptyPanel
+          className="min-h-[10rem]"
+          title="No ranked checks"
+          body="Faulting HTTP, keyword, and port targets sort here by status, then latency."
+        />
+      ) : (
+        <ul className="flex flex-col">
+          {worst.map((monitor) => (
+            <WorstRow key={monitor.id} monitor={monitor} />
+          ))}
+        </ul>
+      )}
+    </ConsolePanel>
+  );
+}
+
+function WorstRow({ monitor }: { monitor: MonitorRecord }) {
+  return (
+    <li className="border-b border-border last:border-b-0">
+      <Link
+        to={`/monitors/${monitor.id}`}
+        className="flex items-center justify-between gap-3 px-1 py-2"
+      >
+        <div className="min-w-0">
+          <p className="truncate text-sm">{monitor.name}</p>
+          <p className="truncate font-mono text-[11px] text-muted-foreground">
+            {monitor.target}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <StatusMark status={monitor.status} />
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {formatLatency(monitor.latencyMs)}
+          </span>
+        </div>
+      </Link>
+    </li>
   );
 }
 
 export function RegionBoard({ regionLimit }: { regionLimit: string }) {
   const enabled = new Set(enabledRegionCodes(regionLimit));
+  const byRegion = new Map<
+    string,
+    { up: number; down: number; total: number }
+  >();
+
+  for (const region of PROBE_REGIONS) {
+    byRegion.set(region.code, { up: 0, down: 0, total: 0 });
+  }
+  for (const monitor of MONITORS) {
+    for (const code of monitor.regionCodes) {
+      const bucket = byRegion.get(code);
+      if (bucket === undefined) {
+        continue;
+      }
+      bucket.total += 1;
+      if (monitor.status === "up") {
+        bucket.up += 1;
+      }
+      if (monitor.status === "down" || monitor.status === "degraded") {
+        bucket.down += 1;
+      }
+    }
+  }
 
   return (
     <ConsolePanel
-      title="Regions"
+      title="Region health"
       description={`${String(enabled.size)} of ${String(PROBE_REGIONS.length)} edges on plan`}
     >
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {PROBE_REGIONS.map((region) => {
           const onPlan = enabled.has(region.code);
+          const stats = byRegion.get(region.code);
+          const tone: CheckStatus | "paused" =
+            !onPlan || stats === undefined || stats.total === 0
+              ? "paused"
+              : stats.down > 0
+                ? "down"
+                : "up";
           return (
             <li
               key={region.code}
@@ -90,13 +202,94 @@ export function RegionBoard({ regionLimit }: { regionLimit: string }) {
                   {region.city} · {region.label}
                 </p>
               </div>
-              <span className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
-                {onPlan ? "Idle" : "Off plan"}
-              </span>
+              <div className="flex flex-col items-end gap-1">
+                <StatusPip status={tone} />
+                <span className="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
+                  {!onPlan
+                    ? "Off plan"
+                    : stats !== undefined && stats.total > 0
+                      ? `${String(stats.up)}/${String(stats.total)}`
+                      : "Idle"}
+                </span>
+              </div>
             </li>
           );
         })}
       </ul>
+    </ConsolePanel>
+  );
+}
+
+export function EventTape() {
+  const events = recentEvents(INCIDENTS, MONITORS);
+
+  return (
+    <ConsolePanel
+      title="Last events"
+      description="Incidents and last probes on one tape"
+      padded={events.length === 0}
+    >
+      {events.length === 0 ? (
+        <EmptyPanel
+          className="min-h-[10rem]"
+          title="Tape is quiet"
+          body="Probe completions and incident opens will list here from the live catalog. Nothing is mocked."
+        />
+      ) : (
+        <ul className="flex flex-col">
+          {events.map((event) =>
+            event.kind === "incident" ? (
+              <li
+                key={`inc-${event.incident.id}`}
+                className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-b-0"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm">
+                    {event.incident.monitorName}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {event.incident.summary}
+                  </p>
+                </div>
+                <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                  {formatCheckTime(event.at)}
+                </span>
+              </li>
+            ) : (
+              <li
+                key={`chk-${event.monitor.id}-${event.at}`}
+                className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-b-0"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{event.monitor.name}</p>
+                  <p className="truncate font-mono text-[11px] text-muted-foreground">
+                    last probe
+                  </p>
+                </div>
+                <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                  {formatCheckTime(event.at)}
+                </span>
+              </li>
+            ),
+          )}
+        </ul>
+      )}
+    </ConsolePanel>
+  );
+}
+
+export function HostSnapshot() {
+  return (
+    <ConsolePanel
+      title="Host instruments"
+      description="Heartbeat and agent telemetry"
+      action={
+        <Button asChild variant="ghost" size="xs">
+          <Link to="/monitors">Agents</Link>
+        </Button>
+      }
+    >
+      <HostInstrumentBoard monitors={MONITORS} />
     </ConsolePanel>
   );
 }
