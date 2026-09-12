@@ -112,11 +112,11 @@ export function ErrorPanel({
     <div
       role="alert"
       className={cn(
-        "flex min-h-[11rem] flex-col items-start justify-center gap-2 border border-[#D12B2B]/30 bg-[#D12B2B]/5 px-4 py-6 dark:border-[#F04343]/35 dark:bg-[#F04343]/8",
+        "flex min-h-[11rem] flex-col items-start justify-center gap-2 border border-destructive/30 bg-destructive/5 px-4 py-6",
         className,
       )}
     >
-      <p className="font-mono text-[10px] tracking-[0.18em] text-[#D12B2B] uppercase dark:text-[#F04343]">
+      <p className="font-mono text-[10px] tracking-[0.18em] text-destructive uppercase">
         Fault
       </p>
       <p className="font-heading text-sm">{title}</p>

@@ -14,17 +14,17 @@ export const CHECK_STATUS_LABEL: Record<CheckStatus, string> = {
 };
 
 export const CHECK_STATUS_PIP: Record<CheckStatus, string> = {
-  up: "bg-[#0D9F75] dark:bg-[#3DDCB0]",
-  down: "bg-[#D12B2B] dark:bg-[#F04343]",
-  degraded: "bg-[#C47D12] dark:bg-[#F5A524]",
-  paused: "bg-[#6B7380] dark:bg-[#8B95A3]",
+  up: "bg-success",
+  down: "bg-destructive",
+  degraded: "bg-warning",
+  paused: "bg-muted-foreground",
 };
 
 export const CHECK_STATUS_TEXT: Record<CheckStatus, string> = {
-  up: "text-[#0D9F75] dark:text-[#3DDCB0]",
-  down: "text-[#D12B2B] dark:text-[#F04343]",
-  degraded: "text-[#C47D12] dark:text-[#F5A524]",
-  paused: "text-[#6B7380] dark:text-[#8B95A3]",
+  up: "text-success",
+  down: "text-destructive",
+  degraded: "text-warning",
+  paused: "text-muted-foreground",
 };
 
 export const MONITOR_TYPE_LABEL: Record<MonitorType, string> = {
