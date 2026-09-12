@@ -63,40 +63,40 @@ test("landing cards stay the three paid plans", () => {
 test("free plan is in the shared catalog", () => {
   const free = getPlan("free");
   expect(free.monthlyUsd).toBe(0);
-  expect(free.limits.monitors).toBe("5");
-  expect(free.limits.seats).toBe("1");
-  expect(free.limits.interval).toBe("5 min");
+  expect(free.limits.monitors).toBe("15");
+  expect(free.limits.seats).toBe("2");
+  expect(free.limits.interval).toBe("60s");
   expect(free.limits.regions).toBe("1");
   expect(free.limits.routing).toBe("Email");
-  expect(free.limits.statusPage).toBeNull();
+  expect(free.limits.statusPage).toBe("1 page");
   expect(free.limits.agent).toBeNull();
   expect(free.limits.sso).toBeNull();
 });
 
-test("paid plan limits stay unchanged", () => {
+test("paid plan limits stay generous", () => {
   expect(getPlan("probe").limits).toEqual({
-    monitors: "20",
-    seats: "1",
-    interval: "60s",
-    regions: "1",
-    routing: "Email",
-    statusPage: null,
-    agent: null,
-    sso: null,
-  });
-  expect(getPlan("sentinel").limits).toEqual({
-    monitors: "100",
-    seats: "5",
-    interval: "15s",
-    regions: "3",
-    routing: "Slack, Discord",
+    monitors: "50",
+    seats: "3",
+    interval: "30s",
+    regions: "2",
+    routing: "Email, Slack, Discord",
     statusPage: "1 page",
     agent: null,
     sso: null,
   });
+  expect(getPlan("sentinel").limits).toEqual({
+    monitors: "200",
+    seats: "10",
+    interval: "15s",
+    regions: "4",
+    routing: "Slack, Discord, SMS",
+    statusPage: "3 pages",
+    agent: "Included",
+    sso: null,
+  });
   expect(getPlan("command").limits).toEqual({
-    monitors: "500",
-    seats: "15",
+    monitors: "1000",
+    seats: "25",
     interval: "5s",
     regions: "All 6",
     routing: "All destinations",

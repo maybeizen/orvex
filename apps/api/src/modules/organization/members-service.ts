@@ -5,6 +5,7 @@ import type {
   OrganizationMemberList,
   OrganizationRole,
 } from "@orvex/types";
+import { presetMaskForRole } from "@orvex/types/permissions";
 import { isPlanId, planSeatLimit } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
 import {
@@ -23,8 +24,8 @@ import {
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const ROLE_MASK: Record<Exclude<OrganizationRole, "owner">, string> = {
-  admin: "3178477",
-  member: "110947",
+  admin: presetMaskForRole("admin"),
+  member: presetMaskForRole("member"),
 };
 
 export type InviteCreated = {
@@ -428,6 +429,9 @@ export async function acceptInvite(
         organization_id: invite.organization_id,
         user_id: user.id,
         role,
+        access_mode: invite.access_mode,
+        permission_mask: invite.permission_mask,
+        status: "active",
       });
     if (memberError !== null) {
       if (

@@ -3,5 +3,5 @@ import { defineConfig } from "tsdown";
 
 export default defineConfig({
   ...nodeLibrary,
-  entry: ["src/index.ts", "src/plans.ts"],
+  entry: ["src/index.ts", "src/plans.ts", "src/permissions.ts"],
 });

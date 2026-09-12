@@ -1,4 +1,5 @@
 import type { AuthUser, Organization } from "@orvex/types";
+import { presetMaskForRole } from "@orvex/types/permissions";
 import {
   isPaidPlan,
   isPlanId,
@@ -362,6 +363,9 @@ export async function createOrganization(
       organization_id: org.id,
       user_id: user.id,
       role: "owner",
+      access_mode: "preset",
+      permission_mask: presetMaskForRole("owner"),
+      status: "active",
     });
 
   if (memberError !== null) {
