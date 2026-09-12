@@ -52,3 +52,10 @@ export function selectActiveOrganization(state: OrgState): Organization | null {
   }
   return items[0] ?? null;
 }
+
+export function selectOrganizationBySlug(
+  state: OrgState,
+  slug: string,
+): Organization | null {
+  return state.items.find((item) => item.slug === slug) ?? null;
+}

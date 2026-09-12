@@ -30,6 +30,8 @@ const created = {
   planId: "free",
   billingStatus: "active",
   role: "owner",
+  memberCount: 1,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 function renderWizard() {
@@ -38,7 +40,7 @@ function renderWizard() {
       <Routes>
         <Route path="/onboarding" element={<OnboardingWizard />} />
         <Route path="/onboarding/checkout" element={<p>Checkout stub</p>} />
-        <Route path="/dashboard" element={<p>Dashboard page</p>} />
+        <Route path="/organization/:slug" element={<p>Dashboard page</p>} />
         <Route path="/terms" element={<p>Terms page</p>} />
       </Routes>
     </MemoryRouter>,

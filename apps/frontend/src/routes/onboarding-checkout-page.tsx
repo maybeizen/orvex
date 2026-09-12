@@ -60,7 +60,7 @@ export function OnboardingCheckoutPage() {
           <Button
             type="button"
             onClick={() => {
-              void navigate("/dashboard");
+              void navigate(`/organization/${organization.slug}`);
             }}
           >
             Enter workspace

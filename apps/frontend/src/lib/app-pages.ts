@@ -1,5 +1,8 @@
+import { organizationSuffix, parseOrganizationSlug } from "@/lib/org-paths";
+
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
+  "/organizations": "Organizations",
   "/monitors": "Uptime Monitors",
   "/monitors/new": "New monitor",
   "/incidents": "Incidents",
@@ -9,38 +12,59 @@ const PAGE_TITLES: Record<string, string> = {
   "/team": "Team Members",
   "/audit-log": "Audit Log",
   "/orders": "Orders",
+  "/billing": "Billing",
   "/invoices": "Invoices",
   "/referrals": "Referrals",
   "/support": "Support",
   "/docs": "Docs",
   "/changelog": "Changelog",
-  "/profile": "Profile",
-  "/settings": "Appearance",
+  "/profile": "Settings",
+  "/settings": "Settings",
   "/settings/organization": "Organization",
-  "/settings/billing": "Billing",
 };
 
+function scopedPath(pathname: string): string {
+  const slug = parseOrganizationSlug(pathname);
+  if (slug === null) {
+    return pathname;
+  }
+  const suffix = organizationSuffix(pathname);
+  if (suffix.length === 0) {
+    return "/dashboard";
+  }
+  return suffix;
+}
+
 export function appPageTitle(pathname: string): string {
-  const exact = PAGE_TITLES[pathname];
+  const path = scopedPath(pathname);
+  if (
+    parseOrganizationSlug(pathname) !== null &&
+    organizationSuffix(pathname) === "/settings"
+  ) {
+    return "Organization";
+  }
+  const exact = PAGE_TITLES[path];
   if (exact !== undefined) {
     return exact;
   }
 
-  if (/^\/monitors\/[^/]+\/edit$/.test(pathname)) {
+  if (/^\/monitors\/[^/]+\/edit$/.test(path)) {
     return "Edit monitor";
   }
-  if (/^\/monitors\/[^/]+$/.test(pathname)) {
+  if (/^\/monitors\/[^/]+$/.test(path)) {
     return "Monitor";
   }
-  if (/^\/incidents\/[^/]+$/.test(pathname)) {
+  if (/^\/incidents\/[^/]+$/.test(path)) {
     return "Incident";
   }
-  if (/^\/status-pages\/[^/]+$/.test(pathname)) {
+  if (/^\/status-pages\/[^/]+$/.test(path)) {
     return "Status page";
   }
 
   const match = Object.keys(PAGE_TITLES)
-    .filter((path) => path !== "/" && pathname.startsWith(`${path}/`))
+    .filter(
+      (candidate) => candidate !== "/" && path.startsWith(`${candidate}/`),
+    )
     .sort((left: string, right: string) => right.length - left.length)[0];
 
   if (match === undefined) {

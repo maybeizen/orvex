@@ -27,6 +27,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/cn";
 import { uploadOrganizationIcon } from "@/lib/org-icon-api";
 import { isValidOrgSlug, slugFromName } from "@/lib/organization-slug";
+import { organizationHomePath } from "@/lib/org-paths";
 import { createVanillaTrpcClient } from "@/lib/trpc";
 import { useOrgStore } from "@/stores/org-store";
 
@@ -110,7 +111,7 @@ export function OnboardingWizard() {
         return;
       }
       toast.success("Organization ready");
-      void navigate("/dashboard");
+      void navigate(organizationHomePath(next.slug));
     } catch (error) {
       const message =
         error instanceof Error

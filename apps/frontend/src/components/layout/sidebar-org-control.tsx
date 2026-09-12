@@ -3,7 +3,9 @@ import { Link } from "react-router";
 import { OrgAvatar } from "@/components/organization/org-avatar";
 import { SidebarTooltip } from "@/components/layout/sidebar-tooltip";
 import { cn } from "@/lib/cn";
+import { organizationPath, parseOrganizationSlug } from "@/lib/org-paths";
 import { selectActiveOrganization, useOrgStore } from "@/stores/org-store";
+import { useLocation } from "react-router";
 
 export function SidebarOrgControl({
   collapsed = false,
@@ -13,15 +15,17 @@ export function SidebarOrgControl({
   onNavigate?: () => void;
 }) {
   const organization = useOrgStore(selectActiveOrganization);
+  const routeSlug = parseOrganizationSlug(useLocation().pathname);
+  const slug = routeSlug ?? organization?.slug;
 
-  if (organization === null) {
+  if (organization === null || slug === undefined) {
     return null;
   }
 
   return (
     <SidebarTooltip label="Organization settings" enabled={collapsed}>
       <Link
-        to="/settings/organization"
+        to={organizationPath(slug, "/settings")}
         onClick={onNavigate}
         aria-label="Organization settings"
         className={cn(

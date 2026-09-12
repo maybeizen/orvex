@@ -2,41 +2,43 @@ import { Link } from "react-router";
 import { RequireSession } from "@/components/auth/require-session";
 import { ConsolePanel } from "@/components/console/console-panel";
 import { PageHeader } from "@/components/console/page-header";
-
-const TOPICS = [
-  {
-    title: "Uptime monitors",
-    body: "Point HTTP, TLS, keyword, heartbeat, or agent checks at systems you operate. The desk stores the configuration; the probe core is still being wired.",
-    to: "/monitors",
-    label: "Open monitors",
-  },
-  {
-    title: "Incidents",
-    body: "A failing check opens a timeline. Routing and acknowledgements will use the same events as the status page.",
-    to: "/incidents",
-    label: "Open incidents",
-  },
-  {
-    title: "Status pages",
-    body: "Public pages publish from the same incident stream. White label binds a custom domain on Command.",
-    to: "/status-pages",
-    label: "Open status pages",
-  },
-  {
-    title: "Team members",
-    body: "Team organizations can invite admins and members up to the plan seat limit. Single organizations stay at one seat.",
-    to: "/team",
-    label: "Open team members",
-  },
-  {
-    title: "Organization settings",
-    body: "Name, slug, and icon live on the organization. Profile, appearance, and sign-out stay in the avatar menu.",
-    to: "/settings/organization",
-    label: "Open organization",
-  },
-] as const;
+import { useOrgLink } from "@/lib/use-org-link";
 
 export function DocsPage() {
+  const orgLink = useOrgLink();
+  const topics = [
+    {
+      title: "Uptime monitors",
+      body: "Point HTTP, TLS, keyword, heartbeat, or agent checks at systems you operate. The desk stores the configuration; the probe core is still being wired.",
+      to: orgLink("/monitors"),
+      label: "Open monitors",
+    },
+    {
+      title: "Incidents",
+      body: "A failing check opens a timeline. Routing and acknowledgements will use the same events as the status page.",
+      to: orgLink("/incidents"),
+      label: "Open incidents",
+    },
+    {
+      title: "Status pages",
+      body: "Public pages publish from the same incident stream. White label binds a custom domain on Command.",
+      to: orgLink("/status-pages"),
+      label: "Open status pages",
+    },
+    {
+      title: "Team members",
+      body: "Team organizations can invite admins and members up to the plan seat limit. Single organizations stay at one seat.",
+      to: orgLink("/team"),
+      label: "Open team members",
+    },
+    {
+      title: "Organization settings",
+      body: "Name, slug, and icon live on the organization. Profile, appearance, and sign-out stay in the avatar menu.",
+      to: orgLink("/settings"),
+      label: "Open organization",
+    },
+  ] as const;
+
   return (
     <RequireSession
       title="Docs"
@@ -49,7 +51,7 @@ export function DocsPage() {
           description="What this desk does today. There is no separate documentation site."
         />
         <div className="grid gap-3 lg:grid-cols-2">
-          {TOPICS.map((topic) => (
+          {topics.map((topic) => (
             <ConsolePanel key={topic.title} title={topic.title}>
               <p className="text-sm text-muted-foreground text-pretty">
                 {topic.body}

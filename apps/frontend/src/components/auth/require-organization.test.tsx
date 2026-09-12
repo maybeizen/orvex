@@ -27,6 +27,8 @@ const acme = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  memberCount: 1,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 function renderGate() {

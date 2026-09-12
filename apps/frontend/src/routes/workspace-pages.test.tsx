@@ -37,6 +37,8 @@ const workspace: Organization = {
   planId: "sentinel",
   billingStatus: "active",
   role: "owner",
+  memberCount: 3,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 function signIn(): void {
@@ -78,10 +80,10 @@ test("docs page links into live product surfaces", () => {
   expect(screen.getByRole("heading", { name: "Docs" })).toBeInTheDocument();
   expect(
     screen.getByRole("link", { name: "Open team members" }),
-  ).toHaveAttribute("href", "/team");
+  ).toHaveAttribute("href", "/organization/lovelace-lab/team");
   expect(
     screen.getByRole("link", { name: "Open organization" }),
-  ).toHaveAttribute("href", "/settings/organization");
+  ).toHaveAttribute("href", "/organization/lovelace-lab/settings");
 });
 
 test("invoices page shows the empty ledger", () => {
@@ -96,6 +98,6 @@ test("invoices page shows the empty ledger", () => {
   expect(screen.getByText("No invoices yet.")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Plan" })).toHaveAttribute(
     "href",
-    "/settings/billing",
+    "/organization/lovelace-lab/billing",
   );
 });

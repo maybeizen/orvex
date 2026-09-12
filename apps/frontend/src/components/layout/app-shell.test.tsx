@@ -28,13 +28,15 @@ const acme = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  memberCount: 1,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 beforeEach(() => {
   useSidebarStore.setState({ collapsed: false });
 });
 
-function renderShell(path = "/dashboard") {
+function renderShell(path = "/organization/acme-desk") {
   useSessionStore.setState({ status: "ready", user: ada });
   useOrgStore.setState({
     status: "ready",
@@ -45,13 +47,12 @@ function renderShell(path = "/dashboard") {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/dashboard" element={<p>Dashboard body</p>} />
-          <Route path="/profile" element={<p>Profile body</p>} />
-          <Route path="/settings" element={<p>Settings body</p>} />
+          <Route path="/organization/:slug" element={<p>Dashboard body</p>} />
           <Route
-            path="/settings/organization"
+            path="/organization/:slug/settings"
             element={<p>Organization body</p>}
           />
+          <Route path="/settings" element={<p>Settings body</p>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -111,26 +112,23 @@ test("sidebar collapses to icons and keeps accessible names", () => {
   ).toHaveClass("sr-only");
 });
 
-test("breadcrumb header shows the organization and current page", () => {
-  renderShell("/profile");
+test("org breadcrumbs use the slug route and current page", () => {
+  renderShell("/organization/acme-desk");
 
   expect(
     screen.getByRole("navigation", { name: "breadcrumb" }),
   ).toHaveTextContent("Acme Desk");
   expect(
     screen.getByRole("navigation", { name: "breadcrumb" }),
-  ).toHaveTextContent("Profile");
+  ).toHaveTextContent("Dashboard");
 });
 
-test("breadcrumb header shows appearance", () => {
+test("user settings breadcrumbs stay user-scoped", () => {
   renderShell("/settings");
 
-  expect(
-    screen.getByRole("navigation", { name: "breadcrumb" }),
-  ).toHaveTextContent("Acme Desk");
-  expect(
-    screen.getByRole("navigation", { name: "breadcrumb" }),
-  ).toHaveTextContent("Appearance");
+  const crumb = screen.getByRole("navigation", { name: "breadcrumb" });
+  expect(crumb).toHaveTextContent("Settings");
+  expect(crumb).not.toHaveTextContent("Acme Desk");
 });
 
 test("sidebar keeps organization settings and hides workspace grouping", () => {
@@ -141,7 +139,7 @@ test("sidebar keeps organization settings and hides workspace grouping", () => {
   expect(screen.getByText("Billing")).toBeInTheDocument();
   expect(
     screen.getByRole("link", { name: "Organization settings" }),
-  ).toHaveAttribute("href", "/settings/organization");
+  ).toHaveAttribute("href", "/organization/acme-desk/settings");
 });
 
 test("mobile navigation opens application links", () => {

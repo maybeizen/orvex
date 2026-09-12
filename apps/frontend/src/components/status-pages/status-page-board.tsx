@@ -9,6 +9,7 @@ import { MetricStrip } from "@/components/console/metric-strip";
 import { PageHeader } from "@/components/console/page-header";
 import { StatusMark } from "@/components/console/status-pip";
 import { MONITORS, type StatusPageRecord } from "@/lib/console";
+import { useOrgLink } from "@/lib/use-org-link";
 
 export function StatusPageList({
   pages,
@@ -17,6 +18,7 @@ export function StatusPageList({
   pages: readonly StatusPageRecord[];
   planLabel: string | null;
 }) {
+  const orgLink = useOrgLink();
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -62,7 +64,7 @@ export function StatusPageList({
             {pages.map((page) => (
               <li key={page.id}>
                 <Link
-                  to={`/status-pages/${page.id}`}
+                  to={orgLink(`/status-pages/${page.id}`)}
                   className="flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-muted/40"
                 >
                   <span className="min-w-0">
@@ -87,6 +89,7 @@ export function StatusPageList({
 }
 
 export function StatusPageMissing({ id }: { id: string }) {
+  const orgLink = useOrgLink();
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -99,7 +102,7 @@ export function StatusPageMissing({ id }: { id: string }) {
         body="No pages are stored until the product core can publish one."
         action={
           <Button asChild size="sm">
-            <Link to="/status-pages">Back to status pages</Link>
+            <Link to={orgLink("/status-pages")}>Back to status pages</Link>
           </Button>
         }
       />
@@ -108,6 +111,7 @@ export function StatusPageMissing({ id }: { id: string }) {
 }
 
 export function StatusPageDetail({ page }: { page: StatusPageRecord }) {
+  const orgLink = useOrgLink();
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
@@ -122,7 +126,7 @@ export function StatusPageDetail({ page }: { page: StatusPageRecord }) {
         }
         actions={
           <Button asChild variant="ghost" size="sm">
-            <Link to="/status-pages">All pages</Link>
+            <Link to={orgLink("/status-pages")}>All pages</Link>
           </Button>
         }
       />

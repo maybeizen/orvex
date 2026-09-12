@@ -34,6 +34,8 @@ const workspace: Organization = {
   planId: "sentinel",
   billingStatus: "active",
   role: "owner",
+  memberCount: 3,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 function signIn(): void {
@@ -64,7 +66,7 @@ test("monitors list shows a designed empty catalog", () => {
   expect(screen.getByText("No monitors on this frequency")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Create monitor" })).toHaveAttribute(
     "href",
-    "/monitors/new",
+    "/organization/lovelace-lab/monitors/new",
   );
   expect(
     screen.getByRole("searchbox", { name: "Filter monitors" }),

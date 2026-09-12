@@ -25,7 +25,7 @@ test("not found page offers home and sign in", () => {
   );
 });
 
-test("forbidden page offers dashboard and sign in", () => {
+test("forbidden page offers organizations and sign in", () => {
   render(
     <MemoryRouter>
       <ForbiddenPage />
@@ -35,8 +35,8 @@ test("forbidden page offers dashboard and sign in", () => {
   expect(
     screen.getByRole("heading", { name: "Access denied" }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "Organizations" })).toHaveAttribute(
     "href",
-    "/dashboard",
+    "/organizations",
   );
 });

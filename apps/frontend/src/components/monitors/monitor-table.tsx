@@ -12,6 +12,7 @@ import {
   formatUptime,
   type MonitorRecord,
 } from "@/lib/console";
+import { useOrgLink } from "@/lib/use-org-link";
 
 const COLUMNS = [
   { key: "status", label: "Status", className: "w-[7.5rem]" },
@@ -33,16 +34,17 @@ export function MonitorTable({
 }: {
   monitors: readonly MonitorRecord[];
 }) {
+  const orgLink = useOrgLink();
   return (
     <ConsoleTable columns={COLUMNS}>
       {monitors.map((monitor) => (
-        <ConsoleRow key={monitor.id} href={`/monitors/${monitor.id}`}>
+        <ConsoleRow key={monitor.id} href={orgLink(`/monitors/${monitor.id}`)}>
           <ConsoleCell>
             <StatusMark status={monitor.status} />
           </ConsoleCell>
           <ConsoleCell>
             <Link
-              to={`/monitors/${monitor.id}`}
+              to={orgLink(`/monitors/${monitor.id}`)}
               className="block min-w-0 focus-visible:outline-none"
             >
               <span className="block truncate font-medium">{monitor.name}</span>

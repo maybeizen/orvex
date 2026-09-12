@@ -30,6 +30,8 @@ const acme = {
   planId: "free" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  memberCount: 1,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 const globex = {
@@ -41,6 +43,8 @@ const globex = {
   planId: "sentinel" as const,
   billingStatus: "active" as const,
   role: "owner" as const,
+  memberCount: 4,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 beforeEach(() => {
@@ -75,7 +79,10 @@ test("account menu switcher lists other organizations and selects one", async ()
   ).toHaveAttribute("href", "/onboarding");
   fireEvent.click(screen.getByRole("menuitem", { name: /Globex/ }));
 
-  expect(setActive).toHaveBeenCalledWith({ organizationId: globex.id });
+  expect(setActive).toHaveBeenCalledWith({
+    organizationId: globex.id,
+    organizationSlug: globex.slug,
+  });
   await vi.waitFor(() => {
     expect(useOrgStore.getState().activeOrganizationId).toBe(globex.id);
   });
@@ -83,7 +90,7 @@ test("account menu switcher lists other organizations and selects one", async ()
 
 test("breadcrumb compact control shows the active organization name", () => {
   render(
-    <MemoryRouter initialEntries={["/dashboard"]}>
+    <MemoryRouter initialEntries={["/organization/acme"]}>
       <AppBreadcrumb />
     </MemoryRouter>,
   );
@@ -94,4 +101,16 @@ test("breadcrumb compact control shows the active organization name", () => {
   expect(
     screen.getByRole("navigation", { name: "breadcrumb" }),
   ).toHaveTextContent("Dashboard");
+});
+
+test("user settings breadcrumbs omit the organization", () => {
+  render(
+    <MemoryRouter initialEntries={["/settings"]}>
+      <AppBreadcrumb />
+    </MemoryRouter>,
+  );
+
+  const crumb = screen.getByRole("navigation", { name: "breadcrumb" });
+  expect(crumb).toHaveTextContent("Settings");
+  expect(crumb).not.toHaveTextContent("Acme");
 });

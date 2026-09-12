@@ -28,6 +28,8 @@ const org: Organization = {
   planId: "probe",
   billingStatus: "pending_checkout",
   role: "owner",
+  memberCount: 1,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 function renderBilling(user: AuthUser | null = ada) {

@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { EmptyPanel } from "@/components/console/console-panel";
 import { cn } from "@/lib/cn";
 import { isHostAgent, type MonitorRecord } from "@/lib/console";
+import { useOrgLink } from "@/lib/use-org-link";
 import {
   formatBytes,
   formatLoad,
@@ -145,6 +146,7 @@ export function HostInstrumentBoard({
 }: {
   monitors: readonly MonitorRecord[];
 }) {
+  const orgLink = useOrgLink();
   const hosts = monitors.filter((monitor) => isHostAgent(monitor.type));
 
   if (hosts.length === 0) {
@@ -166,7 +168,7 @@ export function HostInstrumentBoard({
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <Link
-              to={`/monitors/${monitor.id}`}
+              to={orgLink(`/monitors/${monitor.id}`)}
               className="truncate font-mono text-[12px] text-foreground"
             >
               {monitor.name}

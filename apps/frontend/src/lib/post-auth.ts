@@ -24,7 +24,9 @@ export async function hydrateSessionUser(user: AuthUser): Promise<AuthUser> {
   return nextUser;
 }
 
-export async function pathAfterAuth(intended = "/dashboard"): Promise<string> {
+export async function pathAfterAuth(
+  intended = "/organizations",
+): Promise<string> {
   try {
     const list = await hydrateOrganizations();
     if (intended === "/reset-password") {
@@ -33,8 +35,11 @@ export async function pathAfterAuth(intended = "/dashboard"): Promise<string> {
     if (list.items.length === 0) {
       return "/onboarding";
     }
+    if (intended === "/dashboard") {
+      return "/organizations";
+    }
     return intended;
   } catch {
-    return intended;
+    return intended === "/dashboard" ? "/organizations" : intended;
   }
 }

@@ -19,8 +19,10 @@ import {
 } from "@/lib/console";
 import { HostInstrumentBoard } from "@/components/monitors/host-instrument";
 import { MonitorTable } from "@/components/monitors/monitor-table";
+import { useOrgLink } from "@/lib/use-org-link";
 
 export function MonitorSnapshot() {
+  const orgLink = useOrgLink();
   return (
     <ConsolePanel
       title="Armed checks"
@@ -28,7 +30,7 @@ export function MonitorSnapshot() {
       padded={MONITORS.length === 0}
       action={
         <Button asChild variant="ghost" size="xs">
-          <Link to="/monitors">Open list</Link>
+          <Link to={orgLink("/monitors")}>Open list</Link>
         </Button>
       }
     >
@@ -38,7 +40,7 @@ export function MonitorSnapshot() {
           body="HTTP, keyword, ping, port, heartbeat, and agent targets land here from the same catalog the list uses."
           action={
             <Button asChild size="sm">
-              <Link to="/monitors/new">Create monitor</Link>
+              <Link to={orgLink("/monitors/new")}>Create monitor</Link>
             </Button>
           }
         />
@@ -50,6 +52,7 @@ export function MonitorSnapshot() {
 }
 
 export function IncidentSnapshot() {
+  const orgLink = useOrgLink();
   const open = openIncidents(INCIDENTS);
 
   return (
@@ -59,7 +62,7 @@ export function IncidentSnapshot() {
       padded={open.length === 0}
       action={
         <Button asChild variant="ghost" size="xs">
-          <Link to="/incidents">All events</Link>
+          <Link to={orgLink("/incidents")}>All events</Link>
         </Button>
       }
     >
@@ -76,7 +79,7 @@ export function IncidentSnapshot() {
               className="border-b border-border last:border-b-0"
             >
               <Link
-                to={`/incidents/${incident.id}`}
+                to={orgLink(`/incidents/${incident.id}`)}
                 className="flex items-start justify-between gap-3 px-1 py-2.5"
               >
                 <div className="min-w-0">
@@ -122,10 +125,11 @@ export function WorstChecks() {
 }
 
 function WorstRow({ monitor }: { monitor: MonitorRecord }) {
+  const orgLink = useOrgLink();
   return (
     <li className="border-b border-border last:border-b-0">
       <Link
-        to={`/monitors/${monitor.id}`}
+        to={orgLink(`/monitors/${monitor.id}`)}
         className="flex items-center justify-between gap-3 px-1 py-2"
       >
         <div className="min-w-0">
@@ -279,13 +283,14 @@ export function EventTape() {
 }
 
 export function HostSnapshot() {
+  const orgLink = useOrgLink();
   return (
     <ConsolePanel
       title="Host instruments"
       description="Heartbeat and agent telemetry"
       action={
         <Button asChild variant="ghost" size="xs">
-          <Link to="/monitors">Agents</Link>
+          <Link to={orgLink("/monitors")}>Agents</Link>
         </Button>
       }
     >
@@ -295,13 +300,14 @@ export function HostSnapshot() {
 }
 
 export function StatusPageSnapshot() {
+  const orgLink = useOrgLink();
   return (
     <ConsolePanel
       title="Status page"
       description="Public board from the same events"
       action={
         <Button asChild variant="ghost" size="xs">
-          <Link to="/status-pages">Manage</Link>
+          <Link to={orgLink("/status-pages")}>Manage</Link>
         </Button>
       }
     >

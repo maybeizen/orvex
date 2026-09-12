@@ -14,6 +14,7 @@ import {
 } from "@/components/console/filter-bar";
 import { MetricStrip } from "@/components/console/metric-strip";
 import { PageHeader } from "@/components/console/page-header";
+import { useOrgLink } from "@/lib/use-org-link";
 import { StatusMark } from "@/components/console/status-pip";
 import {
   formatCheckTime,
@@ -34,6 +35,7 @@ export function IncidentList({
 }: {
   incidents: readonly IncidentRecord[];
 }) {
+  const orgLink = useOrgLink();
   const [query, setQuery] = useState("");
   const [state, setState] = useState<"all" | "open" | "resolved">("open");
 
@@ -70,7 +72,7 @@ export function IncidentList({
         }
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link to="/monitors">View monitors</Link>
+            <Link to={orgLink("/monitors")}>View monitors</Link>
           </Button>
         }
       />
@@ -133,13 +135,16 @@ export function IncidentList({
         ) : (
           <ConsoleTable columns={COLUMNS}>
             {filtered.map((incident) => (
-              <ConsoleRow key={incident.id} href={`/incidents/${incident.id}`}>
+              <ConsoleRow
+                key={incident.id}
+                href={orgLink(`/incidents/${incident.id}`)}
+              >
                 <ConsoleCell>
                   <StatusMark status={incident.severity} />
                 </ConsoleCell>
                 <ConsoleCell>
                   <Link
-                    to={`/incidents/${incident.id}`}
+                    to={orgLink(`/incidents/${incident.id}`)}
                     className="block min-w-0"
                   >
                     <span className="block truncate font-medium">

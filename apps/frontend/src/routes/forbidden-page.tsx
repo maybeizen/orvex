@@ -16,12 +16,12 @@ export function ForbiddenPage() {
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground text-pretty">
             You do not have a seat for this surface. Sign in with another
-            account or return to the dashboard.
+            account or return to your organizations.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild>
-            <Link to="/dashboard">Dashboard</Link>
+            <Link to="/organizations">Organizations</Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/login">Sign in</Link>

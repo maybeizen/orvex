@@ -28,6 +28,8 @@ const workspace: Organization = {
   planId: "sentinel",
   billingStatus: "active",
   role: "owner",
+  memberCount: 3,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 test("dashboard asks guests to sign in", () => {
@@ -65,10 +67,10 @@ test("signed-in dashboard shows the empty signal room", () => {
   expect(screen.getByText("No heartbeat agents")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "New monitor" })).toHaveAttribute(
     "href",
-    "/monitors/new",
+    "/organization/lovelace-lab/monitors/new",
   );
   expect(screen.getByRole("link", { name: "Agents" })).toHaveAttribute(
     "href",
-    "/monitors",
+    "/organization/lovelace-lab/monitors",
   );
 });

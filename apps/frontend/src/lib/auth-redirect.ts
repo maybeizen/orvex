@@ -14,13 +14,13 @@ export function callbackNextPath(
       ? "/reset-password"
       : type === "email_change"
         ? "/settings"
-        : "/dashboard";
+        : "/organizations";
   return safeInternalPath(search.get("next") ?? hash.get("next"), fallback);
 }
 
 export function safeInternalPath(
   value: string | null,
-  fallback = "/dashboard",
+  fallback = "/organizations",
 ): string {
   if (
     value === null ||
