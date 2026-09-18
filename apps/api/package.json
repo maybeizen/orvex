@@ -33,9 +33,9 @@
     "cors": "catalog:",
     "express": "catalog:",
     "express-rate-limit": "catalog:",
-    "file-type": "^22.0.2",
+    "file-type": "^22.1.0",
     "helmet": "catalog:",
-    "multer": "^2.3.0",
+    "multer": "^2.4.0",
     "sharp": "^0.35.4",
     "stripe": "22.6.2",
     "zod": "catalog:"
