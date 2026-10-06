@@ -41,7 +41,7 @@ jobs:
           cache: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -51,7 +51,12 @@ jobs:
         working-directory: apps/agent
         run: go build ./...
 
+      - name: Build Go probe
+        if: matrix.language == 'go'
+        working-directory: apps/probe
+        run: go build ./...
+
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
