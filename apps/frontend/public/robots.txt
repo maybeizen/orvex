@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /organization
+Disallow: /settings
+Disallow: /organizations
+Disallow: /onboarding
+Disallow: /admin
+
+Sitemap: /sitemap.xml

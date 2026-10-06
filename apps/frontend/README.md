@@ -1,7 +1,7 @@
 # @orvex/frontend
 
 The Orvex Monitor web client: a React 19 single-page app built with
-[Vite](https://vite.dev/), Tailwind CSS 4, Radix/shadcn UI, and a tRPC + React
+[Vite](https://vite.dev/), Tailwind CSS 4, Radix UI, and a tRPC + React
 Query data layer. It covers the marketing site, authentication flows,
 organization onboarding, and the signed-in application shell.
 

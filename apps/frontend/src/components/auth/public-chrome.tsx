@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BrandMark } from "@/components/marketing/brand-mark";
+import { SkipLink } from "@/components/skip-link";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/cn";
 
@@ -14,11 +15,13 @@ export function PublicChrome({
 }) {
   return (
     <div className="flex min-h-svh flex-col bg-background">
+      <SkipLink />
       <header className="flex items-center justify-between px-5 py-4 sm:px-6">
         <BrandMark />
         <ThemeToggle />
       </header>
       <main
+        id="main-content"
         className={cn(
           "flex flex-1 px-5 sm:px-6",
           align === "center"

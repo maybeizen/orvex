@@ -5,7 +5,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 export function PricingPage() {
   return (
     <MarketingShell>
-      <main>
+      <main id="main-content">
         <LandingPricing />
         <LandingCta />
       </main>

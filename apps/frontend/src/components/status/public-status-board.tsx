@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BrandMark } from "@/components/marketing/brand-mark";
+import { SkipLink } from "@/components/skip-link";
 import { StatusMark } from "@/components/console/status-pip";
 import { Button } from "@/components/ui/button";
 import { SubscribeDialog } from "./subscribe-dialog";
@@ -26,6 +27,7 @@ export function PublicStatusBoard({
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
+      <SkipLink />
       <header className="flex items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <div className="flex min-w-0 items-center gap-2">
           {logoUrl === null ? (
@@ -56,7 +58,10 @@ export function PublicStatusBoard({
         </Button>
       </header>
 
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-8 sm:px-8">
+      <main
+        id="main-content"
+        className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-8 sm:px-8"
+      >
         {payload.maintenance === null ? null : (
           <section
             role="status"
