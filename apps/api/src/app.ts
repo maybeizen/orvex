@@ -8,6 +8,7 @@ import helmet from "helmet";
 import { createCorsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error.js";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
+import { pingSupabase } from "./lib/cached.js";
 import { createAgentIngestRouter } from "./modules/agent/http.js";
 import { createStripeWebhookRouter } from "./modules/billing/http.js";
 import { createOrganizationIconRouter } from "./modules/organization/icon-routes.js";
@@ -33,8 +34,29 @@ export function createApp(env: Env): CreatedApp {
   const auth = createServerAuth(supabase);
   const app = express();
 
+  if (env.TRUST_PROXY !== undefined && env.TRUST_PROXY > 0) {
+    app.set("trust proxy", env.TRUST_PROXY);
+  }
+
   app.use(helmet());
   app.use(createCorsMiddleware(env.FRONTEND_ORIGIN));
+  app.get("/healthz", (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+  app.get("/readyz", (req, res, next) => {
+    void (async () => {
+      const [redisOk, supabaseOk] = await Promise.all([
+        cache.ping(),
+        pingSupabase(supabase),
+      ]);
+      if (!redisOk || !supabaseOk) {
+        logger.error("readiness failed", { path: req.path });
+        res.status(503).json({ ok: false });
+        return;
+      }
+      res.status(200).json({ ok: true });
+    })().catch(next);
+  });
   app.use(createRateLimitMiddleware(cache));
   app.use(
     createStripeWebhookRouter({

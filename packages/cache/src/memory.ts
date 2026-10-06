@@ -36,17 +36,18 @@ export class MemoryCache implements CacheClient {
     return Promise.resolve();
   }
 
-  async incr(key: string, ttlSeconds?: number): Promise<number> {
+  incr(key: string, ttlSeconds?: number): Promise<number> {
     const entry = this.#liveEntry(key);
     const next =
       (entry === null ? 0 : Number.parseInt(entry.value, 10) || 0) + 1;
-    if (entry === null) {
-      await this.set(key, String(next), ttlSeconds);
-      return next;
-    }
-
-    this.#store.set(key, { value: String(next), expiresAt: entry.expiresAt });
-    return next;
+    const expiresAt =
+      entry === null
+        ? ttlSeconds === undefined
+          ? null
+          : Date.now() + ttlSeconds * 1000
+        : entry.expiresAt;
+    this.#store.set(key, { value: String(next), expiresAt });
+    return Promise.resolve(next);
   }
 
   decr(key: string): Promise<number> {

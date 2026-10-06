@@ -31,11 +31,17 @@ export class RedisCache implements CacheClient {
   }
 
   async incr(key: string, ttlSeconds?: number): Promise<number> {
-    const count = await this.#client.incr(key);
-    if (ttlSeconds !== undefined && count === 1) {
-      await this.#client.expire(key, ttlSeconds);
+    if (ttlSeconds === undefined) {
+      return this.#client.incr(key);
     }
-    return count;
+
+    const count = await this.#client.eval(
+      'local n = redis.call("INCR", KEYS[1]) if n == 1 then redis.call("EXPIRE", KEYS[1], ARGV[1]) end return n',
+      1,
+      key,
+      String(ttlSeconds),
+    );
+    return typeof count === "number" ? count : Number(count);
   }
 
   async decr(key: string): Promise<number> {

@@ -266,3 +266,25 @@ test("get omits raw headers and samples or rollups read memory tables", async ()
     process.env.CRYPTO_SECRET = previous;
   }
 });
+
+test("monitor.create rejects trace and hop-by-hop headers", async () => {
+  const { org, api } = seeded("probe");
+  const trace = await api
+    .create({
+      organizationId: org.id,
+      ...httpCreate,
+      method: "TRACE" as "GET",
+    })
+    .catch((caught: unknown) => caught);
+  expect(trace).toBeInstanceOf(TRPCError);
+
+  const hostHeader = await api
+    .create({
+      organizationId: org.id,
+      ...httpCreate,
+      headers: { Host: "169.254.169.254" },
+    })
+    .catch((caught: unknown) => caught);
+  expect(hostHeader).toBeInstanceOf(TRPCError);
+  expect((hostHeader as TRPCError).code).toBe("BAD_REQUEST");
+});

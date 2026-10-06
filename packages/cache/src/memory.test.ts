@@ -45,6 +45,15 @@ test("memory backend json getOrSet and null values", async () => {
   await cache.quit();
 });
 
+test("memory backend incr counts every overlapping call", async () => {
+  const cache = createCache();
+  const writes = Array.from({ length: 50 }, () => cache.incr("rl:burst", 60));
+  const counts = await Promise.all(writes);
+  expect(new Set(counts).size).toBe(50);
+  expect(Math.max(...counts)).toBe(50);
+  await cache.quit();
+});
+
 test("memory backend incr is atomic and sets ttl on first hit", async () => {
   const cache = createCache();
 

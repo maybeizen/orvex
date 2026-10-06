@@ -1,3 +1,5 @@
+import { UnsafeUrlError } from "../../../lib/public-address.js";
+import { safePost } from "../../../lib/safe-fetch.js";
 import type { AdapterResult, ChannelAdapter, NotifyPayload } from "../types.js";
 
 export function skipped(error: string | null = null): AdapterResult {
@@ -91,7 +93,9 @@ export function createWebhookAdapter(
       const extra =
         options.headers === undefined ? {} : options.headers(secret);
 
-      return postJson(url, body, extra);
+      return postJson(url, body, extra, {
+        httpsOnly: options.requireHttps === true,
+      });
     },
   };
 }
@@ -100,21 +104,20 @@ export async function postJson(
   url: string,
   body: unknown,
   headers: Record<string, string> = {},
+  options: { httpsOnly?: boolean } = {},
 ): Promise<AdapterResult> {
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...headers,
-      },
-      body: JSON.stringify(body),
+    const response = await safePost(url, JSON.stringify(body), headers, {
+      httpsOnly: options.httpsOnly === true,
     });
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       return failed(`HTTP ${String(response.status)}`);
     }
     return sent();
   } catch (error) {
-    return failed(error instanceof Error ? error.message : "request failed");
+    if (error instanceof UnsafeUrlError) {
+      return failed("blocked destination");
+    }
+    return failed("request failed");
   }
 }

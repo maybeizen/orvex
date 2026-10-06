@@ -10,6 +10,7 @@ import { applyProbeResult, claimDueMonitors } from "../monitor/ingest.js";
 import type { MonitorClient, MonitorRow } from "../monitor/monitor-dto.js";
 import { isMonitorStatus } from "../monitor/monitor-dto.js";
 import { HttpError } from "../../utils/http-error.js";
+import { safeEqual } from "../../utils/safe-equal.js";
 
 export type ProbeIngestRouterDeps = {
   supabase: MonitorClient;
@@ -53,7 +54,7 @@ function authorizeProbe(
   if (
     expected === undefined ||
     expected.length === 0 ||
-    provided !== expected
+    !safeEqual(provided, expected)
   ) {
     return 403;
   }
@@ -91,7 +92,7 @@ async function syncAutoIncident(
 
 export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
   const router = Router();
-  router.use(express.json());
+  router.use(express.json({ limit: "32kb" }));
 
   const expectedToken =
     deps.probeServiceToken ?? process.env.PROBE_SERVICE_TOKEN;

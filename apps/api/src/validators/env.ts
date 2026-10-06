@@ -51,6 +51,12 @@ export const envSchema = z.object({
   TWILIO_AUTH_TOKEN: optionalString,
   TWILIO_FROM_NUMBER: optionalString,
   SUPPORT_INBOX: optionalString,
+  TRUST_PROXY: z.preprocess((value) => {
+    if (value === undefined || value === "") {
+      return undefined;
+    }
+    return typeof value === "number" ? value : Number(value);
+  }, z.number().int().min(0).max(5).optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;

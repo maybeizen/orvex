@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { CACHE_TTL, cacheKeys } from "../../lib/cache-keys.js";
 import { invalidateOrgCaches } from "../../lib/cached.js";
+import { clientAddress, enforceRateLimit } from "../../lib/rate-limit.js";
 import { orgProcedure } from "../../trpc/org-procedure.js";
 import {
   protectedProcedure,
@@ -347,6 +348,12 @@ export const organizationRouter = router({
     preview: publicProcedure
       .input(z.object({ token: z.string().min(1) }))
       .query(async ({ ctx, input }) => {
+        await enforceRateLimit(
+          ctx.cache,
+          `rl:invite-preview:${clientAddress(ctx.req.ip)}`,
+          30,
+          60,
+        );
         return previewInvite(ctx.supabase, input.token);
       }),
     accept: protectedProcedure

@@ -83,6 +83,19 @@ test("claim and result reject a missing probe token with 401", async () => {
   expect(result.status).toBe(401);
 });
 
+test("a different-length probe token is rejected without a server error", async () => {
+  const { base } = await listen();
+  const response = await fetch(`${base}/internal/probes/claim`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-probe-token": "x",
+    },
+    body: JSON.stringify({ region: "IAD" }),
+  });
+  expect(response.status).toBe(403);
+});
+
 test("claim and result succeed with a matching probe token", async () => {
   const { base, memory, cache, monitorId } = await listen();
   const headers = {

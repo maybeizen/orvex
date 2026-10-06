@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { cacheKeys } from "../../lib/cache-keys.js";
+import {
+  clientAddress,
+  enforceRateLimit,
+  subjectKey,
+} from "../../lib/rate-limit.js";
 import { orgProcedure, orgRefInput } from "../../trpc/org-procedure.js";
 import { publicProcedure, router } from "../../trpc/trpc.js";
 import {
@@ -291,6 +296,18 @@ export const statusPageRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await enforceRateLimit(
+        ctx.cache,
+        `rl:status-sub:ip:${clientAddress(ctx.req.ip)}`,
+        20,
+        60,
+      );
+      await enforceRateLimit(
+        ctx.cache,
+        `rl:status-sub:email:${subjectKey(input.email)}`,
+        5,
+        3_600,
+      );
       const result = await publicSubscribe(ctx.supabase, input);
       await ctx.cache.del(
         cacheKeys.statusPagePublic(result.subscriber.statusPageId),
