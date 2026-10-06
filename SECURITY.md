@@ -30,3 +30,8 @@ This repository runs several automated checks:
 - The Supabase **service role key** and any SMTP or AWS credentials are
   server-only. Do not expose them to the browser bundle — only `VITE_`-prefixed
   values are shipped to the frontend.
+- Set `TRUST_PROXY` to the number of trusted reverse proxies in production.
+  Leaving it unset ignores `X-Forwarded-For`, which prevents clients from
+  spoofing the address used for rate limits.
+- Outbound notification requests refuse non-public destinations, including
+  loopback, link-local, and private ranges, and do not follow redirects.

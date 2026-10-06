@@ -88,33 +88,46 @@ watchers. It does **not** run the Go agent — use `pnpm dev:agent` for that.
 Copy `.env.example` to `.env` and fill in values before running apps. Do not
 commit `.env` (it is git-ignored).
 
-| Variable                    | Used by  | Required  | Notes                                     |
-| --------------------------- | -------- | --------- | ----------------------------------------- |
-| `PORT`                      | API      | no        | Defaults to `3001`                        |
-| `FRONTEND_ORIGIN`           | API      | yes       | CORS origin, e.g. `http://localhost:5173` |
-| `SUPABASE_URL`              | API      | yes       | Supabase project URL                      |
-| `SUPABASE_ANON_KEY`         | API      | yes       | Supabase anon/publishable key             |
-| `SUPABASE_SERVICE_ROLE_KEY` | API      | yes       | Server-only service role key              |
-| `REDIS_URL`                 | API      | no        | When unset, cache uses in-memory store    |
-| `SMTP_HOST`                 | mail     | no        | When unset, mail send is skipped          |
-| `SMTP_PORT`                 | mail     | no        | Defaults to `587`                         |
-| `SMTP_USER`                 | mail     | no        |                                           |
-| `SMTP_PASS`                 | mail     | no        |                                           |
-| `SMTP_FROM`                 | mail     | no        |                                           |
-| `STORAGE_DRIVER`            | storage  | no        | `local` or `s3`                           |
-| `STORAGE_LOCAL_DIR`         | storage  | no        | Local blob directory                      |
-| `AWS_REGION`                | storage  | when `s3` |                                           |
-| `AWS_S3_BUCKET`             | storage  | when `s3` |                                           |
-| `AWS_ACCESS_KEY_ID`         | storage  | when `s3` |                                           |
-| `AWS_SECRET_ACCESS_KEY`     | storage  | when `s3` |                                           |
-| `VITE_API_URL`              | frontend | no        | Defaults to `http://localhost:3001`       |
-| `VITE_SUPABASE_URL`         | frontend | for login | Browser Supabase URL                      |
-| `VITE_SUPABASE_ANON_KEY`    | frontend | for login | Browser Supabase anon key                 |
-| `VITE_PASSKEYS_ENABLED`     | frontend | no        | Set `false` to hide passkey UI            |
+| Variable                    | Used by  | Required  | Notes                                                     |
+| --------------------------- | -------- | --------- | --------------------------------------------------------- |
+| `PORT`                      | API      | no        | Defaults to `3001`                                        |
+| `FRONTEND_ORIGIN`           | API      | yes       | CORS origin, e.g. `http://localhost:5173`                 |
+| `SUPABASE_URL`              | API      | yes       | Supabase project URL                                      |
+| `SUPABASE_ANON_KEY`         | API      | yes       | Supabase anon/publishable key                             |
+| `SUPABASE_SERVICE_ROLE_KEY` | API      | yes       | Server-only service role key                              |
+| `REDIS_URL`                 | API      | no        | When unset, cache uses in-memory store                    |
+| `SMTP_HOST`                 | mail     | no        | When unset, mail send is skipped                          |
+| `SMTP_PORT`                 | mail     | no        | Defaults to `587`                                         |
+| `SMTP_USER`                 | mail     | no        |                                                           |
+| `SMTP_PASS`                 | mail     | no        |                                                           |
+| `SMTP_FROM`                 | mail     | no        |                                                           |
+| `STORAGE_DRIVER`            | storage  | no        | `local` or `s3`                                           |
+| `STORAGE_LOCAL_DIR`         | storage  | no        | Local blob directory                                      |
+| `AWS_REGION`                | storage  | when `s3` |                                                           |
+| `AWS_S3_BUCKET`             | storage  | when `s3` |                                                           |
+| `AWS_ACCESS_KEY_ID`         | storage  | when `s3` |                                                           |
+| `AWS_SECRET_ACCESS_KEY`     | storage  | when `s3` |                                                           |
+| `VITE_API_URL`              | frontend | no        | Defaults to `http://localhost:3001`                       |
+| `VITE_SUPABASE_URL`         | frontend | for login | Browser Supabase URL                                      |
+| `VITE_SUPABASE_ANON_KEY`    | frontend | for login | Browser Supabase anon key                                 |
+| `VITE_PASSKEYS_ENABLED`     | frontend | no        | Set `false` to hide passkey UI                            |
+| `TRUST_PROXY`               | API      | no        | Trusted proxy hop count. Unset ignores `X-Forwarded-For`. |
 
 > [!IMPORTANT]
 > Only `VITE_`-prefixed variables are exposed to the browser bundle. Keep
-> `SUPABASE_SERVICE_ROLE_KEY` and any SMTP/AWS credentials server-side.
+> `SUPABASE_SERVICE_ROLE_KEY` and any SMTP/AWS credentials server-only.
+
+`GET /healthz` is a process liveness check. `GET /readyz` reports whether Redis
+(when configured) and Supabase respond. Neither route is rate limited.
+
+API rate limits are stored in the shared cache, so they hold across processes
+when `REDIS_URL` is set. Without Redis the limiter is in-memory and applies
+per process. Authenticated calls are keyed by a hash of the bearer token;
+probe calls by the probe token; everyone else by IP. Sign-in, registration,
+and password recovery are enforced by Supabase Auth, not this process.
+Notification webhooks must be HTTPS URLs that resolve to public addresses.
+The probe blocks cloud-metadata and link-local targets and still allows
+private-network checks, which is what an on-network probe is for.
 
 ## Scripts
 
