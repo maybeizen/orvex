@@ -14,6 +14,9 @@ import (
 type PingFunc func(ctx context.Context, host string, timeout time.Duration) error
 
 func defaultPing(ctx context.Context, host string, timeout time.Duration) error {
+	if err := guardResolved(ctx, host); err != nil {
+		return err
+	}
 	secs := int(timeout.Round(time.Second) / time.Second)
 	if secs < 1 {
 		secs = 1
@@ -61,6 +64,12 @@ func Ping(ctx context.Context, job Job, ping PingFunc, dial DialFunc) Result {
 	defer cancel()
 
 	host := hostFromTarget(job.Target)
+	if err := rejectProbeTarget(host); err != nil && host != "" {
+		result.Status = StatusDown
+		result.Error = strPtr(err.Error())
+		result.LatencyMs = int64Ptr(0)
+		return result
+	}
 	if host == "" {
 		result.Status = StatusDown
 		result.Error = strPtr(errMissingTarget.Error())
