@@ -87,5 +87,14 @@ export function loadEnv(source: NodeJS.ProcessEnv): Env {
     throw new Error(`Invalid environment: ${result.error.message}`);
   }
 
+  if (source.NODE_ENV === "production") {
+    const secret = source.CRYPTO_SECRET;
+    if (secret === undefined || secret.trim().length === 0) {
+      throw new Error(
+        "Invalid environment: CRYPTO_SECRET is required in production",
+      );
+    }
+  }
+
   return result.data;
 }

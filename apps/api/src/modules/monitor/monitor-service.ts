@@ -13,7 +13,7 @@ import type {
 import { PROBE_REGION_CODES } from "@orvex/types";
 import { getPlan, isPlanId } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
-import { cryptoKeyFromSecret } from "../../lib/crypto-key.js";
+import { requireCryptoKey } from "../../lib/crypto-key.js";
 import {
   isMonitorType,
   toCheckResultDto,
@@ -90,11 +90,7 @@ export function encryptHeadersJson(
   if (headers === undefined || Object.keys(headers).length === 0) {
     return null;
   }
-  const key = cryptoKeyFromSecret(process.env.CRYPTO_SECRET);
-  if (key === null) {
-    return null;
-  }
-  return encrypt(JSON.stringify(headers), key);
+  return encrypt(JSON.stringify(headers), requireCryptoKey());
 }
 
 function hashMonitorToken(token: string): string {
