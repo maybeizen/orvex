@@ -88,30 +88,31 @@ watchers. It does **not** run the Go agent — use `pnpm dev:agent` for that.
 Copy `.env.example` to `.env` and fill in values before running apps. Do not
 commit `.env` (it is git-ignored).
 
-| Variable                    | Used by  | Required  | Notes                                                     |
-| --------------------------- | -------- | --------- | --------------------------------------------------------- |
-| `PORT`                      | API      | no        | Defaults to `3001`                                        |
-| `FRONTEND_ORIGIN`           | API      | yes       | CORS origin, e.g. `http://localhost:5173`                 |
-| `SUPABASE_URL`              | API      | yes       | Supabase project URL                                      |
-| `SUPABASE_ANON_KEY`         | API      | yes       | Supabase anon/publishable key                             |
-| `SUPABASE_SERVICE_ROLE_KEY` | API      | yes       | Server-only service role key                              |
-| `REDIS_URL`                 | API      | no        | When unset, cache uses in-memory store                    |
-| `SMTP_HOST`                 | mail     | no        | When unset, mail send is skipped                          |
-| `SMTP_PORT`                 | mail     | no        | Defaults to `587`                                         |
-| `SMTP_USER`                 | mail     | no        |                                                           |
-| `SMTP_PASS`                 | mail     | no        |                                                           |
-| `SMTP_FROM`                 | mail     | no        |                                                           |
-| `STORAGE_DRIVER`            | storage  | no        | `local` or `s3`                                           |
-| `STORAGE_LOCAL_DIR`         | storage  | no        | Local blob directory                                      |
-| `AWS_REGION`                | storage  | when `s3` |                                                           |
-| `AWS_S3_BUCKET`             | storage  | when `s3` |                                                           |
-| `AWS_ACCESS_KEY_ID`         | storage  | when `s3` |                                                           |
-| `AWS_SECRET_ACCESS_KEY`     | storage  | when `s3` |                                                           |
-| `VITE_API_URL`              | frontend | no        | Defaults to `http://localhost:3001`                       |
-| `VITE_SUPABASE_URL`         | frontend | for login | Browser Supabase URL                                      |
-| `VITE_SUPABASE_ANON_KEY`    | frontend | for login | Browser Supabase anon key                                 |
-| `VITE_PASSKEYS_ENABLED`     | frontend | no        | Set `false` to hide passkey UI                            |
-| `TRUST_PROXY`               | API      | no        | Trusted proxy hop count. Unset ignores `X-Forwarded-For`. |
+| Variable                    | Used by  | Required   | Notes                                                                                                                                                     |
+| --------------------------- | -------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                      | API      | no         | Defaults to `3001`                                                                                                                                        |
+| `FRONTEND_ORIGIN`           | API      | yes        | CORS origin, e.g. `http://localhost:5173`                                                                                                                 |
+| `SUPABASE_URL`              | API      | yes        | Supabase project URL                                                                                                                                      |
+| `SUPABASE_ANON_KEY`         | API      | yes        | Supabase anon/publishable key                                                                                                                             |
+| `SUPABASE_SERVICE_ROLE_KEY` | API      | yes        | Server-only service role key                                                                                                                              |
+| `REDIS_URL`                 | API      | no         | When unset, cache uses in-memory store                                                                                                                    |
+| `SMTP_HOST`                 | mail     | no         | When unset, mail send is skipped                                                                                                                          |
+| `SMTP_PORT`                 | mail     | no         | Defaults to `587`                                                                                                                                         |
+| `SMTP_USER`                 | mail     | no         |                                                                                                                                                           |
+| `SMTP_PASS`                 | mail     | no         |                                                                                                                                                           |
+| `SMTP_FROM`                 | mail     | no         |                                                                                                                                                           |
+| `STORAGE_DRIVER`            | storage  | no         | `local` or `s3`                                                                                                                                           |
+| `STORAGE_LOCAL_DIR`         | storage  | no         | Local blob directory                                                                                                                                      |
+| `AWS_REGION`                | storage  | when `s3`  |                                                                                                                                                           |
+| `AWS_S3_BUCKET`             | storage  | when `s3`  |                                                                                                                                                           |
+| `AWS_ACCESS_KEY_ID`         | storage  | when `s3`  |                                                                                                                                                           |
+| `AWS_SECRET_ACCESS_KEY`     | storage  | when `s3`  |                                                                                                                                                           |
+| `VITE_API_URL`              | frontend | no         | Defaults to `http://localhost:3001`                                                                                                                       |
+| `VITE_SUPABASE_URL`         | frontend | for login  | Browser Supabase URL                                                                                                                                      |
+| `VITE_SUPABASE_ANON_KEY`    | frontend | for login  | Browser Supabase anon key                                                                                                                                 |
+| `VITE_PASSKEYS_ENABLED`     | frontend | no         | Set `false` to hide passkey UI                                                                                                                            |
+| `TRUST_PROXY`               | API      | no         | Trusted proxy hop count. Unset ignores `X-Forwarded-For`.                                                                                                 |
+| `CRYPTO_SECRET`             | API      | production | Required when `NODE_ENV` is `production`. Dev and test omit it only when a test sets the value itself. Encrypt paths refuse to store a secret without it. |
 
 > [!IMPORTANT]
 > Only `VITE_`-prefixed variables are exposed to the browser bundle. Keep
@@ -129,10 +130,12 @@ registration, and password recovery are enforced by Supabase Auth, not this
 process.
 Notification webhooks must be HTTPS URLs that resolve to public addresses.
 6to4, NAT64, and Teredo forms are checked as the address they embed, and the
-connection is pinned to that vetted address. The probe blocks cloud-metadata,
-link-local, and those same tunnel forms when they embed a metadata address.
-It still allows private-network checks, which is what an on-network probe is
-for, and it dials the address it already vetted instead of resolving again.
+connection is pinned to that vetted address. The hosted probe is the
+multi-tenant worker. It refuses loopback, unspecified, link-local, RFC1918,
+CGNAT, IPv6 unique-local, and metadata or tunnel embeddings, including
+redirects and DNS answers in those ranges, and it dials the address it already
+vetted. Customer heartbeats use the agent. The agent does not open arbitrary
+private targets.
 
 ## Scripts
 
