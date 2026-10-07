@@ -87,11 +87,7 @@ export class MemoryCache implements CacheClient {
     return token;
   }
 
-  renewLock(
-    key: string,
-    token: string,
-    ttlSeconds: number,
-  ): Promise<boolean> {
+  renewLock(key: string, token: string, ttlSeconds: number): Promise<boolean> {
     const entry = this.#liveEntry(key);
     if (entry === null || entry.value !== token) {
       return Promise.resolve(false);
