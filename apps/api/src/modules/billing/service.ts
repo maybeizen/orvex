@@ -186,17 +186,14 @@ function billingEventMayApply(
   return patchCancelsBilling(patch) && !alreadyCanceled;
 }
 
-async function commitBillingChange(
+const BILLING_COMMIT_ATTEMPTS = 3;
+
+async function writeBillingSnapshot(
   supabase: DataClient,
   organization: OrganizationRow,
   patch: Database["public"]["Tables"]["organizations"]["Update"],
   eventAt: string | null,
-  cache?: CacheClient,
 ): Promise<boolean> {
-  if (!billingEventMayApply(organization, patch, eventAt)) {
-    return false;
-  }
-
   const nextPatch = {
     ...patch,
     ...(eventAt === null ? {} : { stripe_billing_event_at: eventAt }),
@@ -217,13 +214,37 @@ async function commitBillingChange(
   if (error !== null) {
     throwDbError(error);
   }
-  if (data === null) {
-    return false;
+  return data !== null;
+}
+
+async function commitBillingChange(
+  supabase: DataClient,
+  organization: OrganizationRow,
+  patch: Database["public"]["Tables"]["organizations"]["Update"],
+  eventAt: string | null,
+  cache?: CacheClient,
+): Promise<boolean> {
+  let current = organization;
+  for (let attempt = 0; attempt < BILLING_COMMIT_ATTEMPTS; attempt += 1) {
+    if (!billingEventMayApply(current, patch, eventAt)) {
+      return false;
+    }
+    const wrote = await writeBillingSnapshot(supabase, current, patch, eventAt);
+    if (wrote) {
+      if (cache !== undefined) {
+        await invalidateOrgCaches(cache, organization.id);
+      }
+      return true;
+    }
+    current = await fetchOrganization(supabase, organization.id);
   }
-  if (cache !== undefined) {
-    await invalidateOrgCaches(cache, organization.id);
+  if (
+    patchCancelsBilling(patch) &&
+    billingEventMayApply(current, patch, eventAt)
+  ) {
+    throw new HttpError(500, "Billing cancellation was not applied");
   }
-  return true;
+  return false;
 }
 
 async function insertOrder(

@@ -4,6 +4,7 @@ import express from "express";
 import type Stripe from "stripe";
 import { afterEach, expect, test, vi } from "vitest";
 import { errorHandler } from "../../middleware/error.js";
+import type { DataClient } from "../../trpc/context.js";
 import { createStripeWebhookRouter } from "./http.js";
 import { applyStripeEvent } from "./service.js";
 import {
@@ -24,11 +25,12 @@ afterEach(() => {
 async function listen(
   memory: ReturnType<typeof createBillingMemory>,
   stripe: ReturnType<typeof createMockStripe>,
+  supabase: DataClient = memory.supabase,
 ): Promise<string> {
   const app = express();
   app.use(
     createStripeWebhookRouter({
-      supabase: memory.supabase,
+      supabase,
       stripe,
       webhookSecret: "whsec_test",
     }),
@@ -688,4 +690,315 @@ test("subscription updates follow the Stripe subscription status", async () => {
 
   expect(memory.organizations[0]?.billing_status).toBe("past_due");
   expect(memory.organizations[0]?.plan_id).toBe("probe");
+});
+
+type WriteResult = {
+  data: { id: string } | null;
+  error: { message: string } | null;
+};
+
+type OrganizationWrite = {
+  update: (body: Record<string, unknown>) => unknown;
+  maybeSingle: () => Promise<WriteResult>;
+};
+
+function readOrganizationWrite(query: object): OrganizationWrite | null {
+  const record = query as { update?: unknown; maybeSingle?: unknown };
+  if (
+    typeof record.update !== "function" ||
+    typeof record.maybeSingle !== "function"
+  ) {
+    return null;
+  }
+  return query as unknown as OrganizationWrite;
+}
+
+function armOrganizationWrite(
+  writer: OrganizationWrite,
+  intercept: (
+    body: Record<string, unknown>,
+    commit: () => Promise<WriteResult>,
+  ) => Promise<WriteResult>,
+): void {
+  const commit = writer.maybeSingle.bind(writer);
+  const originalUpdate = writer.update.bind(writer);
+  let pending: Record<string, unknown> | null = null;
+  writer.update = (body) => {
+    pending = body;
+    return originalUpdate(body);
+  };
+  writer.maybeSingle = () => {
+    const body = pending;
+    pending = null;
+    if (body === null) {
+      return commit();
+    }
+    return intercept(body, commit);
+  };
+}
+
+function withOrganizationWrites(
+  supabase: DataClient,
+  intercept: (
+    body: Record<string, unknown>,
+    commit: () => Promise<WriteResult>,
+  ) => Promise<WriteResult>,
+): DataClient {
+  const source = supabase as unknown as {
+    from: (table: string) => object;
+  };
+  return {
+    storage: supabase.storage,
+    from(table: string) {
+      const query = source.from(table);
+      if (table === "organizations") {
+        const writer = readOrganizationWrite(query);
+        if (writer !== null) {
+          armOrganizationWrite(writer, intercept);
+        }
+      }
+      return query;
+    },
+  } as unknown as DataClient;
+}
+
+function createDeferred(): {
+  promise: Promise<void>;
+  resolve: () => void;
+} {
+  const box: { resolve?: () => void } = {};
+  const promise = new Promise<void>((resolve) => {
+    box.resolve = resolve;
+  });
+  return {
+    promise,
+    resolve: () => {
+      box.resolve?.();
+    },
+  };
+}
+
+function holdMatchingWrite(
+  supabase: DataClient,
+  matches: (body: Record<string, unknown>) => boolean,
+): { client: DataClient; ready: Promise<void>; release: () => void } {
+  const ready = createDeferred();
+  const gate = createDeferred();
+  let held = false;
+  const client = withOrganizationWrites(supabase, (body, commit) => {
+    if (held || !matches(body)) {
+      return commit();
+    }
+    held = true;
+    ready.resolve();
+    return gate.promise.then(() => commit());
+  });
+  return { client, ready: ready.promise, release: gate.resolve };
+}
+
+function isCancellationPatch(body: Record<string, unknown>): boolean {
+  return body.plan_id === "free" && body.billing_status === "canceled";
+}
+
+function dropCancellationWrites(supabase: DataClient): {
+  client: DataClient;
+  attempts: () => number;
+} {
+  let attempts = 0;
+  const client = withOrganizationWrites(supabase, (body, commit) => {
+    if (!isCancellationPatch(body)) {
+      return commit();
+    }
+    attempts += 1;
+    return Promise.resolve({ data: null, error: null });
+  });
+  return {
+    client,
+    attempts: () => attempts,
+  };
+}
+
+function postStripeWebhook(base: string): Promise<Response> {
+  return fetch(`${base}/webhooks/stripe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Stripe-Signature": "t=1,v1=ok",
+    },
+    body: JSON.stringify({ type: "customer.subscription.updated" }),
+  });
+}
+
+function liveProbeMemory(): ReturnType<typeof createBillingMemory> {
+  return createBillingMemory({
+    organizations: [
+      organizationRow({
+        plan_id: "probe",
+        billing_status: "active",
+        billing_cycle: "monthly",
+        stripe_customer_id: "cus_live",
+        stripe_subscription_id: "sub_live",
+      }),
+    ],
+    members: [memberRow()],
+  });
+}
+
+test("overlapping same-second update and deletion still cancels", async () => {
+  const memory = liveProbeMemory();
+  const orgId = memory.organizations[0]?.id ?? "";
+  const created = 1_700_000_200;
+  const deleted = liveSubscriptionEvent(orgId, {
+    id: "evt_sub_deleted_overlap",
+    created,
+    type: "customer.subscription.deleted",
+    status: "canceled",
+  });
+  const updated = liveSubscriptionEvent(orgId, {
+    id: "evt_sub_updated_overlap",
+    created,
+    type: "customer.subscription.updated",
+    status: "active",
+  });
+  const gate = holdMatchingWrite(memory.supabase, isCancellationPatch);
+  const stripe = createMockStripe({
+    constructEvent: vi.fn(() => deleted),
+  });
+  const base = await listen(memory, stripe, gate.client);
+  const responsePromise = postStripeWebhook(base);
+  await gate.ready;
+  await applyStripeEvent(gate.client, updated);
+  gate.release();
+  const response = await responsePromise;
+
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual({ received: true });
+  expect(memory.organizations[0]).toEqual(
+    expect.objectContaining({
+      plan_id: "free",
+      billing_cycle: null,
+      billing_status: "canceled",
+      stripe_billing_event_at: new Date(created * 1000).toISOString(),
+    }),
+  );
+  expect(memory.orders.map((order) => order.stripe_event_id)).toEqual([
+    "evt_sub_updated_overlap",
+    "evt_sub_deleted_overlap",
+  ]);
+});
+
+test("an older update that loses the watermark compare does not restore the plan", async () => {
+  const memory = liveProbeMemory();
+  const orgId = memory.organizations[0]?.id ?? "";
+  const deletedAt = 1_700_000_200;
+  const older = liveSubscriptionEvent(orgId, {
+    id: "evt_sub_updated_older_race",
+    created: 1_700_000_100,
+    type: "customer.subscription.updated",
+    status: "active",
+  });
+  const deleted = liveSubscriptionEvent(orgId, {
+    id: "evt_sub_deleted_newer_race",
+    created: deletedAt,
+    type: "customer.subscription.deleted",
+    status: "canceled",
+  });
+  const gate = holdMatchingWrite(
+    memory.supabase,
+    (body) => body.billing_status === "active",
+  );
+  const stripe = createMockStripe({
+    constructEvent: vi.fn(() => older),
+  });
+  const base = await listen(memory, stripe, gate.client);
+  const responsePromise = postStripeWebhook(base);
+  await gate.ready;
+  await applyStripeEvent(gate.client, deleted);
+  gate.release();
+  const response = await responsePromise;
+
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual({ received: true });
+  expect(memory.organizations[0]).toEqual(
+    expect.objectContaining({
+      plan_id: "free",
+      billing_cycle: null,
+      billing_status: "canceled",
+      stripe_billing_event_at: new Date(deletedAt * 1000).toISOString(),
+    }),
+  );
+  expect(memory.orders.map((order) => order.stripe_event_id)).toEqual([
+    "evt_sub_deleted_newer_race",
+  ]);
+});
+
+test("an older deletion that loses the watermark compare is ignored", async () => {
+  const memory = liveProbeMemory();
+  const orgId = memory.organizations[0]?.id ?? "";
+  const updatedAt = 1_700_000_200;
+  const deleted = liveSubscriptionEvent(orgId, {
+    id: "evt_sub_deleted_older_race",
+    created: 1_700_000_100,
+    type: "customer.subscription.deleted",
+    status: "canceled",
+  });
+  const updated = liveSubscriptionEvent(orgId, {
+    id: "evt_sub_updated_newer_race",
+    created: updatedAt,
+    type: "customer.subscription.updated",
+    status: "active",
+  });
+  const gate = holdMatchingWrite(memory.supabase, isCancellationPatch);
+  const stripe = createMockStripe({
+    constructEvent: vi.fn(() => deleted),
+  });
+  const base = await listen(memory, stripe, gate.client);
+  const responsePromise = postStripeWebhook(base);
+  await gate.ready;
+  await applyStripeEvent(gate.client, updated);
+  gate.release();
+  const response = await responsePromise;
+
+  expect(response.status).toBe(200);
+  await expect(response.json()).resolves.toEqual({ received: true });
+  expect(memory.organizations[0]).toEqual(
+    expect.objectContaining({
+      plan_id: "probe",
+      billing_cycle: "monthly",
+      billing_status: "active",
+      stripe_billing_event_at: new Date(updatedAt * 1000).toISOString(),
+    }),
+  );
+  expect(memory.orders.map((order) => order.stripe_event_id)).toEqual([
+    "evt_sub_updated_newer_race",
+  ]);
+});
+
+test("webhook returns 5xx when a cancellation keeps losing the watermark", async () => {
+  const memory = liveProbeMemory();
+  const orgId = memory.organizations[0]?.id ?? "";
+  const deleted = liveSubscriptionEvent(orgId, {
+    id: "evt_sub_deleted_contended",
+    created: 1_700_000_200,
+    type: "customer.subscription.deleted",
+    status: "canceled",
+  });
+  const dropped = dropCancellationWrites(memory.supabase);
+  const stripe = createMockStripe({
+    constructEvent: vi.fn(() => deleted),
+  });
+  const base = await listen(memory, stripe, dropped.client);
+  const response = await postStripeWebhook(base);
+  const body = (await response.json()) as { received?: boolean };
+
+  expect(response.status).toBe(500);
+  expect(body.received).toBeUndefined();
+  expect(memory.organizations[0]).toEqual(
+    expect.objectContaining({
+      plan_id: "probe",
+      billing_status: "active",
+    }),
+  );
+  expect(memory.orders).toHaveLength(0);
+  expect(dropped.attempts()).toBe(3);
 });
