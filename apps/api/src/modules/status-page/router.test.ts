@@ -5,6 +5,7 @@ import { expect, test } from "vitest";
 import { cacheKeys } from "../../lib/cache-keys.js";
 import type { ContextRequest } from "../../trpc/context.js";
 import { withCache } from "../../trpc/test-context.js";
+import { setDomainTxtResolver } from "./domain-dns.js";
 import { statusPageRouter } from "./router.js";
 import {
   componentRow,
@@ -257,7 +258,7 @@ test("statusPage.attachComponent rejects a monitor from another org", async () =
   expect(error.code).toBe("NOT_FOUND");
 });
 
-test("statusPage.setDomain is gated to command and verifyDomain matches issued token", async () => {
+test("statusPage.setDomain is gated to command and verifyDomain requires the issued TXT record", async () => {
   const free = createStatusPageMemory({
     pages: [statusPageRow()],
   });
@@ -299,12 +300,51 @@ test("statusPage.setDomain is gated to command and verifyDomain matches issued t
   );
   expect(mismatch.code).toBe("BAD_REQUEST");
 
-  const verified = await api.verifyDomain({
-    organizationId: ORG_ID,
-    pageId: PAGE_ID,
-    token: issued.domain.value,
+  const lookedUp: string[] = [];
+  let records: readonly string[] = [];
+  setDomainTxtResolver((hostname) => {
+    lookedUp.push(hostname);
+    return Promise.resolve(records);
   });
-  expect(verified.domainVerifiedAt).toEqual(expect.any(String));
+  try {
+    const echo = asError(
+      await api
+        .verifyDomain({
+          organizationId: ORG_ID,
+          pageId: PAGE_ID,
+          token: issued.domain.value,
+        })
+        .catch((caught: unknown) => caught),
+    );
+    expect(echo.code).toBe("BAD_REQUEST");
+    expect(lookedUp).toEqual(["_orvex.status.ada.dev"]);
+
+    const unpublished = await publicCaller(command.supabase).publicGet({
+      pageSlug: "ada-status",
+      organizationSlug: "ada-labs",
+    });
+    expect(unpublished.page.customDomain).toBeNull();
+
+    records = [issued.domain.value];
+    const verified = await api.verifyDomain({
+      organizationId: ORG_ID,
+      pageId: PAGE_ID,
+      token: issued.domain.value,
+    });
+    expect(verified.domainVerifiedAt).toEqual(expect.any(String));
+    expect(lookedUp).toEqual([
+      "_orvex.status.ada.dev",
+      "_orvex.status.ada.dev",
+    ]);
+
+    const published = await publicCaller(command.supabase).publicGet({
+      pageSlug: "ada-status",
+      organizationSlug: "ada-labs",
+    });
+    expect(published.page.customDomain).toBe("status.ada.dev");
+  } finally {
+    setDomainTxtResolver(null);
+  }
 });
 
 test("statusPage.publicGet returns 200 for public and 404 for missing private and unlisted", async () => {

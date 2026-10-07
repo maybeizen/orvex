@@ -12,6 +12,14 @@ import type { CacheClient } from "@orvex/cache";
 import { CACHE_TTL, cacheKeys, hashCacheToken } from "../../lib/cache-keys.js";
 import { invalidateOrgCaches } from "../../lib/cached.js";
 import {
+  DOMAIN_LOOKUP_DEADLINE_MS,
+  currentDomainTxtResolver,
+  domainTxtName,
+  lookupTxtRecords,
+  publicDnsHostname,
+} from "./domain-dns.js";
+import type { DomainTxtResolver } from "./domain-dns.js";
+import {
   createStatusPageMailer,
   sendSubscribeConfirmation,
   type StatusPageMailer,
@@ -37,6 +45,11 @@ import {
 export type StatusPageServiceOptions = {
   mailer?: StatusPageMailer | null;
   now?: () => Date;
+};
+
+export type VerifyDomainOptions = {
+  resolveTxt?: DomainTxtResolver;
+  deadlineMs?: number;
 };
 
 type PageEntitlements = {
@@ -540,9 +553,12 @@ export async function setDomain(
   }
 
   const existing = await requirePage(supabase, organization.id, input.pageId);
+  const customDomain = publicDnsHostname(input.customDomain);
+  if (customDomain === null) {
+    badRequest("Custom domain must be a public DNS name");
+  }
   const token = issueDomainToken();
   const theme = mergeTheme(existing.theme, {}, { domainVerifyToken: token });
-  const customDomain = input.customDomain.trim().toLowerCase();
 
   const { data, error } = await supabase
     .from("status_pages")
@@ -573,6 +589,7 @@ export async function verifyDomain(
   supabase: StatusPageClient,
   organization: OrganizationRow,
   input: { pageId: string; token: string },
+  options: VerifyDomainOptions = {},
 ): Promise<StatusPage> {
   const entitlements = entitlementsForOrganization(organization);
   if (!entitlements.customDomain) {
@@ -587,6 +604,29 @@ export async function verifyDomain(
 
   if (hashCacheToken(input.token) !== hashCacheToken(stored)) {
     badRequest("Domain verification token does not match");
+  }
+
+  const hostname = publicDnsHostname(existing.custom_domain);
+  if (hostname === null) {
+    badRequest("Custom domain must be a public DNS name");
+  }
+
+  let records: readonly string[];
+  try {
+    records = await lookupTxtRecords(
+      domainTxtName(hostname),
+      options.resolveTxt ?? currentDomainTxtResolver(),
+      options.deadlineMs ?? DOMAIN_LOOKUP_DEADLINE_MS,
+    );
+  } catch {
+    badRequest("Domain verification failed");
+  }
+
+  const published = records.some(
+    (record) => hashCacheToken(record.trim()) === hashCacheToken(stored),
+  );
+  if (!published) {
+    badRequest("Domain verification failed");
   }
 
   const { data, error } = await supabase
