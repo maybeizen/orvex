@@ -25,6 +25,17 @@ test("blocks loopback, link-local, private, and metadata destinations", async ()
 
 test("classifies mapped ipv6 loopback as blocked", () => {
   expect(isBlockedAddress("::ffff:127.0.0.1")).toBe(true);
+  expect(isBlockedAddress("::ffff:7f00:1")).toBe(true);
   expect(isBlockedAddress("8.8.8.8")).toBe(false);
   expect(isBlockedAddress("not-an-ip")).toBe(true);
+});
+
+test("blocks tunnel prefixes that embed private or metadata addresses", () => {
+  expect(isBlockedAddress("2002:a9fe:a9fe::")).toBe(true);
+  expect(isBlockedAddress("2002:7f00:0001::")).toBe(true);
+  expect(isBlockedAddress("64:ff9b::a9fe:a9fe")).toBe(true);
+  expect(isBlockedAddress("64:ff9b:1::")).toBe(true);
+  expect(isBlockedAddress("2001:0:4136:e378:8000:63bf:3fff:fdd2")).toBe(true);
+  expect(isBlockedAddress("2002:0808:0808::")).toBe(false);
+  expect(isBlockedAddress("64:ff9b::808:808")).toBe(false);
 });

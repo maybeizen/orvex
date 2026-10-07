@@ -35,3 +35,5 @@ This repository runs several automated checks:
   spoofing the address used for rate limits.
 - Outbound notification requests refuse non-public destinations, including
   loopback, link-local, and private ranges, and do not follow redirects.
+  6to4 and NAT64 addresses are judged by the IPv4 they embed. Teredo and the
+  local NAT64 prefix are refused. The connection uses the vetted address.

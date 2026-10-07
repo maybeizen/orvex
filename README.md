@@ -126,8 +126,11 @@ per process. Authenticated calls are keyed by a hash of the bearer token;
 probe calls by the probe token; everyone else by IP. Sign-in, registration,
 and password recovery are enforced by Supabase Auth, not this process.
 Notification webhooks must be HTTPS URLs that resolve to public addresses.
-The probe blocks cloud-metadata and link-local targets and still allows
-private-network checks, which is what an on-network probe is for.
+6to4, NAT64, and Teredo forms are checked as the address they embed, and the
+connection is pinned to that vetted address. The probe blocks cloud-metadata,
+link-local, and those same tunnel forms when they embed a metadata address.
+It still allows private-network checks, which is what an on-network probe is
+for, and it dials the address it already vetted instead of resolving again.
 
 ## Scripts
 

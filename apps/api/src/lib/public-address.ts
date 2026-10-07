@@ -74,6 +74,79 @@ function mappedV4(address: string): string | null {
   return match?.[1] ?? null;
 }
 
+function expandIPv6(address: string): number[] | null {
+  const zone = address.toLowerCase().split("%")[0] ?? "";
+  let text = zone;
+  if (text.includes(".")) {
+    const split = text.lastIndexOf(":");
+    const v4 = text.slice(split + 1);
+    if (isIP(v4) !== 4) {
+      return null;
+    }
+    const octets = v4.split(".").map((part) => Number(part));
+    const hi = ((octets[0] ?? 0) << 8) | (octets[1] ?? 0);
+    const lo = ((octets[2] ?? 0) << 8) | (octets[3] ?? 0);
+    text = `${text.slice(0, split)}:${hi.toString(16)}:${lo.toString(16)}`;
+  }
+  const halves = text.split("::");
+  if (halves.length > 2) {
+    return null;
+  }
+  const left = halves[0] === "" ? [] : (halves[0]?.split(":") ?? []);
+  const right =
+    halves.length === 1
+      ? []
+      : halves[1] === ""
+        ? []
+        : (halves[1]?.split(":") ?? []);
+  if (halves.length === 1 && left.length !== 8) {
+    return null;
+  }
+  const missing = 8 - left.length - right.length;
+  if (missing < 0) {
+    return null;
+  }
+  const parts = [...left, ...Array<string>(missing).fill("0"), ...right];
+  if (parts.length !== 8) {
+    return null;
+  }
+  const nums = parts.map((part) =>
+    Number.parseInt(part === "" ? "0" : part, 16),
+  );
+  if (
+    nums.some((part) => !Number.isInteger(part) || part < 0 || part > 0xffff)
+  ) {
+    return null;
+  }
+  return nums;
+}
+
+function ipv4FromPair(hi: number, lo: number): string {
+  return `${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`;
+}
+
+function embeddedPrivate(address: string): boolean {
+  const parts = expandIPv6(address);
+  if (parts === null) {
+    return true;
+  }
+  if (parts[0] === 0x2002) {
+    return blocked.check(ipv4FromPair(parts[1] ?? 0, parts[2] ?? 0), "ipv4");
+  }
+  if (parts[0] === 0x64 && parts[1] === 0xff9b) {
+    if (parts[2] === 1) {
+      return true;
+    }
+    if (parts[2] === 0 && parts[3] === 0 && parts[4] === 0 && parts[5] === 0) {
+      return blocked.check(ipv4FromPair(parts[6] ?? 0, parts[7] ?? 0), "ipv4");
+    }
+  }
+  if (parts[0] === 0x2001 && parts[1] === 0) {
+    return true;
+  }
+  return false;
+}
+
 export function isBlockedAddress(address: string): boolean {
   const mapped = mappedV4(address);
   if (mapped !== null) {
@@ -84,7 +157,7 @@ export function isBlockedAddress(address: string): boolean {
     return blocked.check(address, "ipv4");
   }
   if (family === 6) {
-    return blocked.check(address, "ipv6");
+    return blocked.check(address, "ipv6") || embeddedPrivate(address);
   }
   return true;
 }

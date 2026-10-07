@@ -44,16 +44,13 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 			return guardResolved(req.Context(), req.URL.Hostname())
 		},
 		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
+			Proxy: nil,
 			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 				host, port, err := net.SplitHostPort(address)
 				if err != nil {
 					return nil, err
 				}
-				if err = guardResolved(ctx, host); err != nil {
-					return nil, err
-				}
-				return dialer.DialContext(ctx, network, net.JoinHostPort(host, port))
+				return dialPinned(ctx, dialer, network, host, port)
 			},
 			TLSClientConfig:     &tls.Config{MinVersion: tls.VersionTLS12},
 			DisableKeepAlives:   true,
@@ -98,7 +95,7 @@ func fetchHTTP(ctx context.Context, job Job) httpOutcome {
 	}
 	req.Header.Set("User-Agent", "orvex-probe")
 	for key, value := range job.Headers {
-		if allowedHeader(key) {
+		if allowedHeader(key) && !strings.ContainsAny(value, "\r\n") {
 			req.Header.Set(key, value)
 		}
 	}

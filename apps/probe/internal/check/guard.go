@@ -19,6 +19,34 @@ func isMetadataHostname(host string) bool {
 	}
 }
 
+func embeddedProbeIPv4(ip net.IP) net.IP {
+	ip = ip.To16()
+	if ip == nil || ip.To4() != nil {
+		return nil
+	}
+	if ip[0] == 0x20 && ip[1] == 0x02 {
+		return net.IPv4(ip[2], ip[3], ip[4], ip[5])
+	}
+	if ip[0] == 0x00 && ip[1] == 0x64 && ip[2] == 0xff && ip[3] == 0x9b &&
+		ip[4] == 0 && ip[5] == 0 && ip[6] == 0 && ip[7] == 0 &&
+		ip[8] == 0 && ip[9] == 0 && ip[10] == 0 && ip[11] == 0 {
+		return net.IPv4(ip[12], ip[13], ip[14], ip[15])
+	}
+	return nil
+}
+
+func isLocalNAT64(ip net.IP) bool {
+	ip = ip.To16()
+	return ip != nil && ip.To4() == nil &&
+		ip[0] == 0x00 && ip[1] == 0x64 && ip[2] == 0xff && ip[3] == 0x9b &&
+		ip[4] == 0x00 && ip[5] == 0x01
+}
+
+func isTeredo(ip net.IP) bool {
+	ip = ip.To16()
+	return ip != nil && ip.To4() == nil && ip[0] == 0x20 && ip[1] == 0x01 && ip[2] == 0 && ip[3] == 0
+}
+
 func isBlockedProbeIP(ip net.IP) bool {
 	if ip == nil {
 		return true
@@ -28,6 +56,12 @@ func isBlockedProbeIP(ip net.IP) bool {
 	}
 	if ip.Equal(net.ParseIP("fd00:ec2::254")) || ip.Equal(net.ParseIP("100.100.100.200")) {
 		return true
+	}
+	if isLocalNAT64(ip) || isTeredo(ip) {
+		return true
+	}
+	if embedded := embeddedProbeIPv4(ip); embedded != nil {
+		return isBlockedProbeIP(embedded)
 	}
 	return false
 }
@@ -43,21 +77,51 @@ func rejectProbeTarget(host string) error {
 	return nil
 }
 
-func guardResolved(ctx context.Context, host string) error {
+func vettedIPs(ctx context.Context, host string) ([]net.IP, error) {
+	host = strings.Trim(strings.TrimSpace(host), "[]")
 	if err := rejectProbeTarget(host); err != nil {
-		return err
+		return nil, err
 	}
-	if net.ParseIP(host) != nil {
-		return nil
+	if ip := net.ParseIP(host); ip != nil {
+		return []net.IP{ip}, nil
 	}
-	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	resolved, err := net.DefaultResolver.LookupIPAddr(ctx, host)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, item := range ips {
+	if len(resolved) == 0 {
+		return nil, errBlockedTarget
+	}
+	ips := make([]net.IP, 0, len(resolved))
+	for _, item := range resolved {
 		if isBlockedProbeIP(item.IP) {
-			return errBlockedTarget
+			return nil, errBlockedTarget
 		}
+		ips = append(ips, item.IP)
 	}
-	return nil
+	return ips, nil
+}
+
+func guardResolved(ctx context.Context, host string) error {
+	_, err := vettedIPs(ctx, host)
+	return err
+}
+
+func dialPinned(ctx context.Context, dialer *net.Dialer, network, host, port string) (net.Conn, error) {
+	ips, err := vettedIPs(ctx, host)
+	if err != nil {
+		return nil, err
+	}
+	var last error
+	for _, ip := range ips {
+		conn, dialErr := dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+		if dialErr == nil {
+			return conn, nil
+		}
+		last = dialErr
+	}
+	if last == nil {
+		return nil, errBlockedTarget
+	}
+	return nil, last
 }

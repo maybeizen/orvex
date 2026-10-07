@@ -13,11 +13,7 @@ var errMissingPort = errors.New("missing port")
 type DialFunc func(ctx context.Context, host string, port int, timeout time.Duration) error
 
 func defaultDial(ctx context.Context, host string, port int, timeout time.Duration) error {
-	if err := guardResolved(ctx, host); err != nil {
-		return err
-	}
-	d := net.Dialer{Timeout: timeout}
-	conn, err := d.DialContext(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
+	conn, err := dialPinned(ctx, &net.Dialer{Timeout: timeout}, "tcp", host, strconv.Itoa(port))
 	if err != nil {
 		return err
 	}
