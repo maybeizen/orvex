@@ -1,6 +1,7 @@
 import { MemoryCache } from "@orvex/cache";
 import { expect, test } from "vitest";
 import { cacheKeys } from "../../lib/cache-keys.js";
+import { HttpError } from "../../utils/http-error.js";
 import { applyProbeResult, claimDueMonitors } from "./ingest.js";
 import {
   checkResultRow,
@@ -111,6 +112,88 @@ test("applyProbeResult keeps the lock when the token does not match", async () =
   });
 
   expect(await cache.get(cacheKeys.probeLock(due.id, "IAD"))).toBe(held);
+  expect(memory.results).toHaveLength(0);
+  expect(memory.monitors[0]?.consecutive_failures).toBe(0);
+  expect(memory.monitors[0]?.last_check_at).toBe(due.last_check_at);
+});
+
+test("applyProbeResult does not persist a check for an invalid timestamp", async () => {
+  const due = dueMonitor();
+  const memory = createMonitorMemory({
+    organizations: [organizationRow()],
+    members: [memberRow()],
+    monitors: [due],
+  });
+  const cache = new MemoryCache();
+  const error = await applyProbeResult(memory.supabase, cache, {
+    monitorId: due.id,
+    region: "IAD",
+    startedAt: "not-a-timestamp",
+    latencyMs: 12,
+    status: "up",
+    httpCode: 200,
+    error: null,
+  }).catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(HttpError);
+  expect((error as HttpError).status).toBe(400);
+  expect(memory.results).toHaveLength(0);
+});
+
+test("applyProbeResult retries a stale failure count", async () => {
+  const due = dueMonitor();
+  const memory = createMonitorMemory({
+    organizations: [organizationRow()],
+    members: [memberRow()],
+    monitors: [due],
+  });
+  const cache = new MemoryCache();
+  const originalFrom = memory.supabase.from.bind(memory.supabase);
+  let monitorReads = 0;
+  const supabase = {
+    ...memory.supabase,
+    from(table: string) {
+      const query = originalFrom(table as "monitors");
+      if (table !== "monitors") {
+        return query;
+      }
+      const builder = query as unknown as {
+        maybeSingle: () => Promise<{
+          data: { consecutive_failures: number } | null;
+          error: { message: string } | null;
+        }>;
+      };
+      const read = builder.maybeSingle.bind(builder);
+      builder.maybeSingle = () =>
+        read().then((result) => {
+          if (monitorReads === 0 && result.data !== null) {
+            monitorReads += 1;
+            const row = memory.monitors.find((item) => item.id === due.id);
+            if (row !== undefined) {
+              row.consecutive_failures = 2;
+            }
+            return {
+              data: { ...result.data, consecutive_failures: 0 },
+              error: null,
+            };
+          }
+          return result;
+        });
+      return query;
+    },
+  };
+
+  await applyProbeResult(supabase, cache, {
+    monitorId: due.id,
+    region: "IAD",
+    startedAt: "2026-09-12T00:00:00.000Z",
+    latencyMs: 12,
+    status: "down",
+    httpCode: 500,
+    error: "timeout",
+  });
+
+  expect(memory.monitors[0]?.consecutive_failures).toBe(3);
 });
 
 test("applyProbeResult computes uptime from a bounded recent window", async () => {

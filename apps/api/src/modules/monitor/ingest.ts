@@ -39,7 +39,8 @@ export type ProbeResultInput = {
 
 export type ApplyProbeResultOutput = {
   monitor: MonitorRow;
-  result: CheckResultRow;
+  result: CheckResultRow | null;
+  applied: boolean;
 };
 
 export async function onProbeResult(
@@ -124,6 +125,21 @@ export async function applyProbeResult(
     throw new HttpError(404, "Monitor not found");
   }
 
+  const startedMs = Date.parse(input.startedAt);
+  if (!Number.isFinite(startedMs)) {
+    throw new HttpError(400, "Invalid result timestamp");
+  }
+
+  const lockKey = cacheKeys.probeLock(input.monitorId, input.region);
+  const held = await cache.get(lockKey);
+  const token = input.lockToken ?? "";
+  if (held !== null && held !== token) {
+    return { monitor: existing, result: null, applied: false };
+  }
+  if (token.length > 0 && held !== token) {
+    return { monitor: existing, result: null, applied: false };
+  }
+
   const startedAt = input.startedAt;
   const { data: inserted, error: insertError } = await supabase
     .from("check_results")
@@ -144,20 +160,8 @@ export async function applyProbeResult(
   }
 
   const failed = input.status === "down" || input.status === "degraded";
-  const consecutiveFailures = failed ? existing.consecutive_failures + 1 : 0;
-  let status: MonitorStatus = isMonitorStatus(existing.status)
-    ? existing.status
-    : "up";
-  if (existing.paused) {
-    status = "paused";
-  } else if (!failed) {
-    status = "up";
-  } else if (consecutiveFailures >= existing.confirmation_count) {
-    status = "down";
-  }
-
   const nextCheckAt = new Date(
-    new Date(startedAt).getTime() + existing.interval_seconds * 1000,
+    startedMs + existing.interval_seconds * 1000,
   ).toISOString();
 
   const lookbackStart = new Date(
@@ -177,29 +181,71 @@ export async function applyProbeResult(
 
   const uptimePct = computeUptimePct(samples.map((row) => row.status));
 
-  const { data: updated, error: updateError } = await supabase
-    .from("monitors")
-    .update({
-      last_check_at: startedAt,
-      last_latency_ms: input.latencyMs,
-      last_status_code: input.httpCode,
-      consecutive_failures: consecutiveFailures,
-      status,
-      next_check_at: nextCheckAt,
-      uptime_pct: uptimePct,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", input.monitorId)
-    .select()
-    .single();
+  let attempt = existing;
+  let updated: MonitorRow | null = null;
+  let savedStatus: MonitorStatus = isMonitorStatus(existing.status)
+    ? existing.status
+    : "up";
+  for (let tryIndex = 0; tryIndex < 5; tryIndex += 1) {
+    const consecutiveFailures = failed ? attempt.consecutive_failures + 1 : 0;
+    let status: MonitorStatus = isMonitorStatus(attempt.status)
+      ? attempt.status
+      : "up";
+    if (attempt.paused) {
+      status = "paused";
+    } else if (!failed) {
+      status = "up";
+    } else if (consecutiveFailures >= attempt.confirmation_count) {
+      status = "down";
+    }
 
-  if (updateError !== null) {
-    throw new HttpError(500, updateError.message);
+    const { data: saved, error: updateError } = await supabase
+      .from("monitors")
+      .update({
+        last_check_at: startedAt,
+        last_latency_ms: input.latencyMs,
+        last_status_code: input.httpCode,
+        consecutive_failures: consecutiveFailures,
+        status,
+        next_check_at: nextCheckAt,
+        uptime_pct: uptimePct,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", input.monitorId)
+      .eq("consecutive_failures", attempt.consecutive_failures)
+      .select()
+      .maybeSingle();
+
+    if (updateError !== null) {
+      throw new HttpError(500, updateError.message);
+    }
+    if (saved !== null) {
+      updated = saved;
+      savedStatus = status;
+      break;
+    }
+
+    const { data: fresh, error: freshError } = await supabase
+      .from("monitors")
+      .select("*")
+      .eq("id", input.monitorId)
+      .maybeSingle();
+    if (freshError !== null) {
+      throw new HttpError(500, freshError.message);
+    }
+    if (fresh === null) {
+      throw new HttpError(404, "Monitor not found");
+    }
+    attempt = fresh;
+  }
+
+  if (updated === null) {
+    throw new HttpError(409, "Monitor changed while saving the result");
   }
 
   await cache.set(
     cacheKeys.monitorStatus(input.monitorId),
-    status,
+    savedStatus,
     CACHE_TTL.orgMonitors,
   );
   await cache.del(cacheKeys.orgMonitors(existing.organization_id));
@@ -210,5 +256,5 @@ export async function applyProbeResult(
     );
   }
 
-  return { monitor: updated, result: inserted };
+  return { monitor: updated, result: inserted, applied: true };
 }
