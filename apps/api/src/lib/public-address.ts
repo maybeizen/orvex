@@ -16,6 +16,7 @@ blocked.addSubnet("198.51.100.0", 24, "ipv4");
 blocked.addSubnet("203.0.113.0", 24, "ipv4");
 blocked.addSubnet("224.0.0.0", 4, "ipv4");
 blocked.addAddress("255.255.255.255", "ipv4");
+blocked.addAddress("168.63.129.16", "ipv4");
 blocked.addSubnet("::", 128, "ipv6");
 blocked.addSubnet("::1", 128, "ipv6");
 blocked.addSubnet("fc00::", 7, "ipv6");
@@ -48,6 +49,67 @@ export type PublicUrl = {
   url: URL;
   addresses: ResolvedAddress[];
 };
+
+const defaultLookupTimeoutMs = 8_000;
+
+export type AddressLookup = (
+  hostname: string,
+  context: { signal: AbortSignal },
+) => Promise<Array<{ address: string; family: number }>>;
+
+export type AssertPublicUrlOptions = {
+  httpsOnly?: boolean;
+  timeoutMs?: number;
+  signal?: AbortSignal;
+  lookup?: AddressLookup;
+};
+
+type LookupAll = (
+  hostname: string,
+  options: { all: true; verbatim: true; signal: AbortSignal },
+) => Promise<Array<{ address: string; family: number }>>;
+
+const lookupAll = lookup as unknown as LookupAll;
+
+const defaultLookup: AddressLookup = (hostname, context) =>
+  lookupAll(hostname, {
+    all: true,
+    verbatim: true,
+    signal: context.signal,
+  });
+
+function asError(reason: unknown, fallback: string): Error {
+  return reason instanceof Error ? reason : new Error(fallback);
+}
+
+function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) {
+    return Promise.reject(asError(signal.reason, "aborted"));
+  }
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      reject(asError(signal.reason, "aborted"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(asError(error, "lookup failed"));
+      },
+    );
+  });
+}
+
+function lookupSignal(options?: AssertPublicUrlOptions): AbortSignal {
+  if (options?.signal !== undefined) {
+    return options.signal;
+  }
+  return AbortSignal.timeout(options?.timeoutMs ?? defaultLookupTimeoutMs);
+}
 
 function normalizeHostname(hostname: string): string {
   return hostname
@@ -135,6 +197,19 @@ function embeddedPrivate(address: string): boolean {
   if (parts === null) {
     return true;
   }
+  if (
+    parts[0] === 0 &&
+    parts[1] === 0 &&
+    parts[2] === 0 &&
+    parts[3] === 0 &&
+    parts[4] === 0 &&
+    parts[5] === 0
+  ) {
+    if ((parts[6] ?? 0) === 0 && (parts[7] ?? 0) === 0) {
+      return false;
+    }
+    return blocked.check(ipv4FromPair(parts[6] ?? 0, parts[7] ?? 0), "ipv4");
+  }
   if (parts[0] === 0x2002) {
     return blocked.check(ipv4FromPair(parts[1] ?? 0, parts[2] ?? 0), "ipv4");
   }
@@ -167,7 +242,10 @@ export function isBlockedAddress(address: string): boolean {
   return true;
 }
 
-async function resolvePublic(hostname: string): Promise<ResolvedAddress[]> {
+async function resolvePublic(
+  hostname: string,
+  options?: AssertPublicUrlOptions,
+): Promise<ResolvedAddress[]> {
   if (isBlockedName(hostname)) {
     throw new UnsafeUrlError("blocked host");
   }
@@ -185,9 +263,11 @@ async function resolvePublic(hostname: string): Promise<ResolvedAddress[]> {
     ];
   }
 
+  const signal = lookupSignal(options);
+  const lookupHost = options?.lookup ?? defaultLookup;
   let records: Array<{ address: string; family: number }>;
   try {
-    records = await lookup(hostname, { all: true, verbatim: true });
+    records = await withAbort(lookupHost(hostname, { signal }), signal);
   } catch {
     throw new UnsafeUrlError("unresolved host");
   }
@@ -211,7 +291,7 @@ async function resolvePublic(hostname: string): Promise<ResolvedAddress[]> {
 
 export async function assertPublicHttpUrl(
   raw: string,
-  options?: { httpsOnly?: boolean },
+  options?: AssertPublicUrlOptions,
 ): Promise<PublicUrl> {
   let url: URL;
   try {
@@ -231,6 +311,6 @@ export async function assertPublicHttpUrl(
   }
 
   const hostname = normalizeHostname(url.hostname);
-  const addresses = await resolvePublic(hostname);
+  const addresses = await resolvePublic(hostname, options);
   return { url, addresses };
 }

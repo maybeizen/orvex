@@ -47,6 +47,22 @@ func isTeredo(ip net.IP) bool {
 	return ip != nil && ip.To4() == nil && ip[0] == 0x20 && ip[1] == 0x01 && ip[2] == 0 && ip[3] == 0
 }
 
+func compatibleIPv4(ip net.IP) net.IP {
+	ip = ip.To16()
+	if ip == nil || ip.To4() != nil {
+		return nil
+	}
+	for i := 0; i < 12; i++ {
+		if ip[i] != 0 {
+			return nil
+		}
+	}
+	if ip[12] == 0 && ip[13] == 0 && ip[14] == 0 && ip[15] == 0 {
+		return nil
+	}
+	return net.IPv4(ip[12], ip[13], ip[14], ip[15])
+}
+
 func isBlockedProbeIP(ip net.IP) bool {
 	if ip == nil {
 		return true
@@ -54,13 +70,18 @@ func isBlockedProbeIP(ip net.IP) bool {
 	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
 		return true
 	}
-	if ip.Equal(net.ParseIP("fd00:ec2::254")) || ip.Equal(net.ParseIP("100.100.100.200")) {
+	if ip.Equal(net.ParseIP("fd00:ec2::254")) ||
+		ip.Equal(net.ParseIP("100.100.100.200")) ||
+		ip.Equal(net.ParseIP("168.63.129.16")) {
 		return true
 	}
 	if isLocalNAT64(ip) || isTeredo(ip) {
 		return true
 	}
 	if embedded := embeddedProbeIPv4(ip); embedded != nil {
+		return isBlockedProbeIP(embedded)
+	}
+	if embedded := compatibleIPv4(ip); embedded != nil {
 		return isBlockedProbeIP(embedded)
 	}
 	return false
@@ -77,6 +98,10 @@ func rejectProbeTarget(host string) error {
 	return nil
 }
 
+var lookupIPAddr = func(ctx context.Context, host string) ([]net.IPAddr, error) {
+	return net.DefaultResolver.LookupIPAddr(ctx, host)
+}
+
 func vettedIPs(ctx context.Context, host string) ([]net.IP, error) {
 	host = strings.Trim(strings.TrimSpace(host), "[]")
 	if err := rejectProbeTarget(host); err != nil {
@@ -85,7 +110,7 @@ func vettedIPs(ctx context.Context, host string) ([]net.IP, error) {
 	if ip := net.ParseIP(host); ip != nil {
 		return []net.IP{ip}, nil
 	}
-	resolved, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	resolved, err := lookupIPAddr(ctx, host)
 	if err != nil {
 		return nil, err
 	}
