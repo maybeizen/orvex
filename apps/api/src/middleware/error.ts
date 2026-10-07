@@ -13,11 +13,16 @@ export const errorHandler: ErrorRequestHandler = (
 ): void => {
   if (error instanceof HttpError) {
     if (error.status >= 500) {
+      const requestId = randomUUID();
       logger.error("request failed", {
         status: error.status,
         path: req.path,
-        requestId: randomUUID(),
+        requestId,
       });
+      res
+        .status(error.status)
+        .json({ error: "Internal server error", requestId });
+      return;
     }
     res.status(error.status).json({ error: error.message });
     return;

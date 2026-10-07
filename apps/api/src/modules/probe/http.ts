@@ -150,7 +150,7 @@ export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
         return;
       }
 
-      const { monitor } = await applyProbeResult(deps.supabase, deps.cache, {
+      const applied = await applyProbeResult(deps.supabase, deps.cache, {
         monitorId: parsed.data.monitorId,
         region: parsed.data.region,
         startedAt: parsed.data.startedAt,
@@ -160,10 +160,16 @@ export function createProbeIngestRouter(deps: ProbeIngestRouterDeps): Router {
         error: parsed.data.error,
         lockToken: parsed.data.id,
       });
-      await syncAutoIncident(deps.supabase, monitor, parsed.data.status);
+      if (applied.applied) {
+        await syncAutoIncident(
+          deps.supabase,
+          applied.monitor,
+          parsed.data.status,
+        );
+      }
       res.status(204).end();
     })().catch((caught: unknown) => {
-      if (caught instanceof HttpError) {
+      if (caught instanceof HttpError && caught.status < 500) {
         res.status(caught.status).json({ error: caught.message });
         return;
       }

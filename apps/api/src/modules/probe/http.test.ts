@@ -166,3 +166,65 @@ test("claim and result succeed with a matching probe token", async () => {
     ),
   ).toBeNull();
 });
+
+test("probe result 500s do not echo database text", async () => {
+  const app = express();
+  app.use(
+    createProbeIngestRouter({
+      supabase: {
+        from() {
+          return {
+            select() {
+              return {
+                eq() {
+                  return {
+                    maybeSingle: () =>
+                      Promise.resolve({
+                        data: null,
+                        error: {
+                          message: 'relation "secret_table" does not exist',
+                        },
+                      }),
+                  };
+                },
+              };
+            },
+          };
+        },
+      } as never,
+      cache: new MemoryCache(),
+      probeServiceToken: PROBE_TOKEN,
+    }),
+  );
+  app.use(errorHandler);
+  const server = app.listen(0);
+  servers.push(server);
+  await once(server, "listening");
+  const address = server.address() as AddressInfo;
+
+  const response = await fetch(
+    `http://127.0.0.1:${String(address.port)}/internal/probes/result`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-probe-token": PROBE_TOKEN,
+      },
+      body: JSON.stringify({
+        monitorId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        region: "IAD",
+        startedAt: "2026-09-12T00:00:00.000Z",
+        latencyMs: 12,
+        status: "up",
+        httpCode: 200,
+        error: null,
+      }),
+    },
+  );
+  const body = (await response.json()) as { error: string; requestId: string };
+  expect(response.status).toBe(500);
+  expect(body.error).toBe("Internal server error");
+  expect(body.requestId).toEqual(expect.any(String));
+  expect(JSON.stringify(body)).not.toContain("secret_table");
+  expect(JSON.stringify(body)).not.toContain("relation");
+});
