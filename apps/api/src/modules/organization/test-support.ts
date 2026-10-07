@@ -65,6 +65,7 @@ export function organizationRow(
     oidc_issuer: null,
     referral_code: "ada-labs",
     referred_by_organization_id: null,
+    stripe_billing_event_at: null,
     stripe_customer_id: null,
     stripe_subscription_id: null,
     support_email: null,
@@ -169,16 +170,26 @@ export function createOrganizationMemory(initial?: {
     let action: "select" | "insert" | "update" | "delete" = "select";
     let payload: Record<string, unknown> | null = null;
     const filters: Record<string, string | string[]> = {};
+    const nullColumns = new Set<string>();
 
     function matched(): OrganizationRow[] {
       return organizations.filter((row) => {
-        return Object.entries(filters).every(([column, value]) => {
+        const equals = Object.entries(filters).every(([column, value]) => {
           const current = row[column as keyof OrganizationRow];
           if (Array.isArray(value)) {
             return value.includes(String(current));
           }
           return String(current) === value;
         });
+        if (!equals) {
+          return false;
+        }
+        for (const column of nullColumns) {
+          if (row[column as keyof OrganizationRow] !== null) {
+            return false;
+          }
+        }
+        return true;
       });
     }
 
@@ -285,6 +296,10 @@ export function createOrganizationMemory(initial?: {
       },
       eq(column: string, value: string) {
         filters[column] = value;
+        return query;
+      },
+      is(column: string, _value: null) {
+        nullColumns.add(column);
         return query;
       },
       in(column: string, values: string[]) {
