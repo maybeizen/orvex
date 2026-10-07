@@ -157,16 +157,33 @@ function createTableBuilder<T extends Record<string, unknown>>(
   return query;
 }
 
+export type AgentOrganizationRow = {
+  id: string;
+  plan_id: string;
+  billing_status: string;
+};
+
 export function createAgentMemory(initial?: {
   monitors?: MonitorRow[];
   tokens?: MonitorTokenRow[];
+  organizations?: AgentOrganizationRow[];
 }): {
   supabase: DataClient;
   monitors: MonitorRow[];
   tokens: MonitorTokenRow[];
+  organizations: AgentOrganizationRow[];
 } {
   const monitors = [...(initial?.monitors ?? [])];
   const tokens = [...(initial?.tokens ?? [])];
+  const organizations = [
+    ...(initial?.organizations ?? [
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        plan_id: "command",
+        billing_status: "active",
+      },
+    ]),
+  ];
 
   const supabase = {
     from(table: string) {
@@ -176,9 +193,12 @@ export function createAgentMemory(initial?: {
       if (table === "monitor_tokens") {
         return createTableBuilder(tokens);
       }
+      if (table === "organizations") {
+        return createTableBuilder(organizations);
+      }
       throw new Error(`unexpected table ${table}`);
     },
   } as unknown as DataClient;
 
-  return { supabase, monitors, tokens };
+  return { supabase, monitors, tokens, organizations };
 }

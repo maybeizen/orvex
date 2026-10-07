@@ -54,6 +54,101 @@ test("claimDueMonitors stores a lock token as id and includes monitorId", async 
   expect(replay).toEqual([]);
 });
 
+test("claimDueMonitors skips paid checks for lapsed organizations", async () => {
+  const freeOrg = organizationRow({
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+    slug: "free-labs",
+    plan_id: "free",
+    billing_status: "active",
+  });
+  const canceledOrg = organizationRow({
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2",
+    slug: "canceled-labs",
+    plan_id: "command",
+    kind: "team",
+    billing_status: "canceled",
+  });
+  const pendingOrg = organizationRow({
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3",
+    slug: "pending-labs",
+    plan_id: "probe",
+    billing_status: "pending_checkout",
+  });
+  const pastDueOrg = organizationRow({
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4",
+    slug: "past-due-labs",
+    plan_id: "sentinel",
+    kind: "team",
+    billing_status: "past_due",
+  });
+  const activeOrg = organizationRow({
+    id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5",
+    slug: "active-labs",
+    plan_id: "command",
+    kind: "team",
+    billing_status: "active",
+  });
+  const freeMonitor = monitorRow({
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
+    organization_id: freeOrg.id,
+    interval_seconds: 60,
+    regions: ["IAD"],
+    next_check_at: "2020-01-01T00:00:00.000Z",
+  });
+  const fastMonitor = monitorRow({
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2",
+    organization_id: canceledOrg.id,
+    interval_seconds: 15,
+    regions: ["IAD"],
+    next_check_at: "2020-01-01T00:00:00.000Z",
+  });
+  const multiRegion = monitorRow({
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3",
+    organization_id: pendingOrg.id,
+    interval_seconds: 60,
+    regions: ["IAD", "SJC"],
+    next_check_at: "2020-01-01T00:00:00.000Z",
+  });
+  const pastDueFast = monitorRow({
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb4",
+    organization_id: pastDueOrg.id,
+    interval_seconds: 15,
+    regions: ["IAD"],
+    next_check_at: "2020-01-01T00:00:00.000Z",
+  });
+  const paidMonitor = monitorRow({
+    id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb5",
+    organization_id: activeOrg.id,
+    interval_seconds: 5,
+    regions: ["IAD", "SJC"],
+    next_check_at: "2020-01-01T00:00:00.000Z",
+  });
+  const memory = createMonitorMemory({
+    organizations: [freeOrg, canceledOrg, pendingOrg, pastDueOrg, activeOrg],
+    members: [memberRow()],
+    monitors: [fastMonitor, multiRegion, pastDueFast, freeMonitor, paidMonitor],
+  });
+  const cache = new MemoryCache();
+
+  const claimed = await claimDueMonitors(memory.supabase, cache, {
+    region: "IAD",
+    limit: 10,
+  });
+  const ids = claimed.map((row) => row.monitorId);
+
+  expect(ids).toContain(freeMonitor.id);
+  expect(ids).toContain(paidMonitor.id);
+  expect(ids).not.toContain(fastMonitor.id);
+  expect(ids).not.toContain(multiRegion.id);
+  expect(ids).not.toContain(pastDueFast.id);
+  expect(
+    await cache.get(cacheKeys.probeLock(fastMonitor.id, "IAD")),
+  ).toBeNull();
+  expect(
+    await cache.get(cacheKeys.probeLock(multiRegion.id, "IAD")),
+  ).toBeNull();
+});
+
 test("applyProbeResult releases the matching lock and busts org monitor cache", async () => {
   const due = dueMonitor();
   const memory = createMonitorMemory({

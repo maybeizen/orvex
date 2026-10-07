@@ -8,6 +8,7 @@ import {
   type MonitorClient,
   type MonitorRow,
 } from "./monitor-dto.js";
+import { monitorWithinEffectivePlan } from "./monitor-service.js";
 
 const CLAIMABLE_TYPES = ["http", "keyword", "ping", "port"] as const;
 
@@ -75,11 +76,39 @@ export async function claimDueMonitors(
   if (error !== null) {
     throw new HttpError(500, error.message);
   }
+  if (data.length === 0) {
+    return [];
+  }
+
+  const organizationIds = [...new Set(data.map((row) => row.organization_id))];
+  const { data: organizationRows, error: organizationError } = await supabase
+    .from("organizations")
+    .select("id, plan_id, billing_status")
+    .in("id", organizationIds);
+
+  if (organizationError !== null) {
+    throw new HttpError(500, organizationError.message);
+  }
+
+  const plans = new Map(
+    organizationRows.map((organization) => [organization.id, organization]),
+  );
 
   const claimed: ClaimedMonitor[] = [];
   for (const row of data) {
     if (claimed.length >= input.limit) {
       break;
+    }
+    const organization = plans.get(row.organization_id);
+    if (
+      organization === undefined ||
+      !monitorWithinEffectivePlan(
+        row,
+        organization.plan_id,
+        organization.billing_status,
+      )
+    ) {
+      continue;
     }
     const lock = await cache.acquireLock(
       cacheKeys.probeLock(row.id, input.region),
