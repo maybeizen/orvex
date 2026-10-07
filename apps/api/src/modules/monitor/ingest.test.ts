@@ -212,6 +212,61 @@ test("applyProbeResult keeps the lock when the token does not match", async () =
   expect(memory.monitors[0]?.last_check_at).toBe(due.last_check_at);
 });
 
+test("applyProbeResult ignores a result that omits the lock id", async () => {
+  const due = dueMonitor();
+  const memory = createMonitorMemory({
+    organizations: [organizationRow()],
+    members: [memberRow()],
+    monitors: [due],
+  });
+  const cache = new MemoryCache();
+
+  const applied = await applyProbeResult(memory.supabase, cache, {
+    monitorId: due.id,
+    region: "IAD",
+    startedAt: "2026-09-12T00:00:00.000Z",
+    latencyMs: 12,
+    status: "up",
+    httpCode: 200,
+    error: null,
+  });
+
+  expect(applied.applied).toBe(false);
+  expect(applied.result).toBeNull();
+  expect(memory.results).toHaveLength(0);
+  expect(memory.monitors[0]?.last_check_at).toBe(due.last_check_at);
+});
+
+test("two deliveries of one lock token insert one result", async () => {
+  const due = dueMonitor();
+  const memory = createMonitorMemory({
+    organizations: [organizationRow()],
+    members: [memberRow()],
+    monitors: [due],
+  });
+  const cache = new MemoryCache();
+  const token = await cache.acquireLock(cacheKeys.probeLock(due.id, "IAD"), 30);
+  const input = {
+    monitorId: due.id,
+    region: "IAD",
+    startedAt: "2026-09-12T00:00:00.000Z",
+    latencyMs: 12,
+    status: "up" as const,
+    httpCode: 200,
+    error: null,
+    lockToken: token ?? "",
+  };
+
+  const [first, second] = await Promise.all([
+    applyProbeResult(memory.supabase, cache, input),
+    applyProbeResult(memory.supabase, cache, input),
+  ]);
+
+  expect([first.applied, second.applied].filter(Boolean)).toHaveLength(1);
+  expect(memory.results).toHaveLength(1);
+  expect(await cache.get(cacheKeys.probeLock(due.id, "IAD"))).toBeNull();
+});
+
 test("applyProbeResult does not persist a check for an invalid timestamp", async () => {
   const due = dueMonitor();
   const memory = createMonitorMemory({
@@ -278,6 +333,7 @@ test("applyProbeResult retries a stale failure count", async () => {
     },
   };
 
+  await cache.set(cacheKeys.probeLock(due.id, "IAD"), "claim-token");
   await applyProbeResult(supabase, cache, {
     monitorId: due.id,
     region: "IAD",
@@ -286,6 +342,7 @@ test("applyProbeResult retries a stale failure count", async () => {
     status: "down",
     httpCode: 500,
     error: "timeout",
+    lockToken: "claim-token",
   });
 
   expect(memory.monitors[0]?.consecutive_failures).toBe(3);
@@ -306,6 +363,7 @@ test("applyProbeResult computes uptime from a bounded recent window", async () =
     ],
   });
   const cache = new MemoryCache();
+  await cache.set(cacheKeys.probeLock(due.id, "IAD"), "claim-token");
 
   await applyProbeResult(memory.supabase, cache, {
     monitorId: due.id,
@@ -315,6 +373,7 @@ test("applyProbeResult computes uptime from a bounded recent window", async () =
     status: "down",
     httpCode: 500,
     error: "timeout",
+    lockToken: "claim-token",
   });
 
   expect(memory.monitors[0]?.uptime_pct).toBe(0);

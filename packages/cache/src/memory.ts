@@ -87,6 +87,32 @@ export class MemoryCache implements CacheClient {
     return token;
   }
 
+  renewLock(
+    key: string,
+    token: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    const entry = this.#liveEntry(key);
+    if (entry === null || entry.value !== token) {
+      return Promise.resolve(false);
+    }
+
+    entry.expiresAt = Date.now() + ttlSeconds * 1000;
+    return Promise.resolve(true);
+  }
+
+  consumeLock(key: string, token: string): Promise<boolean> {
+    if (token.length === 0) {
+      return Promise.resolve(false);
+    }
+    const entry = this.#liveEntry(key);
+    if (entry === null || entry.value !== token) {
+      return Promise.resolve(false);
+    }
+    this.#store.delete(key);
+    return Promise.resolve(true);
+  }
+
   async releaseLock(key: string, token: string): Promise<void> {
     const current = await this.get(key);
     if (current === token) {

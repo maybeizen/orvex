@@ -189,20 +189,34 @@ export async function markMissedHeartbeats(
       continue;
     }
 
+    const selectedLastSeen = token.last_seen_at;
+    const { data: claimedToken, error: claimError } = await supabase
+      .from("monitor_tokens")
+      .update({ last_seen_at: selectedLastSeen })
+      .eq("id", token.id)
+      .eq("last_seen_at", selectedLastSeen)
+      .select("id")
+      .maybeSingle();
+    if (claimError !== null || claimedToken === null) {
+      continue;
+    }
+
     const nextFailures =
       monitor.status === "down"
         ? monitor.consecutive_failures
         : monitor.consecutive_failures + 1;
     const nowIso = now.toISOString();
-    const { error: updateError } = await supabase
+    const { data: marked, error: updateError } = await supabase
       .from("monitors")
       .update({
         status: "down",
         consecutive_failures: nextFailures,
         last_check_at: nowIso,
       })
-      .eq("id", monitor.id);
-    if (updateError !== null) {
+      .eq("id", monitor.id)
+      .select("id")
+      .maybeSingle();
+    if (updateError !== null || marked === null) {
       continue;
     }
     monitor.status = "down";

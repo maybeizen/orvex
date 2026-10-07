@@ -160,12 +160,12 @@ export async function applyProbeResult(
   }
 
   const lockKey = cacheKeys.probeLock(input.monitorId, input.region);
-  const held = await cache.get(lockKey);
-  const token = input.lockToken ?? "";
-  if (held !== null && held !== token) {
+  const token = input.lockToken?.trim() ?? "";
+  if (token.length === 0) {
     return { monitor: existing, result: null, applied: false };
   }
-  if (token.length > 0 && held !== token) {
+  const consumed = await cache.consumeLock(lockKey, token);
+  if (!consumed) {
     return { monitor: existing, result: null, applied: false };
   }
 
@@ -278,12 +278,6 @@ export async function applyProbeResult(
     CACHE_TTL.orgMonitors,
   );
   await cache.del(cacheKeys.orgMonitors(existing.organization_id));
-  if (input.lockToken !== undefined && input.lockToken.length > 0) {
-    await cache.releaseLock(
-      cacheKeys.probeLock(input.monitorId, input.region),
-      input.lockToken,
-    );
-  }
 
   return { monitor: updated, result: inserted, applied: true };
 }

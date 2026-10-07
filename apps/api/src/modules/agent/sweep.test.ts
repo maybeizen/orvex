@@ -4,7 +4,11 @@ import { afterEach, expect, test, vi } from "vitest";
 import type { DataClient } from "../../trpc/context.js";
 import { cacheKeys } from "../../lib/cache-keys.js";
 import { withCache } from "../../trpc/test-context.js";
-import { runMissedHeartbeatSweep, startMissedHeartbeatSweep } from "./sweep.js";
+import {
+  missedHeartbeatSweepLockTtlSeconds,
+  runMissedHeartbeatSweep,
+  startMissedHeartbeatSweep,
+} from "./sweep.js";
 import {
   createAgentMemory,
   monitorRow,
@@ -89,6 +93,34 @@ test("an in-flight sweep blocks a second caller", async () => {
   } finally {
     release();
     await first;
+    await cache.quit();
+  }
+});
+
+test("a long sweep renews the lock before the ttl lapses", async () => {
+  vi.useFakeTimers();
+  const cache = new MemoryCache();
+  let release = (): void => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const running = runMissedHeartbeatSweep(
+    supabase,
+    cache,
+    new Date(),
+    () => gate,
+  );
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    const token = await cache.get(cacheKeys.heartbeatSweep);
+    expect(token).toEqual(expect.any(String));
+    await vi.advanceTimersByTimeAsync(
+      (missedHeartbeatSweepLockTtlSeconds + 1) * 1000,
+    );
+    expect(await cache.get(cacheKeys.heartbeatSweep)).toBe(token);
+  } finally {
+    release();
+    await running;
     await cache.quit();
   }
 });

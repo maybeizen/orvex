@@ -1,3 +1,5 @@
+export const dependencyDeadlineMs = 2_000;
+
 export function withDeadline<T>(
   promise: Promise<T>,
   timeoutMs: number,

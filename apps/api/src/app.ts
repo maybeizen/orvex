@@ -9,7 +9,7 @@ import { createCorsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error.js";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
 import { pingSupabase } from "./lib/cached.js";
-import { withDeadline } from "./lib/deadline.js";
+import { dependencyDeadlineMs, withDeadline } from "./lib/deadline.js";
 import { createAgentIngestRouter } from "./modules/agent/http.js";
 import { createStripeWebhookRouter } from "./modules/billing/http.js";
 import { createOrganizationIconRouter } from "./modules/organization/icon-routes.js";
@@ -31,7 +31,7 @@ export type CreateAppOptions = {
   readinessTimeoutMs?: number;
 };
 
-export const readinessTimeoutMs = 2_000;
+export const readinessTimeoutMs = dependencyDeadlineMs;
 
 export const readinessRateLimitPerMinute = 60;
 

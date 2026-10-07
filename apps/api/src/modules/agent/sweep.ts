@@ -5,7 +5,8 @@ import type { DataClient } from "../../trpc/context.js";
 import { markMissedHeartbeats } from "./ingest.js";
 
 export const missedHeartbeatSweepIntervalMs = 30_000;
-export const missedHeartbeatSweepLockTtlSeconds = 25;
+export const missedHeartbeatSweepLockTtlSeconds = 60;
+const missedHeartbeatSweepRenewMs = 20_000;
 
 let sweepActive = false;
 
@@ -19,6 +20,7 @@ export async function runMissedHeartbeatSweep(
     return false;
   }
   sweepActive = true;
+  let renewTimer: ReturnType<typeof setInterval> | undefined;
   try {
     const token = await cache.acquireLock(
       cacheKeys.heartbeatSweep,
@@ -27,9 +29,20 @@ export async function runMissedHeartbeatSweep(
     if (token === null) {
       return false;
     }
+    renewTimer = setInterval(() => {
+      void cache.renewLock(
+        cacheKeys.heartbeatSweep,
+        token,
+        missedHeartbeatSweepLockTtlSeconds,
+      );
+    }, missedHeartbeatSweepRenewMs);
+    renewTimer.unref();
     await markMissed(supabase, cache, now);
     return true;
   } finally {
+    if (renewTimer !== undefined) {
+      clearInterval(renewTimer);
+    }
     sweepActive = false;
   }
 }
