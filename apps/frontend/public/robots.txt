@@ -5,5 +5,3 @@ Disallow: /settings
 Disallow: /organizations
 Disallow: /onboarding
 Disallow: /admin
-
-Sitemap: /sitemap.xml
