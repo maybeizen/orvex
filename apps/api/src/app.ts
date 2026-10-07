@@ -9,6 +9,7 @@ import { createCorsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error.js";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
 import { pingSupabase } from "./lib/cached.js";
+import { withDeadline } from "./lib/deadline.js";
 import { createAgentIngestRouter } from "./modules/agent/http.js";
 import { createStripeWebhookRouter } from "./modules/billing/http.js";
 import { createOrganizationIconRouter } from "./modules/organization/icon-routes.js";
@@ -16,17 +17,25 @@ import { createProbeIngestRouter } from "./modules/probe/http.js";
 import { createAvatarRouter } from "./modules/profile/avatar-routes.js";
 import { createContext } from "./trpc/context.js";
 import { appRouter } from "./trpc/router.js";
+import type { DataClient } from "./trpc/context.js";
 import type { Env } from "./validators/env.js";
 
 export type CreatedApp = {
   app: Express;
   logger: OrvexLogger;
   cache: CacheClient;
+  supabase: DataClient;
 };
+
+export type CreateAppOptions = {
+  readinessTimeoutMs?: number;
+};
+
+export const readinessTimeoutMs = 2_000;
 
 export const readinessRateLimitPerMinute = 60;
 
-export function createApp(env: Env): CreatedApp {
+export function createApp(env: Env, options?: CreateAppOptions): CreatedApp {
   const logger = createLogger({ service: "api" });
   const cache = createCache(env.REDIS_URL);
   const supabase = createServiceSupabaseClient({
@@ -51,19 +60,33 @@ export function createApp(env: Env): CreatedApp {
       limit: readinessRateLimitPerMinute,
       prefix: "rl:readyz:",
     }),
-    (req, res, next) => {
+    (req, res) => {
+      const timeoutMs = options?.readinessTimeoutMs ?? readinessTimeoutMs;
       void (async () => {
-        const [redisOk, supabaseOk] = await Promise.all([
-          cache.ping(),
-          pingSupabase(supabase),
-        ]);
-        if (!redisOk || !supabaseOk) {
+        try {
+          const [redisOk, supabaseOk] = await withDeadline(
+            Promise.all([
+              cache.ping().then(
+                (ok) => ok,
+                () => false,
+              ),
+              pingSupabase(supabase),
+            ]),
+            timeoutMs,
+          );
+          if (!redisOk || !supabaseOk) {
+            logger.error("readiness failed", { path: req.path });
+            res.status(503).json({ ok: false });
+            return;
+          }
+          res.status(200).json({ ok: true });
+        } catch {
           logger.error("readiness failed", { path: req.path });
-          res.status(503).json({ ok: false });
-          return;
+          if (!res.headersSent) {
+            res.status(503).json({ ok: false });
+          }
         }
-        res.status(200).json({ ok: true });
-      })().catch(next);
+      })();
     },
   );
   app.use(createRateLimitMiddleware(cache));
@@ -107,5 +130,5 @@ export function createApp(env: Env): CreatedApp {
   );
   app.use(errorHandler);
 
-  return { app, logger, cache };
+  return { app, logger, cache, supabase };
 }

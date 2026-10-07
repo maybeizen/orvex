@@ -23,6 +23,7 @@ export const cacheKeys = {
     `statuspage:${statusPageId}:public`,
   probeLock: (monitorId: string, region: string) =>
     `lock:probe:${monitorId}:${region}`,
+  heartbeatSweep: "lock:heartbeat:sweep",
 };
 
 export function hashCacheToken(value: string): string {
