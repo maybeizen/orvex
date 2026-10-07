@@ -117,14 +117,16 @@ commit `.env` (it is git-ignored).
 > Only `VITE_`-prefixed variables are exposed to the browser bundle. Keep
 > `SUPABASE_SERVICE_ROLE_KEY` and any SMTP/AWS credentials server-only.
 
-`GET /healthz` is a process liveness check. `GET /readyz` reports whether Redis
-(when configured) and Supabase respond. Neither route is rate limited.
+`GET /healthz` is a process liveness check and is not rate limited.
+`GET /readyz` reports whether Redis (when configured) and Supabase respond.
+Readiness checks are limited to 60 requests per minute per IP.
 
 API rate limits are stored in the shared cache, so they hold across processes
 when `REDIS_URL` is set. Without Redis the limiter is in-memory and applies
-per process. Authenticated calls are keyed by a hash of the bearer token;
-probe calls by the probe token; everyone else by IP. Sign-in, registration,
-and password recovery are enforced by Supabase Auth, not this process.
+per process. The process-wide limiter is keyed by client IP. `TRUST_PROXY`
+decides whether that address comes from `X-Forwarded-For`. Sign-in,
+registration, and password recovery are enforced by Supabase Auth, not this
+process.
 Notification webhooks must be HTTPS URLs that resolve to public addresses.
 6to4, NAT64, and Teredo forms are checked as the address they embed, and the
 connection is pinned to that vetted address. The probe blocks cloud-metadata,

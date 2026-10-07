@@ -24,6 +24,8 @@ export type CreatedApp = {
   cache: CacheClient;
 };
 
+export const readinessRateLimitPerMinute = 60;
+
 export function createApp(env: Env): CreatedApp {
   const logger = createLogger({ service: "api" });
   const cache = createCache(env.REDIS_URL);
@@ -43,20 +45,27 @@ export function createApp(env: Env): CreatedApp {
   app.get("/healthz", (_req, res) => {
     res.status(200).json({ ok: true });
   });
-  app.get("/readyz", (req, res, next) => {
-    void (async () => {
-      const [redisOk, supabaseOk] = await Promise.all([
-        cache.ping(),
-        pingSupabase(supabase),
-      ]);
-      if (!redisOk || !supabaseOk) {
-        logger.error("readiness failed", { path: req.path });
-        res.status(503).json({ ok: false });
-        return;
-      }
-      res.status(200).json({ ok: true });
-    })().catch(next);
-  });
+  app.get(
+    "/readyz",
+    createRateLimitMiddleware(cache, {
+      limit: readinessRateLimitPerMinute,
+      prefix: "rl:readyz:",
+    }),
+    (req, res, next) => {
+      void (async () => {
+        const [redisOk, supabaseOk] = await Promise.all([
+          cache.ping(),
+          pingSupabase(supabase),
+        ]);
+        if (!redisOk || !supabaseOk) {
+          logger.error("readiness failed", { path: req.path });
+          res.status(503).json({ ok: false });
+          return;
+        }
+        res.status(200).json({ ok: true });
+      })().catch(next);
+    },
+  );
   app.use(createRateLimitMiddleware(cache));
   app.use(
     createStripeWebhookRouter({
