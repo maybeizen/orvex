@@ -1,5 +1,6 @@
 import type { CacheClient } from "@orvex/cache";
 import { PROBE_REGION_CODES } from "@orvex/types";
+import { effectivePlanId } from "@orvex/types/plans";
 import { z } from "zod";
 import { CACHE_TTL, cacheKeys } from "../../lib/cache-keys.js";
 import { invalidateOrgCaches } from "../../lib/cached.js";
@@ -165,7 +166,10 @@ export const monitorRouter = router({
       const created = await createMonitor(
         ctx.supabase,
         ctx.organization.id,
-        ctx.organization.plan_id,
+        effectivePlanId(
+          ctx.organization.plan_id,
+          ctx.organization.billing_status,
+        ),
         ctx.user.id,
         input,
       );
@@ -178,7 +182,10 @@ export const monitorRouter = router({
       const updated = await updateMonitor(
         ctx.supabase,
         ctx.organization.id,
-        ctx.organization.plan_id,
+        effectivePlanId(
+          ctx.organization.plan_id,
+          ctx.organization.billing_status,
+        ),
         input.monitorId,
         input,
       );
@@ -232,7 +239,10 @@ export const monitorRouter = router({
       const issued = await rotateMonitorToken(
         ctx.supabase,
         ctx.organization.id,
-        ctx.organization.plan_id,
+        effectivePlanId(
+          ctx.organization.plan_id,
+          ctx.organization.billing_status,
+        ),
         input.monitorId,
         input.kind,
       );

@@ -6,7 +6,7 @@ import type {
   StatusPageVisibility,
   StatusSubscriber,
 } from "@orvex/types";
-import { isPlanId, getPlan } from "@orvex/types/plans";
+import { effectivePlanId, getPlan } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
 import type { CacheClient } from "@orvex/cache";
 import { CACHE_TTL, cacheKeys, hashCacheToken } from "../../lib/cache-keys.js";
@@ -79,8 +79,9 @@ function isUniqueViolation(error: { code?: string; message: string }): boolean {
 export function entitlementsForOrganization(
   organization: OrganizationRow,
 ): PageEntitlements {
-  const planId = isPlanId(organization.plan_id) ? organization.plan_id : "free";
-  return getPlan(planId).entitlements;
+  return getPlan(
+    effectivePlanId(organization.plan_id, organization.billing_status),
+  ).entitlements;
 }
 
 function issueToken(): string {

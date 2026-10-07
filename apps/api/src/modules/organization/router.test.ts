@@ -101,14 +101,43 @@ test("organization.create stores paid orgs as pending checkout", async () => {
   const created = await caller(memory.supabase).organization.create({
     ...createFreeInput,
     slug: "ada-probe",
+    kind: "team",
     planId: "probe",
   });
 
   expect(created.planId).toBe("probe");
-  expect(created.kind).toBe("single");
+  expect(created.kind).toBe("team");
   expect(created.billingStatus).toBe("pending_checkout");
   expect(created.role).toBe("owner");
   expect(memory.profiles[0]?.active_organization_id).toBe(created.id);
+
+  await caller(memory.supabase).organization.members.invite({
+    organizationId: created.id,
+    email: "grace@orvex.dev",
+    role: "member",
+  });
+  const extraSeat = await caller(memory.supabase)
+    .organization.members.invite({
+      organizationId: created.id,
+      email: "linus@orvex.dev",
+      role: "member",
+    })
+    .catch((caught: unknown) => caught);
+  expect(extraSeat).toBeInstanceOf(TRPCError);
+  expect((extraSeat as TRPCError).code).toBe("BAD_REQUEST");
+  expect(memory.invites).toHaveLength(1);
+
+  const extraRegion = await caller(memory.supabase)
+    .organization.updateDefaults({
+      organizationId: created.id,
+      timezone: "UTC",
+      defaultRegions: ["IAD", "SJC"],
+      supportEmail: null,
+    })
+    .catch((caught: unknown) => caught);
+  expect(extraRegion).toBeInstanceOf(TRPCError);
+  expect((extraRegion as TRPCError).code).toBe("PRECONDITION_FAILED");
+  expect(memory.organizations[0]?.default_regions).toEqual(["IAD"]);
 });
 
 test("organization.create maps slug collisions", async () => {
@@ -382,7 +411,11 @@ test("organization.delete is forbidden for a non-owner", async () => {
 });
 
 test("organization.updateDefaults writes timezone, regions, and support email", async () => {
-  const org = organizationRow();
+  const org = organizationRow({
+    kind: "team",
+    plan_id: "sentinel",
+    billing_status: "active",
+  });
   const memory = createOrganizationMemory({
     organizations: [org],
     members: [memberRow()],
@@ -401,6 +434,29 @@ test("organization.updateDefaults writes timezone, regions, and support email", 
   });
   expect(memory.organizations[0]?.timezone).toBe("America/New_York");
   expect(memory.organizations[0]?.default_regions).toEqual(["IAD", "LHR"]);
+});
+
+test("organization.updateOidc rejects unpaid command checkout", async () => {
+  const org = organizationRow({
+    kind: "team",
+    plan_id: "command",
+    billing_status: "pending_checkout",
+  });
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const error = await caller(memory.supabase)
+    .organization.updateOidc({
+      organizationId: org.id,
+      issuer: "https://idp.example.com",
+      clientId: "oidc-client",
+      clientSecret: "super-secret",
+    })
+    .catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("PRECONDITION_FAILED");
+  expect(memory.organizations[0]?.oidc_client_secret).toBeNull();
 });
 
 test("organization.updateOidc rejects plans without SSO", async () => {

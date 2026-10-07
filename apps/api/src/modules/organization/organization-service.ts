@@ -1,18 +1,21 @@
 import { encrypt } from "@orvex/crypto";
 import {
   isProbeRegionCode,
+  PROBE_REGION_CODES,
   type AuthUser,
   type Organization,
 } from "@orvex/types";
 import { presetMaskForRole } from "@orvex/types/permissions";
 import {
+  effectivePlanId,
+  getPlan,
   isPaidPlan,
   isPlanId,
   planAllowsKind,
   type BillingCycle,
 } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
-import { cryptoKeyFromSecret } from "../../lib/crypto-key.js";
+import { requireCryptoKey } from "../../lib/crypto-key.js";
 import { HttpError } from "../../utils/http-error.js";
 import { writeAuditEvent } from "../audit/audit-service.js";
 import {
@@ -681,6 +684,27 @@ export async function updateOrganizationDefaults(
       message: "Invalid probe region",
     });
   }
+  const organization = await fetchOrganization(supabase, organizationId);
+  if (organization === null) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Organization not found",
+    });
+  }
+  const allowed: readonly string[] = PROBE_REGION_CODES.slice(
+    0,
+    getPlan(effectivePlanId(organization.plan_id, organization.billing_status))
+      .entitlements.regions,
+  );
+  if (
+    input.defaultRegions.length > allowed.length ||
+    input.defaultRegions.some((region) => !allowed.includes(region))
+  ) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "Region is not available on this plan",
+    });
+  }
 
   const { data, error } = await supabase
     .from("organizations")
@@ -721,8 +745,7 @@ export async function updateOrganizationOidc(
     clientSecret: string;
   },
 ): Promise<OrganizationOidcDto> {
-  const key = cryptoKeyFromSecret(process.env.CRYPTO_SECRET);
-  const secret = key === null ? null : encrypt(input.clientSecret, key);
+  const secret = encrypt(input.clientSecret, requireCryptoKey());
 
   const { data, error } = await supabase
     .from("organizations")

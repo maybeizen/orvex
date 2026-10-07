@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import {
+  effectivePlanId,
   getPlan,
   isPaidPlan,
   PLAN_CATALOG,
@@ -137,4 +138,14 @@ test("sentinel and command require team", () => {
     "sentinel",
     "command",
   ]);
+});
+
+test("paid entitlements apply only while billing is active", () => {
+  expect(effectivePlanId("probe", "active")).toBe("probe");
+  expect(effectivePlanId("command", "active")).toBe("command");
+  expect(effectivePlanId("free", "active")).toBe("free");
+  expect(effectivePlanId("probe", "pending_checkout")).toBe("free");
+  expect(effectivePlanId("sentinel", "past_due")).toBe("free");
+  expect(effectivePlanId("command", "canceled")).toBe("free");
+  expect(effectivePlanId("not-a-plan", "active")).toBe("free");
 });

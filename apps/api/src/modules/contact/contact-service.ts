@@ -6,7 +6,7 @@ import type {
   NotificationRule,
 } from "@orvex/types";
 import { isNotificationChannel } from "@orvex/types";
-import { isPlanId, planAllowsChannel } from "@orvex/types/plans";
+import { effectivePlanId, planAllowsChannel } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
 import type { DataClient } from "../../trpc/context.js";
 import { deliverToContact } from "../notify/dispatcher.js";
@@ -80,7 +80,10 @@ function assertChannelAllowed(
   organization: OrganizationRow,
   channel: NotificationChannel,
 ): void {
-  const planId = isPlanId(organization.plan_id) ? organization.plan_id : "free";
+  const planId = effectivePlanId(
+    organization.plan_id,
+    organization.billing_status,
+  );
   if (!planAllowsChannel(planId, channel)) {
     throw new TRPCError({
       code: "BAD_REQUEST",

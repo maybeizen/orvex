@@ -288,6 +288,16 @@ export function isPlanId(value: string): value is OrganizationPlanId {
   return (PLAN_IDS as readonly string[]).includes(value);
 }
 
+export function effectivePlanId(
+  planId: string,
+  billingStatus: string,
+): OrganizationPlanId {
+  if (billingStatus !== "active") {
+    return "free";
+  }
+  return isPlanId(planId) ? planId : "free";
+}
+
 export function periodMonths(cycle: BillingCycle): number {
   switch (cycle) {
     case "monthly":

@@ -129,6 +129,58 @@ test("plan gate rejects too many monitors", async () => {
   expect(memory.monitors).toHaveLength(15);
 });
 
+test("pending checkout cannot use paid monitor entitlements", async () => {
+  const org = organizationRow({
+    plan_id: "probe",
+    billing_status: "pending_checkout",
+  });
+  const memory = createMonitorMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const api = caller(memory.supabase);
+
+  const heartbeat = await api
+    .create({
+      organizationId: org.id,
+      name: "pulse",
+      type: "heartbeat",
+      intervalSeconds: 60,
+      regions: ["IAD"],
+    })
+    .catch((caught: unknown) => caught);
+  expect(heartbeat).toBeInstanceOf(TRPCError);
+  expect((heartbeat as TRPCError).code).toBe("PRECONDITION_FAILED");
+
+  const extraRegion = await api
+    .create({
+      organizationId: org.id,
+      ...httpCreate,
+      regions: ["IAD", "SJC"],
+    })
+    .catch((caught: unknown) => caught);
+  expect(extraRegion).toBeInstanceOf(TRPCError);
+  expect((extraRegion as TRPCError).code).toBe("PRECONDITION_FAILED");
+
+  const fast = await api
+    .create({
+      organizationId: org.id,
+      ...httpCreate,
+      intervalSeconds: 30,
+    })
+    .catch((caught: unknown) => caught);
+  expect(fast).toBeInstanceOf(TRPCError);
+  expect((fast as TRPCError).code).toBe("PRECONDITION_FAILED");
+  expect(memory.monitors).toHaveLength(0);
+
+  const allowed = await api.create({
+    organizationId: org.id,
+    ...httpCreate,
+  });
+  expect(allowed.type).toBe("http");
+  expect(memory.monitors).toHaveLength(1);
+});
+
 test("plan gate rejects heartbeat on free and extra regions", async () => {
   const { org, api } = seeded("free");
   const heartbeat = await api

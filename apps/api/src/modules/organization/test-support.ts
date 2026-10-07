@@ -1,5 +1,5 @@
 import type { AuthUser, Database } from "@orvex/types";
-import { isPlanId, planSeatLimit } from "@orvex/types/plans";
+import { seatLimitForOrganization } from "./seat-limit.js";
 import type {
   OrganizationClient,
   OrganizationInviteRow,
@@ -124,10 +124,7 @@ function readString(
 }
 
 function seatLimit(org: OrganizationRow): number {
-  if (org.kind === "single") {
-    return 1;
-  }
-  return planSeatLimit(isPlanId(org.plan_id) ? org.plan_id : "free");
+  return seatLimitForOrganization(org.kind, org.plan_id, org.billing_status);
 }
 
 export function createOrganizationMemory(initial?: {
@@ -142,12 +139,14 @@ export function createOrganizationMemory(initial?: {
   members: OrganizationMemberRow[];
   invites: OrganizationInviteRow[];
   uploads: { bucket: string; path: string; body: Buffer }[];
+  events: string[];
 } {
   const profiles = [...(initial?.profiles ?? [profileFixture()])];
   const organizations = [...(initial?.organizations ?? [])];
   const members = [...(initial?.members ?? [])];
   const invites = [...(initial?.invites ?? [])];
   const uploads: { bucket: string; path: string; body: Buffer }[] = [];
+  const events: string[] = [];
   let inviteSeq = 0;
 
   function occupied(organizationId: string): number {
@@ -327,6 +326,7 @@ export function createOrganizationMemory(initial?: {
 
     function execute(expectOne: boolean, asList = false): QueryResult {
       if (action === "insert") {
+        events.push("member.insert");
         const body = payload ?? {};
         const organizationId = readString(body, "organization_id");
         const org = organizations.find((row) => row.id === organizationId);
@@ -578,6 +578,14 @@ export function createOrganizationMemory(initial?: {
 
       const found = matched();
       if (action === "update") {
+        if (
+          payload !== null &&
+          Object.prototype.hasOwnProperty.call(payload, "accepted_at")
+        ) {
+          events.push(
+            payload.accepted_at === null ? "invite.revert" : "invite.accept",
+          );
+        }
         for (const row of found) {
           Object.assign(row, payload);
         }
@@ -692,5 +700,13 @@ export function createOrganizationMemory(initial?: {
     },
   } as unknown as OrganizationClient;
 
-  return { supabase, profiles, organizations, members, invites, uploads };
+  return {
+    supabase,
+    profiles,
+    organizations,
+    members,
+    invites,
+    uploads,
+    events,
+  };
 }

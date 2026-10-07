@@ -1,5 +1,5 @@
 import { PROBE_REGION_CODES } from "@orvex/types";
-import { getPlan, isPlanId, planAllowsKind } from "@orvex/types/plans";
+import { effectivePlanId, getPlan, planAllowsKind } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { CACHE_TTL, cacheKeys } from "../../lib/cache-keys.js";
@@ -279,9 +279,10 @@ export const organizationRouter = router({
       ),
     )
     .mutation(async ({ ctx, input }) => {
-      const planId = isPlanId(ctx.organization.plan_id)
-        ? ctx.organization.plan_id
-        : "free";
+      const planId = effectivePlanId(
+        ctx.organization.plan_id,
+        ctx.organization.billing_status,
+      );
       if (!getPlan(planId).entitlements.sso) {
         throw new TRPCError({
           code: "PRECONDITION_FAILED",
