@@ -1,13 +1,11 @@
-import { createHash } from "node:crypto";
 import { type CacheClient } from "@orvex/cache";
 import {
-  rateLimit,
   ipKeyGenerator,
+  rateLimit,
   type Options,
   type Store,
 } from "express-rate-limit";
 import type { Request } from "express";
-import { parseBearerToken } from "../utils/bearer.js";
 
 class CacheRateLimitStore implements Store {
   readonly #cache: CacheClient;
@@ -45,34 +43,8 @@ class CacheRateLimitStore implements Store {
   }
 }
 
-function digest(value: string): string {
-  return createHash("sha256").update(value).digest("hex").slice(0, 32);
-}
-
-function headerValue(value: unknown): string | undefined {
-  if (typeof value === "string" && value.length > 0) {
-    return value;
-  }
-  if (
-    Array.isArray(value) &&
-    typeof value[0] === "string" &&
-    value[0].length > 0
-  ) {
-    return value[0];
-  }
-  return undefined;
-}
-
 export function rateLimitKey(req: Request): string {
-  const bearer = parseBearerToken(req.headers.authorization);
-  if (bearer !== null) {
-    return `tok:${digest(bearer)}`;
-  }
-  const probe = headerValue(req.headers["x-probe-token"]);
-  if (probe !== undefined) {
-    return `probe:${digest(probe)}`;
-  }
-  return `ip:${ipKeyGenerator(req.ip ?? "")}`;
+  return ipKeyGenerator(req.ip ?? "");
 }
 
 export function createRateLimitMiddleware(
