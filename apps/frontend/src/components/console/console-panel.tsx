@@ -134,7 +134,11 @@ export function LoadingPanel({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col gap-2 p-3", className)} aria-busy>
+    <div
+      className={cn("flex flex-col gap-2 p-3", className)}
+      role="status"
+      aria-live="polite"
+    >
       <span className="sr-only">Loading</span>
       {Array.from({ length: rows }, (_, index) => (
         <Skeleton key={index} className="h-8 w-full rounded-md" />

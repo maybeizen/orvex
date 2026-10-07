@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from "react";
+import { useRef, useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { isProbeRegionCode, type MonitorType } from "@orvex/types";
@@ -170,6 +170,7 @@ export function MonitorForm({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
+  const pendingRef = useRef(false);
 
   const allowed = new Set(enabledRegionCodes(regionLimit));
   const targetLabel =
@@ -182,10 +183,14 @@ export function MonitorForm({
           : "URL";
 
   async function persist(): Promise<void> {
+    if (pendingRef.current) {
+      return;
+    }
     if (organizationId === null) {
       toast.error("Select a workspace first");
       return;
     }
+    pendingRef.current = true;
     setPending(true);
     try {
       const client = monitorApi();
@@ -204,12 +209,16 @@ export function MonitorForm({
         caught instanceof Error ? caught.message : "Unable to save monitor",
       );
     } finally {
+      pendingRef.current = false;
       setPending(false);
     }
   }
 
   function onSubmit(event: SyntheticEvent<HTMLFormElement>): void {
     event.preventDefault();
+    if (pendingRef.current) {
+      return;
+    }
     const next = validate(draft, allowsHeartbeat, allowsAgent);
     setErrors(next);
     if (Object.keys(next).length > 0) {
@@ -271,8 +280,11 @@ export function MonitorForm({
                 placeholder="api-prod"
                 autoComplete="off"
                 aria-invalid={errors.name !== undefined}
+                aria-describedby={
+                  errors.name === undefined ? undefined : "monitor-name-error"
+                }
               />
-              <FieldError>{errors.name}</FieldError>
+              <FieldError id="monitor-name-error">{errors.name}</FieldError>
             </Field>
 
             <Field>
@@ -318,6 +330,11 @@ export function MonitorForm({
                 }
                 autoComplete="off"
                 aria-invalid={errors.target !== undefined}
+                aria-describedby={
+                  errors.target === undefined
+                    ? undefined
+                    : "monitor-target-error"
+                }
               />
               <FieldDescription>
                 {draft.type === "heartbeat"
@@ -326,7 +343,7 @@ export function MonitorForm({
                     ? "The Go agent will register this id on first heartbeat."
                     : "Used as the probe destination."}
               </FieldDescription>
-              <FieldError>{errors.target}</FieldError>
+              <FieldError id="monitor-target-error">{errors.target}</FieldError>
             </Field>
 
             {draft.type === "keyword" ? (
@@ -346,8 +363,15 @@ export function MonitorForm({
                   placeholder='"status":"ok"'
                   autoComplete="off"
                   aria-invalid={errors.keyword !== undefined}
+                  aria-describedby={
+                    errors.keyword === undefined
+                      ? undefined
+                      : "monitor-keyword-error"
+                  }
                 />
-                <FieldError>{errors.keyword}</FieldError>
+                <FieldError id="monitor-keyword-error">
+                  {errors.keyword}
+                </FieldError>
               </Field>
             ) : null}
 
@@ -369,8 +393,11 @@ export function MonitorForm({
                   placeholder="443"
                   autoComplete="off"
                   aria-invalid={errors.port !== undefined}
+                  aria-describedby={
+                    errors.port === undefined ? undefined : "monitor-port-error"
+                  }
                 />
-                <FieldError>{errors.port}</FieldError>
+                <FieldError id="monitor-port-error">{errors.port}</FieldError>
               </Field>
             ) : null}
           </FieldGroup>
@@ -381,7 +408,15 @@ export function MonitorForm({
             title="Regions"
             description="Idle until the first successful probe."
           >
-            <fieldset className="flex flex-col gap-2">
+            <fieldset
+              className="flex flex-col gap-2"
+              aria-invalid={errors.regions !== undefined}
+              aria-describedby={
+                errors.regions === undefined
+                  ? undefined
+                  : "monitor-regions-error"
+              }
+            >
               <legend className="sr-only">Probe regions</legend>
               {PROBE_REGIONS.map((region) => {
                 const onPlan = allowed.has(region.code);
@@ -416,7 +451,9 @@ export function MonitorForm({
                   </label>
                 );
               })}
-              <FieldError>{errors.regions}</FieldError>
+              <FieldError id="monitor-regions-error">
+                {errors.regions}
+              </FieldError>
             </fieldset>
           </ConsolePanel>
 

@@ -90,17 +90,8 @@ export function pageSlugHint(slug: string): string | null {
   return null;
 }
 
-const TRANSPORT_FAULT =
-  /^(failed to fetch|networkerror when attempting to fetch resource|load failed|network request failed)$/i;
-
-export function faultMessage(error: unknown, fallback: string): string {
-  if (!(error instanceof Error) || error.message.length === 0) {
-    return fallback;
-  }
-  if (TRANSPORT_FAULT.test(error.message.trim())) {
-    return fallback;
-  }
-  return error.message;
+export function faultMessage(_error: unknown, fallback: string): string {
+  return fallback;
 }
 
 export function isNotFound(error: unknown): boolean {

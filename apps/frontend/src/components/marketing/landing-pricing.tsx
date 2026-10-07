@@ -50,7 +50,16 @@ function PlanLimits({ plan }: { plan: PricingPlan }) {
   );
 }
 
-function PlanCard({ plan, cycle }: { plan: PricingPlan; cycle: BillingCycle }) {
+function PlanCard({
+  plan,
+  cycle,
+  headingLevel,
+}: {
+  plan: PricingPlan;
+  cycle: BillingCycle;
+  headingLevel: 2 | 3;
+}) {
+  const Title = headingLevel === 2 ? "h2" : "h3";
   const total = periodTotalUsd(plan.monthlyUsd, cycle);
   const monthlyEquivalent = equivalentMonthlyUsd(plan.monthlyUsd, cycle);
 
@@ -64,7 +73,9 @@ function PlanCard({ plan, cycle }: { plan: PricingPlan; cycle: BillingCycle }) {
       {plan.featured ? <div className="h-0.5 bg-primary" /> : null}
       <header className="flex flex-col gap-2 border-b border-border px-5 py-5">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-lg font-medium tracking-tight">{plan.name}</h3>
+          <Title className="text-lg font-medium tracking-tight">
+            {plan.name}
+          </Title>
           {plan.featured ? (
             <span className="font-mono rounded-md bg-primary px-2 py-0.5 text-[0.62rem] tracking-[0.12em] text-primary-foreground uppercase">
               Most used
@@ -110,6 +121,7 @@ function PlanCard({ plan, cycle }: { plan: PricingPlan; cycle: BillingCycle }) {
 
 export function LandingPricing({ headingLevel = 2 }: { headingLevel?: 1 | 2 }) {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
+  const planHeadingLevel = headingLevel === 1 ? 2 : 3;
 
   return (
     <MarketingSection id="pricing">
@@ -134,13 +146,14 @@ export function LandingPricing({ headingLevel = 2 }: { headingLevel?: 1 | 2 }) {
                 <button
                   key={item}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => {
                     setCycle(item);
                   }}
                   className={cn(
                     "font-mono inline-flex items-center gap-2 px-4 py-2 text-xs tracking-wide uppercase transition-colors duration-150",
                     selected
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary font-semibold text-primary-foreground underline decoration-2 underline-offset-4"
                       : "bg-card text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -157,7 +170,12 @@ export function LandingPricing({ headingLevel = 2 }: { headingLevel?: 1 | 2 }) {
         </div>
         <div className="grid items-stretch gap-4 md:grid-cols-3">
           {PRICING_PLANS.map((plan) => (
-            <PlanCard key={plan.id} plan={plan} cycle={cycle} />
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              cycle={cycle}
+              headingLevel={planHeadingLevel}
+            />
           ))}
         </div>
         <p className="text-center text-sm text-muted-foreground text-pretty">

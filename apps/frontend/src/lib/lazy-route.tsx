@@ -1,5 +1,20 @@
 import { lazy, Suspense, type ComponentType } from "react";
 import { LoadingPanel } from "@/components/console/console-panel";
+import { useInsideMain } from "@/components/main-landmark";
+
+function RouteFallback() {
+  const insideMain = useInsideMain();
+  const panel = <LoadingPanel className="min-h-40" />;
+  if (insideMain) {
+    return panel;
+  }
+
+  return (
+    <main id="main-content" tabIndex={-1}>
+      {panel}
+    </main>
+  );
+}
 
 export function lazyRoute(
   load: () => Promise<Record<string, ComponentType>>,
@@ -16,7 +31,7 @@ export function lazyRoute(
 
   function LazyRoute() {
     return (
-      <Suspense fallback={<LoadingPanel className="min-h-40" />}>
+      <Suspense fallback={<RouteFallback />}>
         <Page />
       </Suspense>
     );

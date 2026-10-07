@@ -152,15 +152,18 @@ test("public status page hides transport errors and keeps a skip target", async 
     </MemoryRouter>,
   );
 
-  expect(
-    await screen.findByRole("heading", { name: "Unable to load status page" }),
-  ).toBeInTheDocument();
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent(
+    "The status service did not respond. Try again in a moment.",
+  );
+  expect(alert.closest("main")).toHaveAttribute("id", "main-content");
   expect(screen.queryByText("Failed to fetch")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute(
     "href",
     "#main-content",
   );
-  expect(document.getElementById("main-content")).not.toBeNull();
+  const main = document.getElementById("main-content");
+  expect(main).toHaveAttribute("tabindex", "-1");
 });
 
 test("public status page confirms a subscriber from the confirm query", async () => {
@@ -173,7 +176,27 @@ test("public status page confirms a subscriber from the confirm query", async ()
   );
 
   expect(
-    await screen.findByText("Subscription confirmed."),
+    await screen.findByRole("heading", { name: "Ada Status" }),
   ).toBeInTheDocument();
+  const note = screen.getByText("Subscription confirmed.");
+  expect(note).toHaveAttribute("role", "status");
+  expect(note.closest("main")).toHaveAttribute("id", "main-content");
+  expect(document.title).toBe("Ada Status · Orvex Monitor");
   expect(confirmSubscriber).toHaveBeenCalledWith({ token: "confirm-token" });
+});
+
+test("public status confirm failures are announced inside main", async () => {
+  confirmSubscriber.mockRejectedValue(new Error("token leaked in message"));
+  render(
+    <MemoryRouter initialEntries={["/s/ada-status?confirm=confirm-token"]}>
+      <Routes>
+        <Route path="/s/:pageSlug" element={<PublicStatusPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Unable to confirm this subscription");
+  expect(alert.closest("main")).toHaveAttribute("id", "main-content");
+  expect(screen.queryByText("token leaked in message")).not.toBeInTheDocument();
 });

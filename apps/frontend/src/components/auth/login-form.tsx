@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from "react";
+import { useRef, useState, type SyntheticEvent } from "react";
 import { Link, useNavigate } from "react-router";
 import type { OAuthProvider } from "@orvex/auth";
 import { Fingerprint } from "lucide-react";
@@ -31,10 +31,13 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const pendingRef = useRef(false);
   const configured = isAuthConfigured();
   const passkeys = isPasskeysEnabled();
   const canSubmit =
     configured && email.trim().length > 0 && password.length > 0;
+  const formErrorId = formError === null ? undefined : "login-error";
 
   async function finishSignIn(outcome: "mfa" | "signed-in" | null) {
     if (outcome === "mfa") {
@@ -47,12 +50,26 @@ export function LoginForm() {
     }
   }
 
+  function beginRequest(): boolean {
+    if (pendingRef.current) {
+      return false;
+    }
+    pendingRef.current = true;
+    setPending(true);
+    return true;
+  }
+
+  function endRequest(): void {
+    pendingRef.current = false;
+    setPending(false);
+  }
+
   async function submit() {
-    if (!guardAuthConfigured()) {
+    if (!guardAuthConfigured() || !beginRequest()) {
       return;
     }
 
-    setPending(true);
+    setFormError(null);
     try {
       const result = await getBrowserAuth().signInWithPassword({
         email,
@@ -62,9 +79,10 @@ export function LoginForm() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to sign in";
+      setFormError(message);
       toast.error(message);
     } finally {
-      setPending(false);
+      endRequest();
     }
   }
 
@@ -74,10 +92,9 @@ export function LoginForm() {
   }
 
   async function onPasskey() {
-    if (!guardAuthConfigured()) {
+    if (!guardAuthConfigured() || !beginRequest()) {
       return;
     }
-    setPending(true);
     try {
       const result = await getBrowserAuth().signInWithPasskey();
       await finishSignIn(resolveSignInResult(result));
@@ -86,22 +103,24 @@ export function LoginForm() {
         error instanceof Error ? error.message : "Unable to sign in";
       toast.error(message);
     } finally {
-      setPending(false);
+      endRequest();
     }
   }
 
   async function onProvider(provider: OAuthProvider) {
-    setPending(true);
+    if (!beginRequest()) {
+      return;
+    }
     try {
       const redirected = await startOAuth(provider);
       if (!redirected) {
-        setPending(false);
+        endRequest();
       }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to continue";
       toast.error(message);
-      setPending(false);
+      endRequest();
     }
   }
 
@@ -149,9 +168,14 @@ export function LoginForm() {
               inputMode="email"
               spellCheck={false}
               required
+              aria-invalid={formError !== null}
+              aria-describedby={formErrorId}
               value={email}
               onChange={(event) => {
                 setEmail(event.target.value);
+                if (formError !== null) {
+                  setFormError(null);
+                }
               }}
             />
           </Field>
@@ -161,9 +185,14 @@ export function LoginForm() {
               id="password"
               autoComplete="current-password"
               required
+              aria-invalid={formError !== null}
+              aria-describedby={formErrorId}
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value);
+                if (formError !== null) {
+                  setFormError(null);
+                }
               }}
             />
             <FieldDescription>
@@ -173,7 +202,7 @@ export function LoginForm() {
         </FieldGroup>
       </Enter>
       {configured ? (
-        <AuthFieldError message={null} />
+        <AuthFieldError id="login-error" message={formError} />
       ) : (
         <p className="min-h-5 text-xs leading-5 text-muted-foreground">
           Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable sign-in.

@@ -1,9 +1,15 @@
+import { useEffect } from "react";
 import { Link } from "react-router";
 import { AuthFooter } from "@/components/auth/auth-footer";
 import { PublicChrome } from "@/components/auth/public-chrome";
 import { Button } from "@/components/ui/button";
+import { formatDocumentTitle } from "@/lib/document-title";
 
 export function ErrorPage() {
+  useEffect(() => {
+    document.title = formatDocumentTitle("Unable to continue");
+  }, []);
+
   return (
     <PublicChrome>
       <div className="flex w-full flex-col gap-8">

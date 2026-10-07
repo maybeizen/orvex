@@ -40,14 +40,54 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/docs$/, "Docs"],
   [/^\/invite\/[^/]+$/, "Invitation"],
   [/^\/auth\/callback$/, "Signing in"],
-  [/^\/s\/[^/]+$/, "Status"],
+  [/^\/s\/[^/]+$/, "Status board"],
+  [/^\/status\/[^/]+\/confirm$/, "Confirm subscription"],
+  [/^\/status\/[^/]+\/[^/]+\/confirm$/, "Confirm subscription"],
+  [/^\/profile$/, "Settings"],
+  [/^\/dashboard$/, "Dashboard"],
+  [/^\/monitors\/new$/, "New monitor"],
+  [/^\/monitors\/[^/]+\/edit$/, "Edit monitor"],
+  [/^\/monitors\/[^/]+$/, "Monitor"],
+  [/^\/monitors$/, "Monitors"],
+  [/^\/incidents\/[^/]+$/, "Incident"],
+  [/^\/incidents$/, "Incidents"],
+  [/^\/maintenance$/, "Maintenance"],
+  [/^\/status-pages\/[^/]+$/, "Status page"],
+  [/^\/status-pages$/, "Status pages"],
+  [/^\/contact-lists$/, "Contact lists"],
+  [/^\/white-label$/, "White label"],
+  [/^\/team$/, "Team"],
+  [/^\/audit-log$/, "Audit log"],
+  [/^\/orders$/, "Orders"],
+  [/^\/invoices$/, "Invoices"],
+  [/^\/referrals$/, "Referrals"],
+  [/^\/support$/, "Support"],
+  [/^\/settings\/organization$/, "Organization settings"],
+  [/^\/settings\/billing$/, "Invoices"],
+  [/^\/billing$/, "Billing"],
 ];
+
+const LEGACY_SPLATS: Array<[RegExp, string]> = [
+  [/^\/monitors\/.+/, "Monitors"],
+  [/^\/incidents\/.+/, "Incidents"],
+  [/^\/maintenance\/.+/, "Maintenance"],
+  [/^\/status-pages\/.+/, "Status pages"],
+];
+
+export function formatDocumentTitle(title: string): string {
+  return title === "Orvex Monitor" ? title : `${title} · Orvex Monitor`;
+}
 
 export function titleForPath(pathname: string): string {
   for (const [pattern, title] of TITLES) {
     if (pattern.test(pathname)) {
-      return title === "Orvex Monitor" ? title : `${title} · Orvex Monitor`;
+      return formatDocumentTitle(title);
     }
   }
-  return "Page not found · Orvex Monitor";
+  for (const [pattern, title] of LEGACY_SPLATS) {
+    if (pattern.test(pathname)) {
+      return formatDocumentTitle(title);
+    }
+  }
+  return formatDocumentTitle("Page not found");
 }

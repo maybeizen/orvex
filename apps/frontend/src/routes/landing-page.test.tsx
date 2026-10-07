@@ -30,4 +30,17 @@ test("landing page renders chrome, plans, probes, and footer columns", () => {
   expect(screen.getByText("Company")).toBeInTheDocument();
   expect(screen.getByText("Account")).toBeInTheDocument();
   expect(screen.getByText("Legal")).toBeInTheDocument();
+  const pricing = document.getElementById("pricing");
+  expect(pricing).not.toBeNull();
+  expect(
+    screen.getByRole("heading", { level: 2, name: "Pay for the desk you run" }),
+  ).toBeInTheDocument();
+  expect(pricing?.querySelector("h3")?.textContent).toBe("Probe");
+
+  let previous = 0;
+  for (const heading of screen.getAllByRole("heading")) {
+    const level = Number(heading.tagName.slice(1));
+    expect(level).toBeLessThanOrEqual(previous + 1);
+    previous = level;
+  }
 });

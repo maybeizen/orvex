@@ -22,6 +22,7 @@ export function PublicChrome({
       </header>
       <main
         id="main-content"
+        tabIndex={-1}
         className={cn(
           "flex flex-1 px-5 sm:px-6",
           align === "center"

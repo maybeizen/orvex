@@ -13,7 +13,10 @@ export function OnboardingPage() {
   if (status === "loading") {
     return (
       <PublicChrome width="wide" align="center">
-        <Skeleton className="h-96 w-full" />
+        <div role="status" aria-live="polite" className="w-full">
+          <span className="sr-only">Loading</span>
+          <Skeleton className="h-96 w-full" aria-hidden />
+        </div>
       </PublicChrome>
     );
   }

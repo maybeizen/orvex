@@ -16,6 +16,7 @@ export function MarketingDocument({
     <MarketingShell>
       <main
         id="main-content"
+        tabIndex={-1}
         className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-14 sm:px-6 sm:py-16"
       >
         <div className="flex flex-col gap-3">

@@ -28,8 +28,8 @@ import { ContactFormDialog } from "./contact-form-dialog";
 import { ListFormDialog } from "./list-form-dialog";
 import { TestSendDialog } from "./test-send-dialog";
 
-function faultMessage(caught: unknown, fallback: string): string {
-  return caught instanceof Error ? caught.message : fallback;
+function faultMessage(_caught: unknown, fallback: string): string {
+  return fallback;
 }
 
 export function ContactListsView({
