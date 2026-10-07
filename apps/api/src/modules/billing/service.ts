@@ -150,14 +150,40 @@ function stripeEventTime(created: number | undefined): string | null {
   return new Date(created * 1000).toISOString();
 }
 
-function billingEventIsStale(
-  current: string | null,
-  next: string | null,
+function billingInstant(value: string | null): number | null {
+  if (value === null) {
+    return null;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function patchCancelsBilling(
+  patch: Database["public"]["Tables"]["organizations"]["Update"],
 ): boolean {
-  if (current === null || next === null) {
+  return patch.plan_id === "free" && patch.billing_status === "canceled";
+}
+
+function billingEventMayApply(
+  organization: OrganizationRow,
+  patch: Database["public"]["Tables"]["organizations"]["Update"],
+  eventAt: string | null,
+): boolean {
+  const currentMs = billingInstant(organization.stripe_billing_event_at);
+  const nextMs = billingInstant(eventAt);
+  if (currentMs === null || nextMs === null) {
+    return true;
+  }
+  if (nextMs > currentMs) {
+    return true;
+  }
+  if (nextMs < currentMs) {
     return false;
   }
-  return Date.parse(next) < Date.parse(current);
+  const alreadyCanceled =
+    organization.plan_id === "free" &&
+    organization.billing_status === "canceled";
+  return patchCancelsBilling(patch) && !alreadyCanceled;
 }
 
 async function commitBillingChange(
@@ -167,7 +193,7 @@ async function commitBillingChange(
   eventAt: string | null,
   cache?: CacheClient,
 ): Promise<boolean> {
-  if (billingEventIsStale(organization.stripe_billing_event_at, eventAt)) {
+  if (!billingEventMayApply(organization, patch, eventAt)) {
     return false;
   }
 

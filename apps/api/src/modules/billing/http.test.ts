@@ -511,6 +511,138 @@ test("a deleted subscription stays canceled when an older update is applied afte
   ]);
 });
 
+function liveSubscriptionEvent(
+  orgId: string,
+  input: {
+    id: string;
+    created: number;
+    type: "customer.subscription.updated" | "customer.subscription.deleted";
+    status: string;
+  },
+): Stripe.Event {
+  return {
+    id: input.id,
+    created: input.created,
+    type: input.type,
+    data: {
+      object: {
+        id: "sub_live",
+        object: "subscription",
+        customer: "cus_live",
+        status: input.status,
+        metadata: {
+          organization_id: orgId,
+          orvex_plan: "probe",
+          orvex_cycle: "monthly",
+        },
+        items: {
+          data: [
+            {
+              price: {
+                unit_amount: 1200,
+                metadata: {},
+              },
+            },
+          ],
+        },
+      },
+    },
+  } as unknown as Stripe.Event;
+}
+
+test("an update at the deletion watermark does not restore the plan", async () => {
+  const org = organizationRow({
+    plan_id: "probe",
+    billing_status: "active",
+    billing_cycle: "monthly",
+    stripe_customer_id: "cus_live",
+    stripe_subscription_id: "sub_live",
+  });
+  const memory = createBillingMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const created = 1_700_000_200;
+
+  await applyStripeEvent(
+    memory.supabase,
+    liveSubscriptionEvent(org.id, {
+      id: "evt_sub_deleted_same",
+      created,
+      type: "customer.subscription.deleted",
+      status: "canceled",
+    }),
+  );
+  await applyStripeEvent(
+    memory.supabase,
+    liveSubscriptionEvent(org.id, {
+      id: "evt_sub_updated_same",
+      created,
+      type: "customer.subscription.updated",
+      status: "active",
+    }),
+  );
+
+  expect(memory.organizations[0]).toEqual(
+    expect.objectContaining({
+      plan_id: "free",
+      billing_cycle: null,
+      billing_status: "canceled",
+      stripe_billing_event_at: new Date(created * 1000).toISOString(),
+    }),
+  );
+  expect(memory.orders.map((order) => order.stripe_event_id)).toEqual([
+    "evt_sub_deleted_same",
+  ]);
+});
+
+test("a deletion at the same timestamp still cancels after an update", async () => {
+  const org = organizationRow({
+    plan_id: "probe",
+    billing_status: "active",
+    billing_cycle: "monthly",
+    stripe_customer_id: "cus_live",
+    stripe_subscription_id: "sub_live",
+  });
+  const memory = createBillingMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const created = 1_700_000_200;
+
+  await applyStripeEvent(
+    memory.supabase,
+    liveSubscriptionEvent(org.id, {
+      id: "evt_sub_updated_same",
+      created,
+      type: "customer.subscription.updated",
+      status: "active",
+    }),
+  );
+  await applyStripeEvent(
+    memory.supabase,
+    liveSubscriptionEvent(org.id, {
+      id: "evt_sub_deleted_same",
+      created,
+      type: "customer.subscription.deleted",
+      status: "canceled",
+    }),
+  );
+
+  expect(memory.organizations[0]).toEqual(
+    expect.objectContaining({
+      plan_id: "free",
+      billing_cycle: null,
+      billing_status: "canceled",
+      stripe_billing_event_at: new Date(created * 1000).toISOString(),
+    }),
+  );
+  expect(memory.orders.map((order) => order.stripe_event_id)).toEqual([
+    "evt_sub_updated_same",
+    "evt_sub_deleted_same",
+  ]);
+});
+
 test("subscription updates follow the Stripe subscription status", async () => {
   const org = organizationRow({
     plan_id: "probe",
