@@ -22,6 +22,11 @@ test("about, changelog, privacy, pricing, and terms stay reachable", () => {
     expect(
       screen.getByRole("heading", { name: page.heading }),
     ).toBeInTheDocument();
+    if (page.heading === "Pay for the desk you run") {
+      expect(
+        screen.getByRole("heading", { level: 1, name: page.heading }),
+      ).toBeInTheDocument();
+    }
     expect(
       screen.getByRole("navigation", { name: "Primary" }),
     ).toBeInTheDocument();

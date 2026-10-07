@@ -142,6 +142,27 @@ test("public status page is a designed miss without access", async () => {
   ).toBeInTheDocument();
 });
 
+test("public status page hides transport errors and keeps a skip target", async () => {
+  publicGet.mockRejectedValue(new Error("Failed to fetch"));
+  render(
+    <MemoryRouter initialEntries={["/s/ada-status"]}>
+      <Routes>
+        <Route path="/s/:pageSlug" element={<PublicStatusPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+  expect(
+    await screen.findByRole("heading", { name: "Unable to load status page" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText("Failed to fetch")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute(
+    "href",
+    "#main-content",
+  );
+  expect(document.getElementById("main-content")).not.toBeNull();
+});
+
 test("public status page confirms a subscriber from the confirm query", async () => {
   render(
     <MemoryRouter initialEntries={["/s/ada-status?confirm=confirm-token"]}>

@@ -8,5 +8,8 @@ test("titles public and workspace routes", () => {
     "New monitor · Orvex Monitor",
   );
   expect(titleForPath("/organization/acme")).toBe("Dashboard · Orvex Monitor");
-  expect(titleForPath("/missing")).toBe("Orvex Monitor");
+  expect(titleForPath("/organization/acme/invoices")).toBe(
+    "Invoices · Orvex Monitor",
+  );
+  expect(titleForPath("/missing")).toBe("Page not found · Orvex Monitor");
 });

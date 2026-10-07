@@ -29,7 +29,17 @@ const TITLES: Array<[RegExp, string]> = [
   [/^\/organization\/[^/]+\/billing$/, "Billing"],
   [/^\/organization\/[^/]+\/settings$/, "Organization settings"],
   [/^\/organization\/[^/]+\/support$/, "Support"],
+  [/^\/organization\/[^/]+\/docs$/, "Docs"],
+  [/^\/organization\/[^/]+\/audit-log$/, "Audit log"],
+  [/^\/organization\/[^/]+\/orders$/, "Orders"],
+  [/^\/organization\/[^/]+\/invoices$/, "Invoices"],
+  [/^\/organization\/[^/]+\/referrals$/, "Referrals"],
+  [/^\/organization\/[^/]+\/white-label$/, "White label"],
   [/^\/organization\/[^/]+$/, "Dashboard"],
+  [/^\/admin$/, "Admin"],
+  [/^\/docs$/, "Docs"],
+  [/^\/invite\/[^/]+$/, "Invitation"],
+  [/^\/auth\/callback$/, "Signing in"],
   [/^\/s\/[^/]+$/, "Status"],
 ];
 
@@ -39,5 +49,5 @@ export function titleForPath(pathname: string): string {
       return title === "Orvex Monitor" ? title : `${title} · Orvex Monitor`;
     }
   }
-  return "Orvex Monitor";
+  return "Page not found · Orvex Monitor";
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useParams, useSearchParams } from "react-router";
 import {
   PublicStatusBoard,
@@ -10,7 +10,22 @@ import {
   isNotFound,
   type StatusPagePublicPayload,
 } from "@/components/status/status-helpers";
+import { SkipLink } from "@/components/skip-link";
 import { Skeleton } from "@/components/ui/skeleton";
+
+function StatusFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-svh bg-background">
+      <SkipLink />
+      <main
+        id="main-content"
+        className="flex min-h-svh flex-col items-center justify-center"
+      >
+        {children}
+      </main>
+    </div>
+  );
+}
 
 export function StatusConfirmRedirect() {
   const { pageSlug, orgSlug } = useParams();
@@ -76,7 +91,12 @@ export function PublicStatusPage() {
           setMissing(true);
           return;
         }
-        setError(faultMessage(caught, "Unable to load status page"));
+        setError(
+          faultMessage(
+            caught,
+            "The status service did not respond. Try again in a moment.",
+          ),
+        );
       });
     return () => {
       active = false;
@@ -108,27 +128,33 @@ export function PublicStatusPage() {
   }, [confirmToken]);
 
   if (pageSlug === undefined || pageSlug.length === 0 || missing) {
-    return <PublicStatusMissing />;
+    return (
+      <StatusFrame>
+        <PublicStatusMissing />
+      </StatusFrame>
+    );
   }
 
   if (error !== null) {
     return (
-      <div className="flex min-h-svh flex-col items-center justify-center gap-2 bg-background px-5">
+      <StatusFrame>
         <h1 className="font-heading text-xl">Unable to load status page</h1>
-        <p className="max-w-sm text-center text-sm text-muted-foreground">
+        <p className="mt-2 max-w-sm px-5 text-center text-sm text-muted-foreground">
           {error}
         </p>
-      </div>
+      </StatusFrame>
     );
   }
 
   if (payload === null) {
     return (
-      <div className="flex min-h-svh flex-col gap-3 bg-background px-5 py-8">
-        <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-40 w-full" />
-      </div>
+      <StatusFrame>
+        <div className="flex w-full max-w-2xl flex-col gap-3 px-5 py-8">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-40 w-full" />
+        </div>
+      </StatusFrame>
     );
   }
 

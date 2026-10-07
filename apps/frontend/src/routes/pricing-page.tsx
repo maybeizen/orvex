@@ -6,7 +6,7 @@ export function PricingPage() {
   return (
     <MarketingShell>
       <main id="main-content">
-        <LandingPricing />
+        <LandingPricing headingLevel={1} />
         <LandingCta />
       </main>
     </MarketingShell>

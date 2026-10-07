@@ -28,12 +28,16 @@ export function SectionHeading({
   title,
   copy,
   align = "left",
+  level = 2,
 }: {
   eyebrow?: string;
   title: string;
   copy?: string;
   align?: "left" | "center";
+  level?: 1 | 2;
 }) {
+  const Title = level === 1 ? "h1" : "h2";
+
   return (
     <div
       className={cn(
@@ -46,9 +50,9 @@ export function SectionHeading({
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="font-display text-[2rem] leading-[1.15] text-balance md:text-[2.5rem]">
+      <Title className="font-display text-[2rem] leading-[1.15] text-balance md:text-[2.5rem]">
         {title}
-      </h2>
+      </Title>
       {copy ? (
         <p className="text-[0.95rem] leading-relaxed text-muted-foreground text-pretty">
           {copy}

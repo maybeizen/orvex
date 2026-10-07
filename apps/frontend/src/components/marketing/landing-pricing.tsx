@@ -108,7 +108,7 @@ function PlanCard({ plan, cycle }: { plan: PricingPlan; cycle: BillingCycle }) {
   );
 }
 
-export function LandingPricing() {
+export function LandingPricing({ headingLevel = 2 }: { headingLevel?: 1 | 2 }) {
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
 
   return (
@@ -118,6 +118,7 @@ export function LandingPricing() {
           eyebrow="Pricing"
           title="Pay for the desk you run"
           copy="Quarterly saves 10%. Yearly saves 20%. The figure is the period total."
+          level={headingLevel}
         />
         <div className="flex justify-center">
           <div
