@@ -10,7 +10,7 @@ import type {
   OrganizationRole,
 } from "@orvex/types";
 import { presetMaskForRole } from "@orvex/types/permissions";
-import { isPlanId, planSeatLimit } from "@orvex/types/plans";
+import { seatLimitForOrganization } from "./seat-limit.js";
 import { TRPCError } from "@trpc/server";
 import { writeAuditEvent } from "../audit/audit-service.js";
 import {
@@ -261,10 +261,7 @@ async function listPendingInvites(
 }
 
 function orgSeatLimit(org: OrganizationRow): number {
-  if (org.kind === "single") {
-    return 1;
-  }
-  return planSeatLimit(isPlanId(org.plan_id) ? org.plan_id : "free");
+  return seatLimitForOrganization(org.kind, org.plan_id, org.billing_status);
 }
 
 async function seatsUsed(
@@ -540,6 +537,19 @@ export async function acceptInvite(
     badRequest("That invite has expired");
   }
 
+  const acceptedAt = new Date().toISOString();
+  const { error: acceptError } = await supabase
+    .from("organization_invites")
+    .update({ accepted_at: acceptedAt })
+    .eq("id", invite.id)
+    .is("accepted_at", null);
+  if (acceptError !== null) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: acceptError.message,
+    });
+  }
+
   const existing = await fetchMembership(
     supabase,
     invite.organization_id,
@@ -558,6 +568,10 @@ export async function acceptInvite(
         status: "active",
       });
     if (memberError !== null) {
+      await supabase
+        .from("organization_invites")
+        .update({ accepted_at: null })
+        .eq("id", invite.id);
       if (
         memberError.code === "P0001" ||
         memberError.message.includes("organization seat limit exceeded")
@@ -569,17 +583,6 @@ export async function acceptInvite(
         message: memberError.message,
       });
     }
-  }
-
-  const { error: acceptError } = await supabase
-    .from("organization_invites")
-    .update({ accepted_at: new Date().toISOString() })
-    .eq("id", invite.id);
-  if (acceptError !== null) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: acceptError.message,
-    });
   }
 
   const { error: profileError } = await supabase

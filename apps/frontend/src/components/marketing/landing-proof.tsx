@@ -13,7 +13,7 @@ export function LandingProof() {
             <p className="font-mono text-3xl tracking-tight tabular-nums text-primary md:text-4xl">
               {stat.value}
             </p>
-            <h3 className="text-sm font-medium">{stat.label}</h3>
+            <p className="text-sm font-medium">{stat.label}</p>
             <p className="font-mono text-[0.68rem] leading-relaxed text-muted-foreground">
               {stat.detail}
             </p>

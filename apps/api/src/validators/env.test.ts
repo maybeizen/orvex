@@ -32,6 +32,22 @@ test("loadEnv drops an empty redis url", () => {
   expect(env.REDIS_URL).toBeUndefined();
 });
 
+test("loadEnv refuses to boot in production without CRYPTO_SECRET", () => {
+  expect(() =>
+    loadEnv({
+      ...valid,
+      NODE_ENV: "production",
+    }),
+  ).toThrow(/CRYPTO_SECRET is required in production/u);
+
+  const env = loadEnv({
+    ...valid,
+    NODE_ENV: "production",
+    CRYPTO_SECRET: "prod-secret",
+  });
+  expect(env.CRYPTO_SECRET).toBe("prod-secret");
+});
+
 test("loadEnv rejects missing supabase url", () => {
   expect(() =>
     loadEnv({

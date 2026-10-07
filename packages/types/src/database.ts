@@ -67,6 +67,7 @@ export type Database = {
           organization_id: string
           status: string
           stripe_checkout_session_id: string | null
+          stripe_event_id: string | null
         }
         Insert: {
           amount_cents?: number
@@ -76,6 +77,7 @@ export type Database = {
           organization_id: string
           status: string
           stripe_checkout_session_id?: string | null
+          stripe_event_id?: string | null
         }
         Update: {
           amount_cents?: number
@@ -85,6 +87,7 @@ export type Database = {
           organization_id?: string
           status?: string
           stripe_checkout_session_id?: string | null
+          stripe_event_id?: string | null
         }
         Relationships: [
           {
@@ -994,6 +997,7 @@ export type Database = {
           referral_code: string
           referred_by_organization_id: string | null
           slug: string
+          stripe_billing_event_at: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           support_email: string | null
@@ -1017,6 +1021,7 @@ export type Database = {
           referral_code?: string
           referred_by_organization_id?: string | null
           slug: string
+          stripe_billing_event_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           support_email?: string | null
@@ -1040,6 +1045,7 @@ export type Database = {
           referral_code?: string
           referred_by_organization_id?: string | null
           slug?: string
+          stripe_billing_event_at?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           support_email?: string | null

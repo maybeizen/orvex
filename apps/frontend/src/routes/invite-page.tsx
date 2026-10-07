@@ -67,7 +67,7 @@ export function InvitePage() {
 
   return (
     <PublicChrome>
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-6 px-4 py-16">
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-6 px-4 py-16">
         <div className="flex flex-col gap-1">
           <p className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase">
             Invite
@@ -110,7 +110,7 @@ export function InvitePage() {
             )}
           </div>
         )}
-      </main>
+      </div>
     </PublicChrome>
   );
 }

@@ -199,3 +199,70 @@ test("markMissedHeartbeats marks a stale token down after 2 intervals", async ()
     await ctx.cache.get(cacheKeys.monitorStatus(freshMonitor.id)),
   ).toBeNull();
 });
+
+test("markMissedHeartbeats does not mark down when last_seen_at changed after it was selected", async () => {
+  const now = new Date("2026-01-01T00:02:00.000Z");
+  const stale = new Date(now.getTime() - 61_000).toISOString();
+  const monitor = monitorRow({
+    id: "11111111-1111-4111-8111-111111111111",
+    status: "up",
+    interval_seconds: 30,
+  });
+  const memory = createAgentMemory({
+    monitors: [monitor],
+    tokens: [
+      monitorTokenRow({
+        id: "dddddddd-dddd-4ddd-8ddd-000000000001",
+        monitor_id: monitor.id,
+        kind: "agent",
+        token_hash: createHash("sha256").update("stale").digest("hex"),
+        last_seen_at: stale,
+      }),
+    ],
+  });
+  const originalFrom = memory.supabase.from.bind(memory.supabase);
+  const supabase = {
+    from(table: string) {
+      const query = originalFrom(table as "monitor_tokens");
+      if (table !== "monitor_tokens") {
+        return query;
+      }
+      const builder = query as unknown as {
+        then: (
+          resolve: (value: {
+            data: unknown;
+            error: { message: string } | null;
+          }) => void,
+          reject?: (reason: unknown) => void,
+        ) => Promise<void>;
+      };
+      const read = builder.then.bind(builder);
+      builder.then = (resolve, reject) =>
+        read((result) => {
+          if (!Array.isArray(result.data)) {
+            resolve(result);
+            return;
+          }
+          const snapshot = result.data.map((row) => ({ ...(row as object) }));
+          const stored = memory.tokens[0];
+          if (stored !== undefined) {
+            stored.last_seen_at = now.toISOString();
+          }
+          resolve({ ...result, data: snapshot });
+        }, reject);
+      return query;
+    },
+  };
+
+  const ctx = withCache({
+    user: null,
+    req: { headers: {} },
+    supabase: supabase as typeof memory.supabase,
+  });
+
+  await markMissedHeartbeats(ctx.supabase, ctx.cache, now);
+
+  expect(memory.monitors[0]?.status).toBe("up");
+  expect(memory.monitors[0]?.consecutive_failures).toBe(0);
+  expect(await ctx.cache.get(cacheKeys.monitorStatus(monitor.id))).toBeNull();
+});

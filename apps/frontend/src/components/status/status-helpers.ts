@@ -90,10 +90,8 @@ export function pageSlugHint(slug: string): string | null {
   return null;
 }
 
-export function faultMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message.length > 0
-    ? error.message
-    : fallback;
+export function faultMessage(_error: unknown, fallback: string): string {
+  return fallback;
 }
 
 export function isNotFound(error: unknown): boolean {

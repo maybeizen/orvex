@@ -1,7 +1,7 @@
 import type { AuthUser, Database } from "@orvex/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { TRPCError } from "@trpc/server";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import {
   createMemorySupabase,
   profileRow,
@@ -9,6 +9,7 @@ import {
 } from "../modules/profile/test-support.js";
 import type { ContextRequest } from "./context.js";
 import { appRouter } from "./router.js";
+import { dependencyDeadlineMs } from "../lib/deadline.js";
 import { withCache } from "./test-context.js";
 
 const req: ContextRequest = { headers: {} };
@@ -63,6 +64,36 @@ test("health.live fails when cache or organizations are down", async () => {
   const error = await caller.health.live().catch((caught: unknown) => caught);
   expect(error).toBeInstanceOf(TRPCError);
   expect((error as TRPCError).code).toBe("INTERNAL_SERVER_ERROR");
+});
+
+test("health.live fails when a dependency does not answer before the deadline", async () => {
+  vi.useFakeTimers();
+  try {
+    const caller = appRouter.createCaller(
+      withCache({
+        user: null,
+        req,
+        cache: {
+          ping: () => new Promise<boolean>(() => {}),
+        } as never,
+        supabase: {
+          from: () => ({
+            select: () => ({
+              limit: () => Promise.resolve({ data: [], error: null }),
+            }),
+          }),
+          storage: stubSupabase.storage,
+        } as unknown as typeof stubSupabase,
+      }),
+    );
+    const pending = caller.health.live().catch((caught: unknown) => caught);
+    await vi.advanceTimersByTimeAsync(dependencyDeadlineMs);
+    const error = await pending;
+    expect(error).toBeInstanceOf(TRPCError);
+    expect((error as TRPCError).code).toBe("INTERNAL_SERVER_ERROR");
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("auth.me requires a user", async () => {

@@ -2,6 +2,7 @@ import type { CacheClient } from "@orvex/cache";
 import type { Database } from "@orvex/types";
 import { CACHE_TTL, cacheKeys, hashCacheToken } from "../../lib/cache-keys.js";
 import type { DataClient } from "../../trpc/context.js";
+import { monitorWithinEffectivePlan } from "../monitor/monitor-service.js";
 
 export type HeartbeatBody = {
   id: string;
@@ -67,6 +68,34 @@ export async function applyHeartbeat(
   }
 
   if (!tokenAccepted(data, payload)) {
+    return false;
+  }
+
+  const { data: monitorRow, error: monitorReadError } = await supabase
+    .from("monitors")
+    .select("id, organization_id, type, interval_seconds, regions")
+    .eq("id", data.monitor_id)
+    .maybeSingle();
+
+  if (monitorReadError !== null || monitorRow === null) {
+    return false;
+  }
+
+  const { data: organization, error: organizationError } = await supabase
+    .from("organizations")
+    .select("id, plan_id, billing_status")
+    .eq("id", monitorRow.organization_id)
+    .maybeSingle();
+
+  if (
+    organizationError !== null ||
+    organization === null ||
+    !monitorWithinEffectivePlan(
+      monitorRow,
+      organization.plan_id,
+      organization.billing_status,
+    )
+  ) {
     return false;
   }
 
@@ -160,20 +189,34 @@ export async function markMissedHeartbeats(
       continue;
     }
 
+    const selectedLastSeen = token.last_seen_at;
+    const { data: claimedToken, error: claimError } = await supabase
+      .from("monitor_tokens")
+      .update({ last_seen_at: selectedLastSeen })
+      .eq("id", token.id)
+      .eq("last_seen_at", selectedLastSeen)
+      .select("id")
+      .maybeSingle();
+    if (claimError !== null || claimedToken === null) {
+      continue;
+    }
+
     const nextFailures =
       monitor.status === "down"
         ? monitor.consecutive_failures
         : monitor.consecutive_failures + 1;
     const nowIso = now.toISOString();
-    const { error: updateError } = await supabase
+    const { data: marked, error: updateError } = await supabase
       .from("monitors")
       .update({
         status: "down",
         consecutive_failures: nextFailures,
         last_check_at: nowIso,
       })
-      .eq("id", monitor.id);
-    if (updateError !== null) {
+      .eq("id", monitor.id)
+      .select("id")
+      .maybeSingle();
+    if (updateError !== null || marked === null) {
       continue;
     }
     monitor.status = "down";

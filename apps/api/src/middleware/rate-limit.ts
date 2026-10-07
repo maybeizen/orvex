@@ -1,5 +1,11 @@
 import { type CacheClient } from "@orvex/cache";
-import { rateLimit, type Options, type Store } from "express-rate-limit";
+import {
+  ipKeyGenerator,
+  rateLimit,
+  type Options,
+  type Store,
+} from "express-rate-limit";
+import type { Request } from "express";
 
 class CacheRateLimitStore implements Store {
   readonly #cache: CacheClient;
@@ -37,12 +43,16 @@ class CacheRateLimitStore implements Store {
   }
 }
 
+export function rateLimitKey(req: Request): string {
+  return ipKeyGenerator(req.ip ?? "");
+}
+
 export function createRateLimitMiddleware(
   cache: CacheClient,
   options?: { windowMs?: number; limit?: number; prefix?: string },
 ) {
   const windowMs = options?.windowMs ?? 60_000;
-  const limit = options?.limit ?? 120;
+  const limit = options?.limit ?? 300;
   const prefix = options?.prefix ?? "rl:";
 
   return rateLimit({
@@ -50,6 +60,7 @@ export function createRateLimitMiddleware(
     limit,
     standardHeaders: "draft-8",
     legacyHeaders: false,
+    keyGenerator: rateLimitKey,
     store: new CacheRateLimitStore(cache, prefix),
   });
 }

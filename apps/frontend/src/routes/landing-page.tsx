@@ -12,7 +12,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 export function LandingPage() {
   return (
     <MarketingShell>
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <LandingHero />
         <LandingIntegrations />
         <LandingProof />

@@ -14,11 +14,15 @@ import (
 type PingFunc func(ctx context.Context, host string, timeout time.Duration) error
 
 func defaultPing(ctx context.Context, host string, timeout time.Duration) error {
+	ips, err := vettedIPs(ctx, host)
+	if err != nil {
+		return err
+	}
 	secs := int(timeout.Round(time.Second) / time.Second)
 	if secs < 1 {
 		secs = 1
 	}
-	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "-W", strconv.Itoa(secs), host)
+	cmd := exec.CommandContext(ctx, "ping", "-c", "1", "-W", strconv.Itoa(secs), ips[0].String())
 	output, err := cmd.CombinedOutput()
 	if err == nil {
 		return nil
@@ -61,6 +65,12 @@ func Ping(ctx context.Context, job Job, ping PingFunc, dial DialFunc) Result {
 	defer cancel()
 
 	host := hostFromTarget(job.Target)
+	if err := rejectProbeTarget(host); err != nil && host != "" {
+		result.Status = StatusDown
+		result.Error = strPtr(err.Error())
+		result.LatencyMs = int64Ptr(0)
+		return result
+	}
 	if host == "" {
 		result.Status = StatusDown
 		result.Error = strPtr(errMissingTarget.Error())

@@ -1,5 +1,5 @@
 import type { AuditEvent, Database } from "@orvex/types";
-import { getPlan, isPlanId } from "@orvex/types/plans";
+import { effectivePlanId, getPlan } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
 import type { OrganizationClient } from "../organization/organization-dto.js";
 
@@ -41,8 +41,8 @@ function throwDb(message: string): never {
   });
 }
 
-function retentionCutoff(planId: string): string {
-  const plan = getPlan(isPlanId(planId) ? planId : "free");
+function retentionCutoff(planId: string, billingStatus: string): string {
+  const plan = getPlan(effectivePlanId(planId, billingStatus));
   const ms = plan.entitlements.auditRetentionDays * 24 * 60 * 60 * 1000;
   return new Date(Date.now() - ms).toISOString();
 }
@@ -108,10 +108,10 @@ export async function writeAuditEvent(
 async function fetchOrganizationPlanId(
   supabase: AuditClient,
   organizationId: string,
-): Promise<string> {
+): Promise<{ planId: string; billingStatus: string }> {
   const { data, error } = await supabase
     .from("organizations")
-    .select("plan_id")
+    .select("plan_id, billing_status")
     .eq("id", organizationId)
     .maybeSingle();
   if (error !== null) {
@@ -123,7 +123,10 @@ async function fetchOrganizationPlanId(
       message: "Organization not found",
     });
   }
-  return data.plan_id;
+  return {
+    planId: data.plan_id,
+    billingStatus: data.billing_status,
+  };
 }
 
 export async function listAuditEvents(
@@ -131,8 +134,8 @@ export async function listAuditEvents(
   organizationId: string,
   input: AuditListInput = {},
 ): Promise<AuditEvent[]> {
-  const planId = await fetchOrganizationPlanId(supabase, organizationId);
-  const cutoff = retentionCutoff(planId);
+  const plan = await fetchOrganizationPlanId(supabase, organizationId);
+  const cutoff = retentionCutoff(plan.planId, plan.billingStatus);
   const from = input.from === undefined ? cutoff : laterIso(cutoff, input.from);
   const to = earlierIso(input.to ?? new Date().toISOString(), input.to);
 

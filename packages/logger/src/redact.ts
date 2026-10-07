@@ -1,6 +1,11 @@
 import type { LogMeta, LogValue } from "./types.js";
 
-const SECRET_KEYS = new Set(["authorization", "apikey", "password"]);
+const SECRET_KEY =
+  /authorization|password|secret|token|apikey|api_key|cookie|credential|private_key|service_role|_pass$|session/;
+
+function isSecretKey(key: string): boolean {
+  return SECRET_KEY.test(key.toLowerCase().replaceAll("-", "_"));
+}
 export const REDACTED = "[REDACTED]";
 
 const PRESERVED_KEYS = new Set(["level", "message", "timestamp", "service"]);
@@ -38,9 +43,7 @@ function redactRecord(
   const result: { [key: string]: LogValue } = {};
 
   for (const [key, value] of Object.entries(record)) {
-    result[key] = SECRET_KEYS.has(key.toLowerCase())
-      ? REDACTED
-      : redactValue(value, seen);
+    result[key] = isSecretKey(key) ? REDACTED : redactValue(value, seen);
   }
 
   return result;
@@ -62,9 +65,7 @@ export function redactLogRecord(record: { readonly [key: string]: LogValue }): {
       continue;
     }
 
-    result[key] = SECRET_KEYS.has(key.toLowerCase())
-      ? REDACTED
-      : redactValue(value, seen);
+    result[key] = isSecretKey(key) ? REDACTED : redactValue(value, seen);
   }
 
   return result;

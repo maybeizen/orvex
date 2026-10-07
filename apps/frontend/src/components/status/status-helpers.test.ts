@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import {
+  faultMessage,
   isNotFound,
   isPageSlug,
   isUuid,
@@ -64,6 +65,18 @@ test("overall status ranks down over degraded over up", () => {
   ).toBe("degraded");
   expect(overallStatusCopy("down")).toBe("Service disruption");
   expect(visibilityLabel("unlisted")).toBe("Unlisted");
+});
+
+test("faultMessage hides arbitrary error text", () => {
+  expect(
+    faultMessage(new Error("Failed to fetch"), "Try again in a moment."),
+  ).toBe("Try again in a moment.");
+  expect(
+    faultMessage(
+      new Error("relation status_pages does not exist"),
+      "Something went wrong.",
+    ),
+  ).toBe("Something went wrong.");
 });
 
 test("isNotFound reads message and trpc code", () => {

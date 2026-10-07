@@ -11,9 +11,9 @@ import type {
   OrganizationPlanId,
 } from "@orvex/types";
 import { PROBE_REGION_CODES } from "@orvex/types";
-import { getPlan, isPlanId } from "@orvex/types/plans";
+import { effectivePlanId, getPlan, isPlanId } from "@orvex/types/plans";
 import { TRPCError } from "@trpc/server";
-import { cryptoKeyFromSecret } from "../../lib/crypto-key.js";
+import { requireCryptoKey } from "../../lib/crypto-key.js";
 import {
   isMonitorType,
   toCheckResultDto,
@@ -84,17 +84,40 @@ export function allowedRegionCodes(planId: string): readonly string[] {
   return PROBE_REGION_CODES.slice(0, limit);
 }
 
+export function monitorWithinEffectivePlan(
+  monitor: {
+    type: string;
+    interval_seconds: number;
+    regions: readonly string[];
+  },
+  planId: string,
+  billingStatus: string,
+): boolean {
+  const effective = effectivePlanId(planId, billingStatus);
+  const entitlements = getPlan(effective).entitlements;
+  if (monitor.type === "heartbeat" && !entitlements.heartbeat) {
+    return false;
+  }
+  if (monitor.type === "agent" && !entitlements.agent) {
+    return false;
+  }
+  if (monitor.interval_seconds < entitlements.intervalSeconds) {
+    return false;
+  }
+  const allowed = allowedRegionCodes(effective);
+  if (monitor.regions.length === 0 || monitor.regions.length > allowed.length) {
+    return false;
+  }
+  return monitor.regions.every((region) => allowed.includes(region));
+}
+
 export function encryptHeadersJson(
   headers: Record<string, string> | undefined,
 ): string | null {
   if (headers === undefined || Object.keys(headers).length === 0) {
     return null;
   }
-  const key = cryptoKeyFromSecret(process.env.CRYPTO_SECRET);
-  if (key === null) {
-    return null;
-  }
-  return encrypt(JSON.stringify(headers), key);
+  return encrypt(JSON.stringify(headers), requireCryptoKey());
 }
 
 function hashMonitorToken(token: string): string {

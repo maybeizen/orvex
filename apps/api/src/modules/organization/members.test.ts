@@ -247,6 +247,105 @@ test("organization.members.remove refuses the last owner", async () => {
   expect(memory.members).toHaveLength(1);
 });
 
+test("accepting the last free seat succeeds and another member is denied", async () => {
+  const org = organizationRow({
+    kind: "team",
+    plan_id: "free",
+    billing_status: "active",
+    name: "Ada Team",
+    slug: "ada-team",
+  });
+  const token = "last-seat";
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [memberRow({ organization_id: org.id })],
+    invites: [
+      inviteRow({
+        organization_id: org.id,
+        email: "grace@orvex.dev",
+        token_hash: createHash("sha256").update(token).digest("hex"),
+      }),
+    ],
+    profiles: [
+      profileFixture(),
+      profileFixture({ user_id: memberId, username: "grace" }),
+    ],
+  });
+  const accepted = await caller(
+    memory.supabase,
+    grace,
+  ).organization.invites.accept({
+    token,
+  });
+  expect(accepted.organizationId).toBe(org.id);
+  expect(memory.members).toHaveLength(2);
+  expect(memory.invites[0]?.accepted_at).toEqual(expect.any(String));
+  expect(memory.events.indexOf("invite.accept")).toBeGreaterThanOrEqual(0);
+  expect(memory.events.indexOf("invite.accept")).toBeLessThan(
+    memory.events.indexOf("member.insert"),
+  );
+
+  const extra = await caller(memory.supabase)
+    .organization.members.invite({
+      organizationId: org.id,
+      email: "linus@orvex.dev",
+      role: "member",
+    })
+    .catch((caught: unknown) => caught);
+  expect(extra).toBeInstanceOf(TRPCError);
+  expect((extra as TRPCError).code).toBe("BAD_REQUEST");
+  expect(memory.members).toHaveLength(2);
+  expect(memory.invites.filter((row) => row.accepted_at === null)).toHaveLength(
+    0,
+  );
+});
+
+test("a failed last-seat insert rolls the invite back to pending", async () => {
+  const org = organizationRow({
+    kind: "team",
+    plan_id: "probe",
+    billing_status: "active",
+  });
+  const token = "over-seat";
+  const memory = createOrganizationMemory({
+    organizations: [org],
+    members: [
+      memberRow({ organization_id: org.id }),
+      memberRow({
+        organization_id: org.id,
+        user_id: otherUserId,
+        role: "member",
+      }),
+      memberRow({
+        organization_id: org.id,
+        user_id: "33333333-3333-4333-8333-333333333333",
+        role: "member",
+      }),
+    ],
+    invites: [
+      inviteRow({
+        organization_id: org.id,
+        email: grace.email,
+        token_hash: createHash("sha256").update(token).digest("hex"),
+      }),
+    ],
+    profiles: [profileFixture(), profileFixture({ user_id: memberId })],
+  });
+
+  const error = await caller(memory.supabase, grace)
+    .organization.invites.accept({ token })
+    .catch((caught: unknown) => caught);
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("BAD_REQUEST");
+  expect(memory.members.some((row) => row.user_id === grace.id)).toBe(false);
+  expect(memory.invites[0]?.accepted_at).toBeNull();
+  expect(memory.events).toEqual([
+    "invite.accept",
+    "member.insert",
+    "invite.revert",
+  ]);
+});
+
 test("organization.invites.accept adds a member from the token", async () => {
   const memory = createOrganizationMemory({
     organizations: [teamOrg],

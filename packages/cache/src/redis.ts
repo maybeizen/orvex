@@ -10,6 +10,7 @@ export class RedisCache implements CacheClient {
     this.#client = new Redis(url, {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
+      commandTimeout: 2_000,
     });
   }
 
@@ -31,11 +32,17 @@ export class RedisCache implements CacheClient {
   }
 
   async incr(key: string, ttlSeconds?: number): Promise<number> {
-    const count = await this.#client.incr(key);
-    if (ttlSeconds !== undefined && count === 1) {
-      await this.#client.expire(key, ttlSeconds);
+    if (ttlSeconds === undefined) {
+      return this.#client.incr(key);
     }
-    return count;
+
+    const count = await this.#client.eval(
+      'local n = redis.call("INCR", KEYS[1]) if n == 1 then redis.call("EXPIRE", KEYS[1], ARGV[1]) end return n',
+      1,
+      key,
+      String(ttlSeconds),
+    );
+    return typeof count === "number" ? count : Number(count);
   }
 
   async decr(key: string): Promise<number> {
@@ -62,6 +69,34 @@ export class RedisCache implements CacheClient {
     const token = randomBytes(16).toString("hex");
     const result = await this.#client.set(key, token, "EX", ttlSeconds, "NX");
     return result === "OK" ? token : null;
+  }
+
+  async renewLock(
+    key: string,
+    token: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    const renewed = await this.#client.eval(
+      'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("EXPIRE", KEYS[1], ARGV[2]) else return 0 end',
+      1,
+      key,
+      token,
+      String(ttlSeconds),
+    );
+    return renewed === 1;
+  }
+
+  async consumeLock(key: string, token: string): Promise<boolean> {
+    if (token.length === 0) {
+      return false;
+    }
+    const removed = await this.#client.eval(
+      'if redis.call("GET", KEYS[1]) == ARGV[1] then return redis.call("DEL", KEYS[1]) else return 0 end',
+      1,
+      key,
+      token,
+    );
+    return removed === 1;
   }
 
   async releaseLock(key: string, token: string): Promise<void> {

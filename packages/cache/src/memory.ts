@@ -36,17 +36,18 @@ export class MemoryCache implements CacheClient {
     return Promise.resolve();
   }
 
-  async incr(key: string, ttlSeconds?: number): Promise<number> {
+  incr(key: string, ttlSeconds?: number): Promise<number> {
     const entry = this.#liveEntry(key);
     const next =
       (entry === null ? 0 : Number.parseInt(entry.value, 10) || 0) + 1;
-    if (entry === null) {
-      await this.set(key, String(next), ttlSeconds);
-      return next;
-    }
-
-    this.#store.set(key, { value: String(next), expiresAt: entry.expiresAt });
-    return next;
+    const expiresAt =
+      entry === null
+        ? ttlSeconds === undefined
+          ? null
+          : Date.now() + ttlSeconds * 1000
+        : entry.expiresAt;
+    this.#store.set(key, { value: String(next), expiresAt });
+    return Promise.resolve(next);
   }
 
   decr(key: string): Promise<number> {
@@ -84,6 +85,28 @@ export class MemoryCache implements CacheClient {
     const token = randomBytes(16).toString("hex");
     await this.set(key, token, ttlSeconds);
     return token;
+  }
+
+  renewLock(key: string, token: string, ttlSeconds: number): Promise<boolean> {
+    const entry = this.#liveEntry(key);
+    if (entry === null || entry.value !== token) {
+      return Promise.resolve(false);
+    }
+
+    entry.expiresAt = Date.now() + ttlSeconds * 1000;
+    return Promise.resolve(true);
+  }
+
+  consumeLock(key: string, token: string): Promise<boolean> {
+    if (token.length === 0) {
+      return Promise.resolve(false);
+    }
+    const entry = this.#liveEntry(key);
+    if (entry === null || entry.value !== token) {
+      return Promise.resolve(false);
+    }
+    this.#store.delete(key);
+    return Promise.resolve(true);
   }
 
   async releaseLock(key: string, token: string): Promise<void> {

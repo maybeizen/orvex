@@ -26,11 +26,13 @@ test("encrypts a secret when CRYPTO_SECRET is set", () => {
   }
 });
 
-test("stores null when the crypto key is missing", () => {
+test("refuses to encrypt when CRYPTO_SECRET is missing", () => {
   const previous = process.env.CRYPTO_SECRET;
   delete process.env.CRYPTO_SECRET;
   try {
-    expect(encryptContactSecret("pager-token")).toBeNull();
+    expect(() => encryptContactSecret("pager-token")).toThrow(
+      /CRYPTO_SECRET is not configured/u,
+    );
     expect(decryptContactSecret("not-a-secret")).toBeNull();
   } finally {
     if (previous === undefined) {

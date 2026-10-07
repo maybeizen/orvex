@@ -1,5 +1,6 @@
 import type { CacheClient } from "@orvex/cache";
 import { PROBE_REGION_CODES } from "@orvex/types";
+import { effectivePlanId } from "@orvex/types/plans";
 import { z } from "zod";
 import { CACHE_TTL, cacheKeys } from "../../lib/cache-keys.js";
 import { invalidateOrgCaches } from "../../lib/cached.js";
@@ -33,7 +34,37 @@ const monitorTypeSchema = z.enum([
 
 const regionSchema = z.enum(PROBE_REGION_CODES);
 
-const headersSchema = z.record(z.string(), z.string());
+const HTTP_METHODS = [
+  "GET",
+  "HEAD",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "OPTIONS",
+] as const;
+
+const blockedHeader =
+  /^(host|content-length|transfer-encoding|connection|upgrade|proxy-connection|proxy-authorization|te|trailer|keep-alive)$/i;
+
+const headersSchema = z
+  .record(z.string().trim().min(1).max(64), z.string().max(2048))
+  .superRefine((headers, ctx) => {
+    for (const key of Object.keys(headers)) {
+      if (
+        blockedHeader.test(key) ||
+        key.includes(":") ||
+        key.includes("\n") ||
+        key.includes("\r")
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: [key],
+          message: "Header is not allowed",
+        });
+      }
+    }
+  });
 
 const createSchema = z
   .object({
@@ -45,7 +76,7 @@ const createSchema = z
     port: z.number().int().min(1).max(65535).nullable().optional(),
     intervalSeconds: z.number().int().min(5),
     timeoutMs: z.number().int().min(100).max(120000).optional(),
-    method: z.string().trim().min(1).max(16).nullable().optional(),
+    method: z.enum(HTTP_METHODS).nullable().optional(),
     headers: headersSchema.optional(),
     regions: z.array(regionSchema).min(1).optional(),
     confirmationCount: z.number().int().min(1).max(20).optional(),
@@ -94,7 +125,7 @@ const updateSchema = z.object({
   port: z.number().int().min(1).max(65535).nullable().optional(),
   intervalSeconds: z.number().int().min(5).optional(),
   timeoutMs: z.number().int().min(100).max(120000).optional(),
-  method: z.string().trim().min(1).max(16).nullable().optional(),
+  method: z.enum(HTTP_METHODS).nullable().optional(),
   headers: headersSchema.optional(),
   regions: z.array(regionSchema).min(1).optional(),
   confirmationCount: z.number().int().min(1).max(20).optional(),
@@ -135,7 +166,10 @@ export const monitorRouter = router({
       const created = await createMonitor(
         ctx.supabase,
         ctx.organization.id,
-        ctx.organization.plan_id,
+        effectivePlanId(
+          ctx.organization.plan_id,
+          ctx.organization.billing_status,
+        ),
         ctx.user.id,
         input,
       );
@@ -148,7 +182,10 @@ export const monitorRouter = router({
       const updated = await updateMonitor(
         ctx.supabase,
         ctx.organization.id,
-        ctx.organization.plan_id,
+        effectivePlanId(
+          ctx.organization.plan_id,
+          ctx.organization.billing_status,
+        ),
         input.monitorId,
         input,
       );
@@ -202,7 +239,10 @@ export const monitorRouter = router({
       const issued = await rotateMonitorToken(
         ctx.supabase,
         ctx.organization.id,
-        ctx.organization.plan_id,
+        effectivePlanId(
+          ctx.organization.plan_id,
+          ctx.organization.billing_status,
+        ),
         input.monitorId,
         input.kind,
       );

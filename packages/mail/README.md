@@ -5,7 +5,8 @@ SMTP mailer with HTML template rendering, built on
 gracefully and skips sending (useful in local/dev).
 
 > [!NOTE]
-> Prepared for alert routing; not yet wired into any app.
+> The API uses this mailer for invites, support, status subscriptions, and the
+> email notification adapter.
 
 ## Exports
 

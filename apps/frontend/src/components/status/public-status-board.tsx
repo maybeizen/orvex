@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BrandMark } from "@/components/marketing/brand-mark";
+import { SkipLink } from "@/components/skip-link";
 import { StatusMark } from "@/components/console/status-pip";
 import { Button } from "@/components/ui/button";
 import { SubscribeDialog } from "./subscribe-dialog";
@@ -14,10 +15,12 @@ export function PublicStatusBoard({
   payload,
   organizationSlug,
   token,
+  confirmNote = null,
 }: {
   payload: StatusPagePublicPayload;
   organizationSlug?: string | undefined;
   token?: string | undefined;
+  confirmNote?: { tone: "status" | "alert"; text: string } | null;
 }) {
   const [subscribeOpen, setSubscribeOpen] = useState(false);
   const status = overallStatus(payload.components);
@@ -26,6 +29,7 @@ export function PublicStatusBoard({
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
+      <SkipLink />
       <header className="flex items-center justify-between gap-3 px-5 py-4 sm:px-8">
         <div className="flex min-w-0 items-center gap-2">
           {logoUrl === null ? (
@@ -56,7 +60,19 @@ export function PublicStatusBoard({
         </Button>
       </header>
 
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-8 sm:px-8">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-5 py-8 sm:px-8"
+      >
+        {confirmNote === null ? null : (
+          <p
+            role={confirmNote.tone}
+            className="rounded-md bg-muted px-3 py-2 text-center text-sm text-foreground"
+          >
+            {confirmNote.text}
+          </p>
+        )}
         {payload.maintenance === null ? null : (
           <section
             role="status"
@@ -189,7 +205,7 @@ export function PublicStatusBoard({
 
 export function PublicStatusMissing() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-3 bg-background px-5">
+    <div className="flex flex-col items-center justify-center gap-3 px-5">
       <p className="font-mono text-[10px] tracking-[0.18em] text-muted-foreground uppercase">
         404
       </p>

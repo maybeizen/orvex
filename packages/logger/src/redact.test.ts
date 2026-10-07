@@ -17,6 +17,22 @@ test("redacts authorization, apikey, and password keys", () => {
   });
 });
 
+test("redacts tokens, cookies, and nested secrets", () => {
+  const redacted = redactMeta({
+    access_token: "jwt",
+    "set-cookie": "sid=1",
+    service_role_key: "service",
+    monitor: "api",
+  });
+
+  expect(redacted).toEqual({
+    access_token: REDACTED,
+    "set-cookie": REDACTED,
+    service_role_key: REDACTED,
+    monitor: "api",
+  });
+});
+
 test("redacts nested and case-insensitive secret keys", () => {
   const redacted = redactMeta({
     headers: {

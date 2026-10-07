@@ -123,6 +123,26 @@ test("passkey sign-in goes to onboarding when the user has no organization", asy
   expect(await screen.findByText("Onboarding page")).toBeInTheDocument();
 });
 
+test("a second submit does not start another sign-in", () => {
+  mockAuth.signInWithPassword.mockImplementation(
+    () => new Promise(() => undefined),
+  );
+  renderLogin();
+
+  fireEvent.change(screen.getByLabelText("Email"), {
+    target: { value: ada.email },
+  });
+  fireEvent.change(screen.getByLabelText("Password"), {
+    target: { value: "secret-password" },
+  });
+  const form = screen.getByRole("button", { name: "Sign in" }).closest("form");
+  expect(form).not.toBeNull();
+  fireEvent.submit(form as HTMLFormElement);
+  fireEvent.submit(form as HTMLFormElement);
+
+  expect(mockAuth.signInWithPassword).toHaveBeenCalledOnce();
+});
+
 test("password sign-in goes to onboarding when the user has no organization", async () => {
   pathAfterAuth.mockResolvedValue("/onboarding");
   mockAuth.signInWithPassword.mockResolvedValue({

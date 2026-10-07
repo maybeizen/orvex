@@ -22,6 +22,7 @@ export function billingOrderRow(
     id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     stripe_checkout_session_id: null,
+    stripe_event_id: null,
     kind: "checkout",
     amount_cents: 1200,
     status: "complete",
@@ -85,6 +86,10 @@ export function createBillingMemory(initial?: {
           typeof body.stripe_checkout_session_id === "string"
             ? body.stripe_checkout_session_id
             : null;
+        const eventId =
+          typeof body.stripe_event_id === "string"
+            ? body.stripe_event_id
+            : null;
         if (
           sessionId !== null &&
           orders.some((row) => row.stripe_checkout_session_id === sessionId)
@@ -98,6 +103,19 @@ export function createBillingMemory(initial?: {
             },
           };
         }
+        if (
+          eventId !== null &&
+          orders.some((row) => row.stripe_event_id === eventId)
+        ) {
+          return {
+            data: null,
+            error: {
+              code: "23505",
+              message:
+                'duplicate key value violates unique constraint "billing_orders_stripe_event_id_idx"',
+            },
+          };
+        }
         orderSeq += 1;
         const row = billingOrderRow({
           id: `eeeeeeee-eeee-4eee-8eee-${String(orderSeq).padStart(12, "0")}`,
@@ -106,6 +124,7 @@ export function createBillingMemory(initial?: {
               ? body.organization_id
               : "",
           stripe_checkout_session_id: sessionId,
+          stripe_event_id: eventId,
           kind: typeof body.kind === "string" ? body.kind : "checkout",
           amount_cents:
             typeof body.amount_cents === "number" ? body.amount_cents : 0,

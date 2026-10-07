@@ -10,6 +10,7 @@ export type ContextRequest = {
   headers: {
     authorization?: string | readonly string[] | undefined;
   };
+  ip?: string | undefined;
 };
 
 export type Context = {

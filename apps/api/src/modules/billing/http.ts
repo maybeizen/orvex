@@ -75,7 +75,7 @@ export function createStripeWebhookRouter(deps: StripeWebhookDeps): Router {
   const webhookRouter = Router();
   webhookRouter.post(
     "/webhooks/stripe",
-    express.raw({ type: "application/json" }),
+    express.raw({ type: "application/json", limit: "256kb" }),
     (req, res, next) => {
       handleStripeWebhook(req, res, deps).catch((error: unknown) => {
         if (
@@ -86,7 +86,7 @@ export function createStripeWebhookRouter(deps: StripeWebhookDeps): Router {
           res.status(400).json({ error: "Invalid Stripe signature" });
           return;
         }
-        if (error instanceof HttpError) {
+        if (error instanceof HttpError && error.status < 500) {
           res.status(error.status).json({ error: error.message });
           return;
         }

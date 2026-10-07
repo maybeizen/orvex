@@ -1,4 +1,4 @@
-import { useState, type SyntheticEvent } from "react";
+import { useRef, useState, type SyntheticEvent } from "react";
 import { useNavigate } from "react-router";
 import type { OAuthProvider } from "@orvex/auth";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ export function RegisterForm() {
   const [confirm, setConfirm] = useState("");
   const [pending, setPending] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
+  const pendingRef = useRef(false);
   const configured = isAuthConfigured();
   const mismatch = confirm.length > 0 && password !== confirm;
   const canSubmit =
@@ -39,8 +40,22 @@ export function RegisterForm() {
     confirm.length >= 8 &&
     !mismatch;
 
+  function beginRequest(): boolean {
+    if (pendingRef.current) {
+      return false;
+    }
+    pendingRef.current = true;
+    setPending(true);
+    return true;
+  }
+
+  function endRequest(): void {
+    pendingRef.current = false;
+    setPending(false);
+  }
+
   async function submit() {
-    if (!guardAuthConfigured()) {
+    if (pendingRef.current || !guardAuthConfigured()) {
       return;
     }
     const trimmedFirst = firstName.trim();
@@ -61,8 +76,10 @@ export function RegisterForm() {
       return;
     }
 
+    if (!beginRequest()) {
+      return;
+    }
     setFieldError(null);
-    setPending(true);
     try {
       const result = await getBrowserAuth().signUp({
         email,
@@ -84,7 +101,7 @@ export function RegisterForm() {
       setFieldError(message);
       toast.error(message);
     } finally {
-      setPending(false);
+      endRequest();
     }
   }
 
@@ -94,18 +111,41 @@ export function RegisterForm() {
   }
 
   async function onProvider(provider: OAuthProvider) {
-    setPending(true);
+    if (!beginRequest()) {
+      return;
+    }
     try {
       const redirected = await startOAuth(provider);
       if (!redirected) {
-        setPending(false);
+        endRequest();
       }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to continue";
       toast.error(message);
-      setPending(false);
+      endRequest();
     }
+  }
+
+  const message = mismatch ? "Passwords do not match" : fieldError;
+  const errorId = message === null ? undefined : "register-error";
+
+  function describedBy(
+    field: "name" | "email" | "password" | "confirm",
+  ): string | undefined {
+    if (errorId === undefined || message === null) {
+      return undefined;
+    }
+    if (message === "Passwords do not match") {
+      return field === "confirm" || field === "password" ? errorId : undefined;
+    }
+    if (message === "First and last name are required") {
+      return field === "name" ? errorId : undefined;
+    }
+    if (message === "Use at least 8 characters") {
+      return field === "password" ? errorId : undefined;
+    }
+    return field === "email" ? errorId : undefined;
   }
 
   return (
@@ -126,6 +166,8 @@ export function RegisterForm() {
               type="text"
               autoComplete="given-name"
               required
+              aria-invalid={describedBy("name") !== undefined}
+              aria-describedby={describedBy("name")}
               value={firstName}
               onChange={(event) => {
                 setFirstName(event.target.value);
@@ -139,6 +181,8 @@ export function RegisterForm() {
               type="text"
               autoComplete="family-name"
               required
+              aria-invalid={describedBy("name") !== undefined}
+              aria-describedby={describedBy("name")}
               value={lastName}
               onChange={(event) => {
                 setLastName(event.target.value);
@@ -155,6 +199,8 @@ export function RegisterForm() {
             inputMode="email"
             spellCheck={false}
             required
+            aria-invalid={describedBy("email") !== undefined}
+            aria-describedby={describedBy("email")}
             value={email}
             onChange={(event) => {
               setEmail(event.target.value);
@@ -168,6 +214,8 @@ export function RegisterForm() {
             autoComplete="new-password"
             required
             minLength={8}
+            aria-invalid={describedBy("password") !== undefined}
+            aria-describedby={describedBy("password")}
             value={password}
             onChange={(event) => {
               setPassword(event.target.value);
@@ -184,7 +232,8 @@ export function RegisterForm() {
             autoComplete="new-password"
             required
             minLength={8}
-            aria-invalid={mismatch}
+            aria-invalid={mismatch || describedBy("confirm") !== undefined}
+            aria-describedby={describedBy("confirm")}
             value={confirm}
             onChange={(event) => {
               setConfirm(event.target.value);
@@ -196,9 +245,7 @@ export function RegisterForm() {
         </Field>
       </FieldGroup>
       {configured ? (
-        <AuthFieldError
-          message={mismatch ? "Passwords do not match" : fieldError}
-        />
+        <AuthFieldError id="register-error" message={message} />
       ) : (
         <p className="min-h-5 text-xs leading-5 text-muted-foreground">
           Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable sign-up.

@@ -109,6 +109,30 @@ test("createCheckoutSession throws when Stripe is not configured", async () => {
   expect((error as TRPCError).message).toBe("Billing is not configured");
 });
 
+test("createCheckoutSession refuses a second subscription", async () => {
+  const org = organizationRow({
+    plan_id: "probe",
+    billing_status: "active",
+    stripe_subscription_id: "sub_existing",
+  });
+  const memory = createBillingMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const stripe = createMockStripe();
+  const error = await caller(memory.supabase, stripe)
+    .createCheckoutSession({
+      organizationId: org.id,
+      planId: "sentinel",
+      cycle: "monthly",
+    })
+    .catch((caught: unknown) => caught);
+
+  expect(error).toBeInstanceOf(TRPCError);
+  expect((error as TRPCError).code).toBe("PRECONDITION_FAILED");
+  expect(stripe.checkoutCreate).not.toHaveBeenCalled();
+});
+
 test("createCheckoutSession rejects the free plan", async () => {
   const org = organizationRow();
   const memory = createBillingMemory({
@@ -139,6 +163,7 @@ test("listOrders returns persisted billing_orders", async () => {
         id: "11111111-2222-4333-8444-555555555555",
         organization_id: org.id,
         stripe_checkout_session_id: "cs_abc",
+        stripe_event_id: null,
         kind: "checkout",
         amount_cents: 3240,
         status: "complete",

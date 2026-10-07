@@ -8,6 +8,8 @@ import helmet from "helmet";
 import { createCorsMiddleware } from "./middleware/cors.js";
 import { errorHandler } from "./middleware/error.js";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
+import { pingSupabase } from "./lib/cached.js";
+import { dependencyDeadlineMs, withDeadline } from "./lib/deadline.js";
 import { createAgentIngestRouter } from "./modules/agent/http.js";
 import { createStripeWebhookRouter } from "./modules/billing/http.js";
 import { createOrganizationIconRouter } from "./modules/organization/icon-routes.js";
@@ -15,15 +17,25 @@ import { createProbeIngestRouter } from "./modules/probe/http.js";
 import { createAvatarRouter } from "./modules/profile/avatar-routes.js";
 import { createContext } from "./trpc/context.js";
 import { appRouter } from "./trpc/router.js";
+import type { DataClient } from "./trpc/context.js";
 import type { Env } from "./validators/env.js";
 
 export type CreatedApp = {
   app: Express;
   logger: OrvexLogger;
   cache: CacheClient;
+  supabase: DataClient;
 };
 
-export function createApp(env: Env): CreatedApp {
+export type CreateAppOptions = {
+  readinessTimeoutMs?: number;
+};
+
+export const readinessTimeoutMs = dependencyDeadlineMs;
+
+export const readinessRateLimitPerMinute = 60;
+
+export function createApp(env: Env, options?: CreateAppOptions): CreatedApp {
   const logger = createLogger({ service: "api" });
   const cache = createCache(env.REDIS_URL);
   const supabase = createServiceSupabaseClient({
@@ -33,8 +45,50 @@ export function createApp(env: Env): CreatedApp {
   const auth = createServerAuth(supabase);
   const app = express();
 
+  if (env.TRUST_PROXY !== undefined && env.TRUST_PROXY > 0) {
+    app.set("trust proxy", env.TRUST_PROXY);
+  }
+
   app.use(helmet());
   app.use(createCorsMiddleware(env.FRONTEND_ORIGIN));
+  app.get("/healthz", (_req, res) => {
+    res.status(200).json({ ok: true });
+  });
+  app.get(
+    "/readyz",
+    createRateLimitMiddleware(cache, {
+      limit: readinessRateLimitPerMinute,
+      prefix: "rl:readyz:",
+    }),
+    (req, res) => {
+      const timeoutMs = options?.readinessTimeoutMs ?? readinessTimeoutMs;
+      void (async () => {
+        try {
+          const [redisOk, supabaseOk] = await withDeadline(
+            Promise.all([
+              cache.ping().then(
+                (ok) => ok,
+                () => false,
+              ),
+              pingSupabase(supabase),
+            ]),
+            timeoutMs,
+          );
+          if (!redisOk || !supabaseOk) {
+            logger.error("readiness failed", { path: req.path });
+            res.status(503).json({ ok: false });
+            return;
+          }
+          res.status(200).json({ ok: true });
+        } catch {
+          logger.error("readiness failed", { path: req.path });
+          if (!res.headersSent) {
+            res.status(503).json({ ok: false });
+          }
+        }
+      })();
+    },
+  );
   app.use(createRateLimitMiddleware(cache));
   app.use(
     createStripeWebhookRouter({
@@ -76,5 +130,5 @@ export function createApp(env: Env): CreatedApp {
   );
   app.use(errorHandler);
 
-  return { app, logger, cache };
+  return { app, logger, cache, supabase };
 }

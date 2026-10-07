@@ -14,7 +14,11 @@ export function MarketingDocument({
 }) {
   return (
     <MarketingShell>
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-14 sm:px-6 sm:py-16">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-14 sm:px-6 sm:py-16"
+      >
         <div className="flex flex-col gap-3">
           <p className="font-mono text-[0.68rem] tracking-[0.18em] text-muted-foreground uppercase">
             {eyebrow}

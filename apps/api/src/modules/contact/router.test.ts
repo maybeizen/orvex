@@ -44,42 +44,53 @@ afterEach(() => {
 });
 
 test("creates a list and an email contact", async () => {
-  const org = organizationRow();
-  const memory = createContactMemory({
-    organizations: [org],
-    members: [memberRow()],
-  });
-  const api = caller(memory.supabase);
+  const previous = process.env.CRYPTO_SECRET;
+  process.env.CRYPTO_SECRET = "contact-test-secret";
+  try {
+    const org = organizationRow();
+    const memory = createContactMemory({
+      organizations: [org],
+      members: [memberRow()],
+    });
+    const api = caller(memory.supabase);
 
-  const list = await api.contact.lists.create({
-    organizationId: org.id,
-    name: "On-call",
-  });
-  expect(list.name).toBe("On-call");
-  expect(list.organizationId).toBe(org.id);
-  expect(memory.lists).toHaveLength(1);
+    const list = await api.contact.lists.create({
+      organizationId: org.id,
+      name: "On-call",
+    });
+    expect(list.name).toBe("On-call");
+    expect(list.organizationId).toBe(org.id);
+    expect(memory.lists).toHaveLength(1);
 
-  const contact = await api.contact.contacts.create({
-    organizationId: org.id,
-    listId: list.id,
-    label: "Ada",
-    channel: "email",
-    destination: "ada@orvex.dev",
-    secret: "super-secret",
-  });
-  expect(contact.label).toBe("Ada");
-  expect(contact.channel).toBe("email");
-  expect(contact.destination).toBe("ada@orvex.dev");
-  expect(contact).not.toHaveProperty("encrypted_secret");
-  expect(contact).not.toHaveProperty("encryptedSecret");
-  expect(memory.contacts[0]?.encrypted_secret).not.toBe("super-secret");
+    const contact = await api.contact.contacts.create({
+      organizationId: org.id,
+      listId: list.id,
+      label: "Ada",
+      channel: "email",
+      destination: "ada@orvex.dev",
+      secret: "super-secret",
+    });
+    expect(contact.label).toBe("Ada");
+    expect(contact.channel).toBe("email");
+    expect(contact.destination).toBe("ada@orvex.dev");
+    expect(contact).not.toHaveProperty("encrypted_secret");
+    expect(contact).not.toHaveProperty("encryptedSecret");
+    expect(memory.contacts[0]?.encrypted_secret).toEqual(expect.any(String));
+    expect(memory.contacts[0]?.encrypted_secret).not.toBe("super-secret");
 
-  const listed = await api.contact.contacts.list({
-    organizationId: org.id,
-    listId: list.id,
-  });
-  expect(listed).toEqual([expect.objectContaining({ id: contact.id })]);
-  expect(listed[0]).not.toHaveProperty("encrypted_secret");
+    const listed = await api.contact.contacts.list({
+      organizationId: org.id,
+      listId: list.id,
+    });
+    expect(listed).toEqual([expect.objectContaining({ id: contact.id })]);
+    expect(listed[0]).not.toHaveProperty("encrypted_secret");
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CRYPTO_SECRET;
+    } else {
+      process.env.CRYPTO_SECRET = previous;
+    }
+  }
 });
 
 test("rejects a channel that is not on the free plan", async () => {

@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
+import { respondWithClientError } from "../../middleware/error.js";
 import type { ServerAuth } from "../../trpc/context.js";
 import { HttpError } from "../../utils/http-error.js";
 import {
@@ -53,13 +54,15 @@ function sendHttpError(
     return;
   }
   if (error instanceof HttpError) {
-    res.status(error.status).json({ error: error.message });
+    respondWithClientError(res, error.status, error.message);
     return;
   }
   if (error instanceof TRPCError) {
-    res
-      .status(TRPC_HTTP_STATUS[error.code] ?? 500)
-      .json({ error: error.message });
+    respondWithClientError(
+      res,
+      TRPC_HTTP_STATUS[error.code] ?? 500,
+      error.message,
+    );
     return;
   }
   next(error);

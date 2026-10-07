@@ -5,6 +5,7 @@ import type {
   BillingOrder,
   BillingOrderKind,
   Database,
+  OrganizationBillingStatus,
   OrganizationPlanId,
 } from "@orvex/types";
 import {
@@ -16,6 +17,7 @@ import { TRPCError } from "@trpc/server";
 import type Stripe from "stripe";
 import { invalidateOrgCaches } from "../../lib/cached.js";
 import type { DataClient } from "../../trpc/context.js";
+import { HttpError } from "../../utils/http-error.js";
 import {
   billingStatusFromSubscription,
   isBillingCycle,
@@ -141,11 +143,116 @@ async function updateOrganization(
   }
 }
 
+function stripeEventTime(created: number | undefined): string | null {
+  if (created === undefined || !Number.isFinite(created)) {
+    return null;
+  }
+  return new Date(created * 1000).toISOString();
+}
+
+function billingInstant(value: string | null): number | null {
+  if (value === null) {
+    return null;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function patchCancelsBilling(
+  patch: Database["public"]["Tables"]["organizations"]["Update"],
+): boolean {
+  return patch.plan_id === "free" && patch.billing_status === "canceled";
+}
+
+function billingEventMayApply(
+  organization: OrganizationRow,
+  patch: Database["public"]["Tables"]["organizations"]["Update"],
+  eventAt: string | null,
+): boolean {
+  const currentMs = billingInstant(organization.stripe_billing_event_at);
+  const nextMs = billingInstant(eventAt);
+  if (currentMs === null || nextMs === null) {
+    return true;
+  }
+  if (nextMs > currentMs) {
+    return true;
+  }
+  if (nextMs < currentMs) {
+    return false;
+  }
+  const alreadyCanceled =
+    organization.plan_id === "free" &&
+    organization.billing_status === "canceled";
+  return patchCancelsBilling(patch) && !alreadyCanceled;
+}
+
+const BILLING_COMMIT_ATTEMPTS = 3;
+
+async function writeBillingSnapshot(
+  supabase: DataClient,
+  organization: OrganizationRow,
+  patch: Database["public"]["Tables"]["organizations"]["Update"],
+  eventAt: string | null,
+): Promise<boolean> {
+  const nextPatch = {
+    ...patch,
+    ...(eventAt === null ? {} : { stripe_billing_event_at: eventAt }),
+  };
+  const update = supabase
+    .from("organizations")
+    .update(nextPatch)
+    .eq("id", organization.id);
+  const watermark = organization.stripe_billing_event_at;
+  const filtered =
+    eventAt === null
+      ? update
+      : watermark === null
+        ? update.is("stripe_billing_event_at", null)
+        : update.eq("stripe_billing_event_at", watermark);
+  const { data, error } = await filtered.select("id").maybeSingle();
+
+  if (error !== null) {
+    throwDbError(error);
+  }
+  return data !== null;
+}
+
+async function commitBillingChange(
+  supabase: DataClient,
+  organization: OrganizationRow,
+  patch: Database["public"]["Tables"]["organizations"]["Update"],
+  eventAt: string | null,
+  cache?: CacheClient,
+): Promise<boolean> {
+  let current = organization;
+  for (let attempt = 0; attempt < BILLING_COMMIT_ATTEMPTS; attempt += 1) {
+    if (!billingEventMayApply(current, patch, eventAt)) {
+      return false;
+    }
+    const wrote = await writeBillingSnapshot(supabase, current, patch, eventAt);
+    if (wrote) {
+      if (cache !== undefined) {
+        await invalidateOrgCaches(cache, organization.id);
+      }
+      return true;
+    }
+    current = await fetchOrganization(supabase, organization.id);
+  }
+  if (
+    patchCancelsBilling(patch) &&
+    billingEventMayApply(current, patch, eventAt)
+  ) {
+    throw new HttpError(500, "Billing cancellation was not applied");
+  }
+  return false;
+}
+
 async function insertOrder(
   supabase: DataClient,
   input: {
     organizationId: string;
     stripeCheckoutSessionId: string | null;
+    stripeEventId?: string | null;
     kind: BillingOrderKind;
     amountCents: number;
     status: BillingOrderRow["status"];
@@ -154,6 +261,9 @@ async function insertOrder(
   const { error } = await supabase.from("billing_orders").insert({
     organization_id: input.organizationId,
     stripe_checkout_session_id: input.stripeCheckoutSessionId,
+    ...(input.stripeEventId === undefined
+      ? {}
+      : { stripe_event_id: input.stripeEventId }),
     kind: input.kind,
     amount_cents: input.amountCents,
     status: input.status,
@@ -222,6 +332,16 @@ export async function createCheckoutSession(
   }
 
   const organization = await fetchOrganization(supabase, input.organizationId);
+  if (
+    organization.stripe_subscription_id !== null &&
+    organization.stripe_subscription_id.length > 0 &&
+    organization.billing_status !== "canceled"
+  ) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "This organization already has a subscription",
+    });
+  }
   const kind = organization.kind === "team" ? "team" : "single";
   if (!planAllowsKind(input.planId, kind)) {
     throw new TRPCError({
@@ -361,10 +481,43 @@ function cycleFromMetadata(
   return undefined;
 }
 
+const BLOCKED_SUBSCRIPTION_STATUSES = new Set([
+  "incomplete",
+  "incomplete_expired",
+  "unpaid",
+]);
+
+function expandedSubscriptionStatus(
+  subscription: Stripe.Checkout.Session["subscription"],
+): string | null {
+  if (typeof subscription === "object" && subscription !== null) {
+    return subscription.status;
+  }
+  return null;
+}
+
+function checkoutPaymentSettled(session: Stripe.Checkout.Session): boolean {
+  return (
+    session.payment_status === "paid" ||
+    session.payment_status === "no_payment_required"
+  );
+}
+
+function billingStatusWithoutEntitlement(
+  status: string | null,
+): OrganizationBillingStatus {
+  if (status === null) {
+    return "pending_checkout";
+  }
+  const mapped = billingStatusFromSubscription(status);
+  return mapped === "active" ? "pending_checkout" : mapped;
+}
+
 export async function applyCheckoutCompleted(
   supabase: DataClient,
   session: Stripe.Checkout.Session,
   cache?: CacheClient,
+  event?: { created?: number | undefined; id?: string | undefined },
 ): Promise<void> {
   const organizationId =
     readMetadata(session.metadata, "organization_id") ??
@@ -378,30 +531,49 @@ export async function applyCheckoutCompleted(
     subscriptionId,
   });
   if (organization === null) {
-    return;
+    throw new HttpError(500, "Organization for checkout session was not found");
   }
 
+  const subscriptionStatus = expandedSubscriptionStatus(session.subscription);
+  const blocked =
+    subscriptionStatus !== null &&
+    BLOCKED_SUBSCRIPTION_STATUSES.has(subscriptionStatus);
+  const grant = checkoutPaymentSettled(session) && !blocked;
+  const billingStatus = grant
+    ? subscriptionStatus === null
+      ? "active"
+      : billingStatusFromSubscription(subscriptionStatus)
+    : billingStatusWithoutEntitlement(subscriptionStatus);
   const planId = planFromMetadata(session.metadata) ?? organization.plan_id;
   const cycle =
     cycleFromMetadata(session.metadata) ?? organization.billing_cycle;
-
-  await updateOrganization(
+  const eventAt = stripeEventTime(event?.created);
+  const applied = await commitBillingChange(
     supabase,
-    organization.id,
+    organization,
     {
       stripe_customer_id: customerId ?? organization.stripe_customer_id,
       stripe_subscription_id:
         subscriptionId ?? organization.stripe_subscription_id,
-      plan_id: isPlanId(planId) ? planId : organization.plan_id,
-      billing_cycle: cycle,
-      billing_status: "active",
+      billing_status: billingStatus,
+      ...(billingStatus === "active"
+        ? {
+            plan_id: isPlanId(planId) ? planId : organization.plan_id,
+            billing_cycle: cycle,
+          }
+        : {}),
     },
+    eventAt,
     cache,
   );
+  if (!applied || billingStatus !== "active") {
+    return;
+  }
 
   await insertOrder(supabase, {
     organizationId: organization.id,
     stripeCheckoutSessionId: session.id,
+    ...(event?.id === undefined ? {} : { stripeEventId: event.id }),
     kind: "checkout",
     amountCents: session.amount_total ?? 0,
     status: "complete",
@@ -413,6 +585,8 @@ export async function applySubscriptionEvent(
   subscription: Stripe.Subscription,
   kind: "updated" | "deleted",
   cache?: CacheClient,
+  stripeEventId?: string,
+  eventCreated?: number,
 ): Promise<void> {
   const customerId = stripeObjectId(subscription.customer);
   const organizationId = readMetadata(subscription.metadata, "organization_id");
@@ -425,14 +599,15 @@ export async function applySubscriptionEvent(
     return;
   }
 
-  const price = subscription.items.data[0]?.price;
-  const priceMetadata =
-    price !== undefined && typeof price !== "string" ? price.metadata : null;
-
-  if (kind === "deleted") {
-    await updateOrganization(
+  const eventAt = stripeEventTime(eventCreated);
+  if (
+    kind === "deleted" ||
+    subscription.status === "canceled" ||
+    subscription.status === "incomplete_expired"
+  ) {
+    const applied = await commitBillingChange(
       supabase,
-      organization.id,
+      organization,
       {
         plan_id: "free",
         billing_cycle: null,
@@ -440,17 +615,26 @@ export async function applySubscriptionEvent(
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId ?? organization.stripe_customer_id,
       },
+      eventAt,
       cache,
     );
+    if (!applied) {
+      return;
+    }
     await insertOrder(supabase, {
       organizationId: organization.id,
       stripeCheckoutSessionId: null,
+      stripeEventId: stripeEventId ?? null,
       kind: "downgrade",
       amountCents: 0,
       status: "complete",
     });
     return;
   }
+
+  const price = subscription.items.data[0]?.price;
+  const priceMetadata =
+    price !== undefined && typeof price !== "string" ? price.metadata : null;
 
   const planId =
     planFromMetadata(subscription.metadata, priceMetadata) ??
@@ -466,9 +650,9 @@ export async function applySubscriptionEvent(
       ? price.unit_amount
       : 0;
 
-  await updateOrganization(
+  const applied = await commitBillingChange(
     supabase,
-    organization.id,
+    organization,
     {
       plan_id: nextPlan,
       billing_cycle: cycle,
@@ -476,12 +660,17 @@ export async function applySubscriptionEvent(
       stripe_subscription_id: subscription.id,
       stripe_customer_id: customerId ?? organization.stripe_customer_id,
     },
+    eventAt,
     cache,
   );
+  if (!applied) {
+    return;
+  }
 
   await insertOrder(supabase, {
     organizationId: organization.id,
     stripeCheckoutSessionId: null,
+    stripeEventId: stripeEventId ?? null,
     kind: orderKindForPlanChange(organization.plan_id, nextPlan),
     amountCents,
     status: "complete",
@@ -495,7 +684,10 @@ export async function applyStripeEvent(
 ): Promise<void> {
   switch (event.type) {
     case "checkout.session.completed":
-      await applyCheckoutCompleted(supabase, event.data.object, cache);
+      await applyCheckoutCompleted(supabase, event.data.object, cache, {
+        created: event.created,
+        id: event.id,
+      });
       return;
     case "customer.subscription.updated":
       await applySubscriptionEvent(
@@ -503,6 +695,8 @@ export async function applyStripeEvent(
         event.data.object,
         "updated",
         cache,
+        event.id,
+        event.created,
       );
       return;
     case "customer.subscription.deleted":
@@ -511,6 +705,8 @@ export async function applyStripeEvent(
         event.data.object,
         "deleted",
         cache,
+        event.id,
+        event.created,
       );
       return;
     default:

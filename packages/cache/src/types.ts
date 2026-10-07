@@ -12,6 +12,8 @@ export type CacheClient = {
     factory: () => Promise<T>,
   ): Promise<T>;
   acquireLock(key: string, ttlSeconds: number): Promise<string | null>;
+  renewLock(key: string, token: string, ttlSeconds: number): Promise<boolean>;
+  consumeLock(key: string, token: string): Promise<boolean>;
   releaseLock(key: string, token: string): Promise<void>;
   ping(): Promise<boolean>;
   quit(): Promise<void>;

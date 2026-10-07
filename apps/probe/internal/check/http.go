@@ -3,6 +3,7 @@ package check
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -14,15 +15,47 @@ func HTTP(ctx context.Context, job Job) Result {
 	return interpretHTTP(fetchHTTP(ctx, job), job, time.Now())
 }
 
+func allowedHeader(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case "host", "content-length", "transfer-encoding", "connection", "upgrade", "proxy-connection", "proxy-authorization":
+		return false
+	default:
+		return key != "" && !strings.ContainsAny(key, "\r\n:")
+	}
+}
+
+func allowedMethod(method string) bool {
+	switch strings.ToUpper(method) {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete, http.MethodOptions:
+		return true
+	default:
+		return false
+	}
+}
+
+var checkRedirectTarget = guardResolved
+
+var transportDial = dialPinned
+
 func newHTTPClient(timeout time.Duration) *http.Client {
+	dialer := &net.Dialer{Timeout: timeout, KeepAlive: 0}
 	return &http.Client{
 		Timeout: timeout,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 3 {
+				return errors.New("too many redirects")
+			}
+			return checkRedirectTarget(req.Context(), req.URL.Hostname())
+		},
 		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   timeout,
-				KeepAlive: 0,
-			}).DialContext,
+			Proxy: nil,
+			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+				host, port, err := net.SplitHostPort(address)
+				if err != nil {
+					return nil, err
+				}
+				return transportDial(ctx, dialer, network, host, port)
+			},
 			TLSClientConfig:     &tls.Config{MinVersion: tls.VersionTLS12},
 			DisableKeepAlives:   true,
 			TLSHandshakeTimeout: timeout,
@@ -44,14 +77,20 @@ func fetchHTTP(ctx context.Context, job Job) httpOutcome {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	method := strings.TrimSpace(job.Method)
+	method := strings.ToUpper(strings.TrimSpace(job.Method))
 	if method == "" {
 		method = http.MethodGet
+	}
+	if !allowedMethod(method) {
+		return httpOutcome{LatencyMs: time.Since(started).Milliseconds(), Err: errors.New("unsupported method")}
 	}
 
 	target := ensureURL(job.Target)
 	if target == "" {
 		return httpOutcome{LatencyMs: time.Since(started).Milliseconds(), Err: errMissingTarget}
+	}
+	if err := rejectProbeTarget(hostFromTarget(target)); err != nil {
+		return httpOutcome{LatencyMs: time.Since(started).Milliseconds(), Err: err}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, target, nil)
@@ -60,7 +99,9 @@ func fetchHTTP(ctx context.Context, job Job) httpOutcome {
 	}
 	req.Header.Set("User-Agent", "orvex-probe")
 	for key, value := range job.Headers {
-		req.Header.Set(key, value)
+		if allowedHeader(key) && !strings.ContainsAny(value, "\r\n") {
+			req.Header.Set(key, value)
+		}
 	}
 
 	resp, err := newHTTPClient(timeout).Do(req)

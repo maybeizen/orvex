@@ -5,53 +5,164 @@ import { AccountShell } from "@/components/layout/account-shell";
 import { AppShell } from "@/components/layout/app-shell";
 import { LegacyAppRedirect } from "@/components/organization/legacy-redirect";
 import { RequireOrgSlug } from "@/components/organization/require-org-slug";
-import { AuthCallbackPage } from "@/routes/auth-callback-page";
-import { BillingPage } from "@/routes/billing-page";
-import { DashboardPage } from "@/routes/dashboard-page";
+import { lazyRoute } from "@/lib/lazy-route";
 import { ErrorPage } from "@/routes/error-page";
-import { AboutPage } from "@/routes/about-page";
-import { AdminPage } from "@/routes/admin-page";
-import { ForbiddenPage } from "@/routes/forbidden-page";
-import { ChangelogPage } from "@/routes/changelog-page";
-import { ForgotPasswordPage } from "@/routes/forgot-password-page";
-import { IncidentDetailPage } from "@/routes/incident-detail-page";
-import { IncidentsPage } from "@/routes/incidents-page";
-import { MaintenancePage } from "@/routes/maintenance-page";
-import { LandingPage } from "@/routes/landing-page";
-import { LoginPage } from "@/routes/login-page";
-import { MonitorCreatePage } from "@/routes/monitor-create-page";
-import { MonitorDetailPage } from "@/routes/monitor-detail-page";
-import { MonitorEditPage } from "@/routes/monitor-edit-page";
-import { MonitorsPage } from "@/routes/monitors-page";
 import { NotFoundPage } from "@/routes/not-found-page";
-import { OnboardingCheckoutPage } from "@/routes/onboarding-checkout-page";
-import { OnboardingPage } from "@/routes/onboarding-page";
-import { OrganizationsPage } from "@/routes/organizations-page";
-import { PricingPage } from "@/routes/pricing-page";
-import { PrivacyPage } from "@/routes/privacy-page";
-import { RegisterPage } from "@/routes/register-page";
-import { ResetPasswordPage } from "@/routes/reset-password-page";
-import { InvitePage } from "@/routes/invite-page";
-import { InvoicesPage } from "@/routes/invoices-page";
-import { OrganizationSettingsPage } from "@/routes/organization-settings-page";
-import { SettingsPage } from "@/routes/settings-page";
-import { StatusPageDetailPage } from "@/routes/status-page-detail-page";
-import { StatusPagesPage } from "@/routes/status-pages-page";
-import { TeamMembersPage } from "@/routes/team-members-page";
-import { TermsPage } from "@/routes/terms-page";
-import { TwoFactorPage } from "@/routes/two-factor-page";
-import { DocsPage } from "@/routes/docs-page";
-import { AuditLogPage } from "@/routes/audit-log-page";
-import { OrdersPage } from "@/routes/orders-page";
-import { ReferralsPage } from "@/routes/referrals-page";
-import { SupportPage } from "@/routes/support-page";
-import { ContactListsPage } from "@/routes/contact-lists-page";
-import {
-  PublicStatusPage,
-  StatusConfirmRedirect,
-} from "@/routes/public-status-page";
-import { WhiteLabelPage } from "@/routes/white-label-page";
 import { Providers } from "./providers";
+
+const AboutPage = lazyRoute(() => import("@/routes/about-page"), "AboutPage");
+const AdminPage = lazyRoute(() => import("@/routes/admin-page"), "AdminPage");
+const AuditLogPage = lazyRoute(
+  () => import("@/routes/audit-log-page"),
+  "AuditLogPage",
+);
+const AuthCallbackPage = lazyRoute(
+  () => import("@/routes/auth-callback-page"),
+  "AuthCallbackPage",
+);
+const BillingPage = lazyRoute(
+  () => import("@/routes/billing-page"),
+  "BillingPage",
+);
+const ChangelogPage = lazyRoute(
+  () => import("@/routes/changelog-page"),
+  "ChangelogPage",
+);
+const ContactListsPage = lazyRoute(
+  () => import("@/routes/contact-lists-page"),
+  "ContactListsPage",
+);
+const DashboardPage = lazyRoute(
+  () => import("@/routes/dashboard-page"),
+  "DashboardPage",
+);
+const DocsPage = lazyRoute(() => import("@/routes/docs-page"), "DocsPage");
+const ForbiddenPage = lazyRoute(
+  () => import("@/routes/forbidden-page"),
+  "ForbiddenPage",
+);
+const ForgotPasswordPage = lazyRoute(
+  () => import("@/routes/forgot-password-page"),
+  "ForgotPasswordPage",
+);
+const IncidentDetailPage = lazyRoute(
+  () => import("@/routes/incident-detail-page"),
+  "IncidentDetailPage",
+);
+const IncidentsPage = lazyRoute(
+  () => import("@/routes/incidents-page"),
+  "IncidentsPage",
+);
+const InvitePage = lazyRoute(
+  () => import("@/routes/invite-page"),
+  "InvitePage",
+);
+const InvoicesPage = lazyRoute(
+  () => import("@/routes/invoices-page"),
+  "InvoicesPage",
+);
+const LandingPage = lazyRoute(
+  () => import("@/routes/landing-page"),
+  "LandingPage",
+);
+const LoginPage = lazyRoute(() => import("@/routes/login-page"), "LoginPage");
+const MaintenancePage = lazyRoute(
+  () => import("@/routes/maintenance-page"),
+  "MaintenancePage",
+);
+const MonitorCreatePage = lazyRoute(
+  () => import("@/routes/monitor-create-page"),
+  "MonitorCreatePage",
+);
+const MonitorDetailPage = lazyRoute(
+  () => import("@/routes/monitor-detail-page"),
+  "MonitorDetailPage",
+);
+const MonitorEditPage = lazyRoute(
+  () => import("@/routes/monitor-edit-page"),
+  "MonitorEditPage",
+);
+const MonitorsPage = lazyRoute(
+  () => import("@/routes/monitors-page"),
+  "MonitorsPage",
+);
+const OnboardingCheckoutPage = lazyRoute(
+  () => import("@/routes/onboarding-checkout-page"),
+  "OnboardingCheckoutPage",
+);
+const OnboardingPage = lazyRoute(
+  () => import("@/routes/onboarding-page"),
+  "OnboardingPage",
+);
+const OrganizationSettingsPage = lazyRoute(
+  () => import("@/routes/organization-settings-page"),
+  "OrganizationSettingsPage",
+);
+const OrganizationsPage = lazyRoute(
+  () => import("@/routes/organizations-page"),
+  "OrganizationsPage",
+);
+const OrdersPage = lazyRoute(
+  () => import("@/routes/orders-page"),
+  "OrdersPage",
+);
+const PricingPage = lazyRoute(
+  () => import("@/routes/pricing-page"),
+  "PricingPage",
+);
+const PrivacyPage = lazyRoute(
+  () => import("@/routes/privacy-page"),
+  "PrivacyPage",
+);
+const PublicStatusPage = lazyRoute(
+  () => import("@/routes/public-status-page"),
+  "PublicStatusPage",
+);
+const ReferralsPage = lazyRoute(
+  () => import("@/routes/referrals-page"),
+  "ReferralsPage",
+);
+const RegisterPage = lazyRoute(
+  () => import("@/routes/register-page"),
+  "RegisterPage",
+);
+const ResetPasswordPage = lazyRoute(
+  () => import("@/routes/reset-password-page"),
+  "ResetPasswordPage",
+);
+const SettingsPage = lazyRoute(
+  () => import("@/routes/settings-page"),
+  "SettingsPage",
+);
+const StatusConfirmRedirect = lazyRoute(
+  () => import("@/routes/public-status-page"),
+  "StatusConfirmRedirect",
+);
+const StatusPageDetailPage = lazyRoute(
+  () => import("@/routes/status-page-detail-page"),
+  "StatusPageDetailPage",
+);
+const StatusPagesPage = lazyRoute(
+  () => import("@/routes/status-pages-page"),
+  "StatusPagesPage",
+);
+const SupportPage = lazyRoute(
+  () => import("@/routes/support-page"),
+  "SupportPage",
+);
+const TeamMembersPage = lazyRoute(
+  () => import("@/routes/team-members-page"),
+  "TeamMembersPage",
+);
+const TermsPage = lazyRoute(() => import("@/routes/terms-page"), "TermsPage");
+const TwoFactorPage = lazyRoute(
+  () => import("@/routes/two-factor-page"),
+  "TwoFactorPage",
+);
+const WhiteLabelPage = lazyRoute(
+  () => import("@/routes/white-label-page"),
+  "WhiteLabelPage",
+);
 
 const orgChildren = [
   { index: true, element: <DashboardPage /> },
