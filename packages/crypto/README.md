@@ -4,8 +4,7 @@ AES-256-GCM helpers for encrypting secrets at rest, using Node's built-in
 `crypto` module (no third-party dependencies).
 
 > [!NOTE]
-> This package is available for the monitoring/secrets work but is not yet wired
-> into any app.
+> The API uses these helpers for organization and contact secrets.
 
 ## Exports
 

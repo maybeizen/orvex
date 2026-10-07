@@ -3,7 +3,7 @@
 Express + [tRPC](https://trpc.io/) server for Orvex Monitor. It exposes typed
 tRPC procedures for auth, profiles, and organizations, plus REST endpoints for
 binary uploads (avatars, organization icons). Supabase is the data layer and
-Redis is an optional backend for rate limiting.
+Redis is an optional backend for rate limiting. Limits are keyed by client IP.
 
 ## Responsibilities
 
@@ -13,7 +13,13 @@ Redis is an optional backend for rate limiting.
   client.
 - Accept image uploads, normalize them to WebP with `sharp`, and store them in
   Supabase Storage.
-- Apply `helmet`, CORS, and rate limiting to every request.
+- Apply `helmet` and CORS. Rate limits are per client IP. `GET /healthz` is
+  unlimited. `GET /readyz` is limited to 60 requests per minute and returns
+  `503` `{ "ok": false }` if a dependency times out or fails, without naming
+  which one. Other routes use the process-wide limiter. `TRUST_PROXY` is the
+  number of trusted proxy hops (0–5). Unset or `0` ignores `X-Forwarded-For`,
+  so the limiter uses the socket address. A positive value takes the client IP
+  from `X-Forwarded-For`.
 
 ## API surface
 
@@ -44,14 +50,15 @@ safety on the tRPC client.
 
 ## Environment variables
 
-| Variable                    | Required | Notes                              |
-| --------------------------- | -------- | ---------------------------------- |
-| `PORT`                      | no       | Listen port (default `3001`)       |
-| `FRONTEND_ORIGIN`           | yes      | CORS origin                        |
-| `SUPABASE_URL`              | yes      | Supabase project URL               |
-| `SUPABASE_ANON_KEY`         | yes      | Supabase anon key                  |
-| `SUPABASE_SERVICE_ROLE_KEY` | yes      | Service-role key (server only)     |
-| `REDIS_URL`                 | no       | Falls back to in-memory rate limit |
+| Variable                    | Required | Notes                                               |
+| --------------------------- | -------- | --------------------------------------------------- |
+| `PORT`                      | no       | Listen port (default `3001`)                        |
+| `FRONTEND_ORIGIN`           | yes      | CORS origin                                         |
+| `SUPABASE_URL`              | yes      | Supabase project URL                                |
+| `SUPABASE_ANON_KEY`         | yes      | Supabase anon key                                   |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes      | Service-role key (server only)                      |
+| `REDIS_URL`                 | no       | Falls back to in-memory rate limit                  |
+| `TRUST_PROXY`               | no       | Trusted proxy hops. Unset ignores `X-Forwarded-For` |
 
 Env is loaded from the process, then `.env` in the cwd / `../../` / repo root,
 and validated with Zod at startup (`src/validators/env.ts`).

@@ -8,10 +8,10 @@ stack pairs a React/Vite frontend, an Express + tRPC API backed by Supabase, and
 a small Go heartbeat agent, with shared logic factored into `@orvex/*` packages.
 
 > [!NOTE]
-> Orvex is under active development. Authentication, organizations/onboarding,
-> and profile management are implemented end to end; the monitoring core
-> (monitors, probes, alerting, billing) is still being built out. See
-> [Project status](#project-status) for the honest breakdown.
+> Orvex is under active development. Authentication, organizations, monitors,
+> the hosted probe, heartbeat ingest, the organization dashboard, and Stripe
+> billing are in the product. See [Project status](#project-status) for what
+> is still unwired.
 
 ## Contents
 
@@ -34,6 +34,7 @@ orvex/
 ├── apps/
 │   ├── frontend   @orvex/frontend  React 19 + Vite SPA (marketing, auth, dashboard)
 │   ├── api        @orvex/api       Express + tRPC server (Supabase data layer)
+│   ├── probe      @orvex/probe     Hosted check worker
 │   └── agent      @orvex/agent     Go heartbeat agent (daemon / cron)
 ├── packages/
 │   ├── types      @orvex/types     Shared domain + generated Supabase types, pricing plans
@@ -54,6 +55,7 @@ Each workspace has its own README with details:
 | -------------------------------------------------- | ----------------- | -------------------------------------------- |
 | [`apps/frontend`](./apps/frontend/README.md)       | `@orvex/frontend` | React/Vite single-page app                   |
 | [`apps/api`](./apps/api/README.md)                 | `@orvex/api`      | Express + tRPC API and REST upload endpoints |
+| [`apps/probe`](./apps/probe)                       | `@orvex/probe`    | Hosted check worker                          |
 | [`apps/agent`](./apps/agent/README.md)             | `@orvex/agent`    | Go heartbeat agent                           |
 | [`packages/types`](./packages/types/README.md)     | `@orvex/types`    | Shared TypeScript types and pricing plans    |
 | [`packages/config`](./packages/config/README.md)   | `@orvex/config`   | Shared tooling presets and `orvex-tsc`       |
@@ -70,7 +72,7 @@ Each workspace has its own README with details:
 - **Node.js 22** (see `.node-version`; use 22.18+ so the native TypeScript
   loader works)
 - **pnpm 11** (`packageManager`: `pnpm@11.16.0`) — enable with `corepack enable`
-- **Go 1.26** (only needed to build/run the agent)
+- **Go 1.26** (only needed to build/run the agent and the hosted probe)
 
 ## Quick start
 
@@ -81,46 +83,64 @@ pnpm dev
 ```
 
 `pnpm dev` starts the API (`:3001`), the frontend (`:5173`), and the package
-watchers. It does **not** run the Go agent — use `pnpm dev:agent` for that.
+watchers. It does **not** run the Go agent or the hosted probe — use
+`pnpm dev:agent` and `pnpm dev:probe` for those.
 
 ## Environment variables
 
 Copy `.env.example` to `.env` and fill in values before running apps. Do not
 commit `.env` (it is git-ignored).
 
-| Variable                    | Used by  | Required   | Notes                                                                                                                                                     |
-| --------------------------- | -------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PORT`                      | API      | no         | Defaults to `3001`                                                                                                                                        |
-| `FRONTEND_ORIGIN`           | API      | yes        | CORS origin, e.g. `http://localhost:5173`                                                                                                                 |
-| `SUPABASE_URL`              | API      | yes        | Supabase project URL                                                                                                                                      |
-| `SUPABASE_ANON_KEY`         | API      | yes        | Supabase anon/publishable key                                                                                                                             |
-| `SUPABASE_SERVICE_ROLE_KEY` | API      | yes        | Server-only service role key                                                                                                                              |
-| `REDIS_URL`                 | API      | no         | When unset, cache uses in-memory store                                                                                                                    |
-| `SMTP_HOST`                 | mail     | no         | When unset, mail send is skipped                                                                                                                          |
-| `SMTP_PORT`                 | mail     | no         | Defaults to `587`                                                                                                                                         |
-| `SMTP_USER`                 | mail     | no         |                                                                                                                                                           |
-| `SMTP_PASS`                 | mail     | no         |                                                                                                                                                           |
-| `SMTP_FROM`                 | mail     | no         |                                                                                                                                                           |
-| `STORAGE_DRIVER`            | storage  | no         | `local` or `s3`                                                                                                                                           |
-| `STORAGE_LOCAL_DIR`         | storage  | no         | Local blob directory                                                                                                                                      |
-| `AWS_REGION`                | storage  | when `s3`  |                                                                                                                                                           |
-| `AWS_S3_BUCKET`             | storage  | when `s3`  |                                                                                                                                                           |
-| `AWS_ACCESS_KEY_ID`         | storage  | when `s3`  |                                                                                                                                                           |
-| `AWS_SECRET_ACCESS_KEY`     | storage  | when `s3`  |                                                                                                                                                           |
-| `VITE_API_URL`              | frontend | no         | Defaults to `http://localhost:3001`                                                                                                                       |
-| `VITE_SUPABASE_URL`         | frontend | for login  | Browser Supabase URL                                                                                                                                      |
-| `VITE_SUPABASE_ANON_KEY`    | frontend | for login  | Browser Supabase anon key                                                                                                                                 |
-| `VITE_PASSKEYS_ENABLED`     | frontend | no         | Set `false` to hide passkey UI                                                                                                                            |
-| `TRUST_PROXY`               | API      | no         | Trusted proxy hop count. Unset ignores `X-Forwarded-For`.                                                                                                 |
-| `CRYPTO_SECRET`             | API      | production | Required when `NODE_ENV` is `production`. Dev and test omit it only when a test sets the value itself. Encrypt paths refuse to store a secret without it. |
+| Variable                    | Used by    | Required   | Notes                                                                                                                                                     |
+| --------------------------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`                      | API        | no         | Defaults to `3001`                                                                                                                                        |
+| `FRONTEND_ORIGIN`           | API        | yes        | CORS origin, e.g. `http://localhost:5173`                                                                                                                 |
+| `SUPABASE_URL`              | API        | yes        | Supabase project URL                                                                                                                                      |
+| `SUPABASE_ANON_KEY`         | API        | yes        | Supabase anon/publishable key                                                                                                                             |
+| `SUPABASE_SERVICE_ROLE_KEY` | API        | yes        | Server-only service role key                                                                                                                              |
+| `REDIS_URL`                 | API        | no         | When unset, cache uses in-memory store                                                                                                                    |
+| `SMTP_HOST`                 | mail       | no         | When unset, mail send is skipped                                                                                                                          |
+| `SMTP_PORT`                 | mail       | no         | Defaults to `587`                                                                                                                                         |
+| `SMTP_USER`                 | mail       | no         |                                                                                                                                                           |
+| `SMTP_PASS`                 | mail       | no         |                                                                                                                                                           |
+| `SMTP_FROM`                 | mail       | no         |                                                                                                                                                           |
+| `STORAGE_DRIVER`            | storage    | no         | `local` or `s3`                                                                                                                                           |
+| `STORAGE_LOCAL_DIR`         | storage    | no         | Local blob directory                                                                                                                                      |
+| `AWS_REGION`                | storage    | when `s3`  |                                                                                                                                                           |
+| `AWS_S3_BUCKET`             | storage    | when `s3`  |                                                                                                                                                           |
+| `AWS_ACCESS_KEY_ID`         | storage    | when `s3`  |                                                                                                                                                           |
+| `AWS_SECRET_ACCESS_KEY`     | storage    | when `s3`  |                                                                                                                                                           |
+| `VITE_API_URL`              | frontend   | no         | Defaults to `http://localhost:3001`                                                                                                                       |
+| `VITE_SUPABASE_URL`         | frontend   | for login  | Browser Supabase URL                                                                                                                                      |
+| `VITE_SUPABASE_ANON_KEY`    | frontend   | for login  | Browser Supabase anon key                                                                                                                                 |
+| `VITE_PASSKEYS_ENABLED`     | frontend   | no         | Set `false` to hide passkey UI                                                                                                                            |
+| `VITE_PLATFORM_ADMIN_IDS`   | frontend   | no         | Comma-separated user ids allowed to open `/admin`                                                                                                         |
+| `TRUST_PROXY`               | API        | no         | Trusted proxy hop count from 0 to 5. Unset or `0` ignores `X-Forwarded-For`.                                                                              |
+| `CRYPTO_SECRET`             | API        | production | Required when `NODE_ENV` is `production`. Dev and test omit it only when a test sets the value itself. Encrypt paths refuse to store a secret without it. |
+| `STRIPE_SECRET_KEY`         | API        | no         | Stripe secret key. Checkout and the billing portal fail closed when it is unset.                                                                          |
+| `STRIPE_WEBHOOK_SECRET`     | API        | no         | Verifies Stripe webhook signatures.                                                                                                                       |
+| `STRIPE_PUBLISHABLE_KEY`    | API        | no         | Accepted by the API env schema. Server billing uses `STRIPE_SECRET_KEY`.                                                                                  |
+| `PROBE_SERVICE_TOKEN`       | API, probe | for probes | Shared secret for probe claim and result calls. The probe will not start without it. The API rejects those calls when it is unset.                        |
+| `TWILIO_ACCOUNT_SID`        | API        | no         | SMS sends are skipped unless the SID, auth token, and from number are all set.                                                                            |
+| `TWILIO_AUTH_TOKEN`         | API        | no         | Twilio auth token. See `TWILIO_ACCOUNT_SID`.                                                                                                              |
+| `TWILIO_FROM_NUMBER`        | API        | no         | Twilio from number. See `TWILIO_ACCOUNT_SID`.                                                                                                             |
+| `SUPPORT_INBOX`             | API        | no         | Inbox for support tickets. Unset leaves the ticket open and does not send mail.                                                                           |
 
 > [!IMPORTANT]
 > Only `VITE_`-prefixed variables are exposed to the browser bundle. Keep
 > `SUPABASE_SERVICE_ROLE_KEY` and any SMTP/AWS credentials server-only.
 
+The frontend build writes `sitemap.xml` with absolute `<loc>` values from
+`FRONTEND_ORIGIN`, and sets `Sitemap:` in `robots.txt` to
+`${FRONTEND_ORIGIN}/sitemap.xml`. If `FRONTEND_ORIGIN` is unset or not an
+absolute `http` or `https` URL, the build does not emit `sitemap.xml` and
+leaves `robots.txt` without a `Sitemap` line.
+
 `GET /healthz` is a process liveness check and is not rate limited.
-`GET /readyz` reports whether Redis (when configured) and Supabase respond.
-Readiness checks are limited to 60 requests per minute per IP.
+`GET /readyz` checks Redis (when configured) and Supabase with a short
+deadline. Timeout or failure returns `503` `{ "ok": false }` and does not name
+the dependency. Readiness checks are limited to 60 requests per minute per
+client IP.
 
 API rate limits are stored in the shared cache, so they hold across processes
 when `REDIS_URL` is set. Without Redis the limiter is in-memory and applies
@@ -129,21 +149,24 @@ decides whether that address comes from `X-Forwarded-For`. Sign-in,
 registration, and password recovery are enforced by Supabase Auth, not this
 process.
 Notification webhooks must be HTTPS URLs that resolve to public addresses.
-6to4, NAT64, and Teredo forms are checked as the address they embed, and the
-connection is pinned to that vetted address. The hosted probe is the
+6to4 and well-known NAT64 (`64:ff9b::/96`) are judged by the IPv4 they embed.
+Teredo and the local NAT64 prefix (`64:ff9b:1::/48`) are refused outright.
+The connection is pinned to the vetted address. The hosted probe is the
 multi-tenant worker. It refuses loopback, unspecified, link-local, RFC1918,
-CGNAT, IPv6 unique-local, and metadata or tunnel embeddings, including
-redirects and DNS answers in those ranges, and it dials the address it already
-vetted. Customer heartbeats use the agent. The agent does not open arbitrary
-private targets.
+CGNAT, IPv6 unique-local, and metadata addresses. Teredo and local NAT64 are
+refused outright there as well; 6to4 and well-known NAT64 are judged by the
+embedded IPv4, including redirects and DNS answers, and the probe dials the
+address it already vetted. Customer heartbeats use the agent. The agent does
+not open arbitrary private targets.
 
 ## Scripts
 
 Root scripts delegate to Turbo:
 
 ```sh
-pnpm dev         # API + frontend + package watchers (excludes the agent)
+pnpm dev         # API + frontend + package watchers (excludes the agent and probe)
 pnpm dev:agent   # Go agent only
+pnpm dev:probe   # hosted probe worker
 pnpm build       # production build of all workspaces
 pnpm lint        # eslint + go vet
 pnpm typecheck   # native tsc + go test -count=0
@@ -157,6 +180,7 @@ Filter a workspace:
 pnpm dev --filter=@orvex/frontend
 pnpm dev --filter=@orvex/api
 pnpm dev:agent
+pnpm dev:probe
 ```
 
 ## Agent
@@ -224,20 +248,28 @@ See [SECURITY.md](./SECURITY.md) for how to report vulnerabilities.
 
 ## Project status
 
-Implemented and wired end to end:
+Implemented and wired:
 
 - Email/password + OAuth auth, TOTP 2FA, optional passkeys, password reset
-- Organizations, membership, and the product onboarding wizard
+- Organizations, membership, invites, and the product onboarding wizard
 - Profile management (identity, avatar upload/crop/gravatar) and settings (theme)
+- Monitors, incidents, status pages, and the organization dashboard, which reads
+  live monitor, incident, and status-page records
+- The hosted probe (`apps/probe`, `pnpm dev:probe`) and agent heartbeat ingest
+  (`POST /agent/heartbeat`). The API process marks missed heartbeats on an
+  interval. A shared cache lock keeps overlapping API processes from sweeping
+  at the same time when they use Redis
+- Stripe checkout, the billing portal, and billing webhooks
+- Transactional mail for invites, support, and status subscriptions, and
+  encryption for secrets at rest
 
-Scaffolded or not yet built:
+Not scheduled, or not consumed:
 
-- Monitors, probes, and real dashboard data (the dashboard shows placeholders)
-- The agent heartbeat ingestion endpoint on the API (`POST /agent/heartbeat`)
-  and metric collectors
-- Billing/checkout (paid onboarding creates orgs in a `pending_checkout` state)
-- Alert routing via `@orvex/mail`, and `@orvex/crypto` / `@orvex/storage`
-  consumers
+- `dispatchIncident` is covered by tests and is not called from probe results
+  or the heartbeat sweep. Probe results open and resolve incidents through
+  `syncAutoIncident` and do not send notifications
+- `@orvex/storage` has no app consumer. Avatars and organization icons are
+  stored in Supabase Storage
 
 ## Contributing
 

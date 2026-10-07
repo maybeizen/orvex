@@ -5,11 +5,11 @@ the checks your change must pass before it can be merged.
 
 ## Prerequisites
 
-| Tool    | Version                               |
-| ------- | ------------------------------------- |
-| Node.js | 22 (see `.node-version`)              |
-| pnpm    | 11.16.0 (pinned via `packageManager`) |
-| Go      | 1.26 (for `apps/agent`)               |
+| Tool    | Version                                  |
+| ------- | ---------------------------------------- |
+| Node.js | 22 (see `.node-version`)                 |
+| pnpm    | 11.16.0 (pinned via `packageManager`)    |
+| Go      | 1.26 (for `apps/agent` and `apps/probe`) |
 
 Enable pnpm through Corepack so the pinned version is used automatically:
 
@@ -29,7 +29,7 @@ git clone https://github.com/maybeizen/orvex.git
 cd orvex
 cp .env.example .env   # then fill in the values (see the root README)
 pnpm install
-pnpm dev               # API + frontend + package watchers (excludes the Go agent)
+pnpm dev               # API + frontend + package watchers (excludes the agent and probe)
 ```
 
 See the [root README](./README.md) for the full environment-variable reference
@@ -40,7 +40,8 @@ and Supabase workflow.
 This is a pnpm + Turborepo monorepo. Each workspace has its own README:
 
 - Apps: [`apps/frontend`](./apps/frontend/README.md),
-  [`apps/api`](./apps/api/README.md), [`apps/agent`](./apps/agent/README.md)
+  [`apps/api`](./apps/api/README.md), [`apps/probe`](./apps/probe),
+  [`apps/agent`](./apps/agent/README.md)
 - Packages: [`packages/*`](./packages) (`types`, `config`, `logger`, `crypto`,
   `cache`, `db`, `auth`, `mail`, `storage`)
 
@@ -51,6 +52,7 @@ All commands run from the repo root and fan out through Turborepo:
 ```sh
 pnpm dev         # start API, frontend, and package watchers
 pnpm dev:agent   # run the Go agent
+pnpm dev:probe   # run the hosted probe worker
 pnpm build       # production build of every workspace
 pnpm lint        # eslint + go vet
 pnpm typecheck   # tsc (native) + go test -count=0

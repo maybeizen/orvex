@@ -35,11 +35,13 @@ This repository runs several automated checks:
   spoofing the address used for rate limits.
 - Outbound notification requests refuse non-public destinations, including
   loopback, link-local, and private ranges, and do not follow redirects.
-  6to4 and NAT64 addresses are judged by the IPv4 they embed. Teredo and the
+  6to4 and well-known NAT64 are judged by the IPv4 they embed. Teredo and the
   local NAT64 prefix are refused. The connection uses the vetted address.
-- `markMissedHeartbeats` and `dispatchIncident` are implemented and covered by
-  unit tests. No cron route or worker calls them. Probe results open and
-  resolve incidents through `syncAutoIncident` and do not send notifications.
+- The API process calls `markMissedHeartbeats` on an interval. A cache lock
+  keeps two API processes from sweeping at the same time when they share Redis.
+  `dispatchIncident` is implemented and covered by unit tests. No cron route or
+  worker calls it. Probe results open and resolve incidents through
+  `syncAutoIncident` and do not send notifications.
 - Status page slugs are unique per organization
   (`status_pages_org_slug_idx` on `organization_id` and `lower(slug)`). A
   public lookup by slug alone returns the first matching row when more than
