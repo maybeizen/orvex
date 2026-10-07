@@ -67,6 +67,7 @@ export type Database = {
           organization_id: string
           status: string
           stripe_checkout_session_id: string | null
+          stripe_event_id: string | null
         }
         Insert: {
           amount_cents?: number
@@ -76,6 +77,7 @@ export type Database = {
           organization_id: string
           status: string
           stripe_checkout_session_id?: string | null
+          stripe_event_id?: string | null
         }
         Update: {
           amount_cents?: number
@@ -85,6 +87,7 @@ export type Database = {
           organization_id?: string
           status?: string
           stripe_checkout_session_id?: string | null
+          stripe_event_id?: string | null
         }
         Relationships: [
           {

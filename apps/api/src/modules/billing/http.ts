@@ -86,7 +86,7 @@ export function createStripeWebhookRouter(deps: StripeWebhookDeps): Router {
           res.status(400).json({ error: "Invalid Stripe signature" });
           return;
         }
-        if (error instanceof HttpError) {
+        if (error instanceof HttpError && error.status < 500) {
           res.status(error.status).json({ error: error.message });
           return;
         }

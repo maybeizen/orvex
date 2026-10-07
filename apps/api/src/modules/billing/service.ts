@@ -16,6 +16,7 @@ import { TRPCError } from "@trpc/server";
 import type Stripe from "stripe";
 import { invalidateOrgCaches } from "../../lib/cached.js";
 import type { DataClient } from "../../trpc/context.js";
+import { HttpError } from "../../utils/http-error.js";
 import {
   billingStatusFromSubscription,
   isBillingCycle,
@@ -146,6 +147,7 @@ async function insertOrder(
   input: {
     organizationId: string;
     stripeCheckoutSessionId: string | null;
+    stripeEventId?: string | null;
     kind: BillingOrderKind;
     amountCents: number;
     status: BillingOrderRow["status"];
@@ -154,6 +156,9 @@ async function insertOrder(
   const { error } = await supabase.from("billing_orders").insert({
     organization_id: input.organizationId,
     stripe_checkout_session_id: input.stripeCheckoutSessionId,
+    ...(input.stripeEventId === undefined
+      ? {}
+      : { stripe_event_id: input.stripeEventId }),
     kind: input.kind,
     amount_cents: input.amountCents,
     status: input.status,
@@ -222,6 +227,16 @@ export async function createCheckoutSession(
   }
 
   const organization = await fetchOrganization(supabase, input.organizationId);
+  if (
+    organization.stripe_subscription_id !== null &&
+    organization.stripe_subscription_id.length > 0 &&
+    organization.billing_status !== "canceled"
+  ) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "This organization already has a subscription",
+    });
+  }
   const kind = organization.kind === "team" ? "team" : "single";
   if (!planAllowsKind(input.planId, kind)) {
     throw new TRPCError({
@@ -378,7 +393,7 @@ export async function applyCheckoutCompleted(
     subscriptionId,
   });
   if (organization === null) {
-    return;
+    throw new HttpError(500, "Organization for checkout session was not found");
   }
 
   const planId = planFromMetadata(session.metadata) ?? organization.plan_id;
@@ -413,6 +428,7 @@ export async function applySubscriptionEvent(
   subscription: Stripe.Subscription,
   kind: "updated" | "deleted",
   cache?: CacheClient,
+  stripeEventId?: string,
 ): Promise<void> {
   const customerId = stripeObjectId(subscription.customer);
   const organizationId = readMetadata(subscription.metadata, "organization_id");
@@ -445,6 +461,7 @@ export async function applySubscriptionEvent(
     await insertOrder(supabase, {
       organizationId: organization.id,
       stripeCheckoutSessionId: null,
+      stripeEventId: stripeEventId ?? null,
       kind: "downgrade",
       amountCents: 0,
       status: "complete",
@@ -482,6 +499,7 @@ export async function applySubscriptionEvent(
   await insertOrder(supabase, {
     organizationId: organization.id,
     stripeCheckoutSessionId: null,
+    stripeEventId: stripeEventId ?? null,
     kind: orderKindForPlanChange(organization.plan_id, nextPlan),
     amountCents,
     status: "complete",
@@ -503,6 +521,7 @@ export async function applyStripeEvent(
         event.data.object,
         "updated",
         cache,
+        event.id,
       );
       return;
     case "customer.subscription.deleted":
@@ -511,6 +530,7 @@ export async function applyStripeEvent(
         event.data.object,
         "deleted",
         cache,
+        event.id,
       );
       return;
     default:

@@ -5,6 +5,7 @@ import type Stripe from "stripe";
 import { afterEach, expect, test, vi } from "vitest";
 import { errorHandler } from "../../middleware/error.js";
 import { createStripeWebhookRouter } from "./http.js";
+import { applyStripeEvent } from "./service.js";
 import {
   createBillingMemory,
   createMockStripe,
@@ -227,4 +228,91 @@ test("checkout.session.completed inserts a billing order and activates the org",
       billing_status: "active",
     }),
   );
+});
+
+test("checkout.session.completed is retryable when the organization is missing", async () => {
+  const memory = createBillingMemory({ organizations: [], members: [] });
+  const event = {
+    id: "evt_missing_org",
+    type: "checkout.session.completed",
+    data: {
+      object: {
+        id: "cs_missing",
+        object: "checkout.session",
+        amount_total: 1200,
+        customer: "cus_missing",
+        subscription: "sub_missing",
+        client_reference_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        metadata: {
+          organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        },
+      },
+    },
+  } as unknown as Stripe.Event;
+  const stripe = createMockStripe({
+    constructEvent: vi.fn(() => event),
+  });
+  const base = await listen(memory, stripe);
+  const response = await fetch(`${base}/webhooks/stripe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Stripe-Signature": "t=1,v1=ok",
+    },
+    body: JSON.stringify({ type: "checkout.session.completed" }),
+  });
+  const body = (await response.json()) as {
+    error?: string;
+    received?: boolean;
+  };
+  expect(response.status).toBe(500);
+  expect(body.received).toBeUndefined();
+  expect(JSON.stringify(body)).not.toContain("secret_table");
+  expect(memory.orders).toHaveLength(0);
+});
+
+test("subscription webhook retries do not insert duplicate billing orders", async () => {
+  const org = organizationRow({
+    plan_id: "probe",
+    billing_status: "active",
+    stripe_customer_id: "cus_live",
+    stripe_subscription_id: "sub_live",
+  });
+  const memory = createBillingMemory({
+    organizations: [org],
+    members: [memberRow()],
+  });
+  const event = {
+    id: "evt_sub_updated",
+    type: "customer.subscription.updated",
+    data: {
+      object: {
+        id: "sub_live",
+        object: "subscription",
+        customer: "cus_live",
+        status: "active",
+        metadata: {
+          organization_id: org.id,
+          orvex_plan: "probe",
+          orvex_cycle: "monthly",
+        },
+        items: {
+          data: [
+            {
+              price: {
+                unit_amount: 1200,
+                metadata: {},
+              },
+            },
+          ],
+        },
+      },
+    },
+  } as unknown as Stripe.Event;
+
+  await applyStripeEvent(memory.supabase, event);
+  await applyStripeEvent(memory.supabase, event);
+
+  expect(memory.orders).toHaveLength(1);
+  expect(memory.orders[0]?.stripe_event_id).toBe("evt_sub_updated");
 });
