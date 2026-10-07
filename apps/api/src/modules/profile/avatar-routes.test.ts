@@ -1,10 +1,12 @@
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import express from "express";
+import sharp from "sharp";
 import { afterEach, expect, test, vi } from "vitest";
 import { errorHandler } from "../../middleware/error.js";
 import { createAvatarRouter } from "./avatar-routes.js";
-import { createMemorySupabase, testUser } from "./test-support.js";
+import type { ProfileClient } from "./profile-dto.js";
+import { createMemorySupabase, profileRow, testUser } from "./test-support.js";
 
 const servers: { close: () => void }[] = [];
 
@@ -90,4 +92,68 @@ test("gravatar 404 returns an error", async () => {
       /^https:\/\/www\.gravatar\.com\/avatar\/[0-9a-f]{64}\?s=512&d=404$/u,
     ),
   );
+});
+
+test("avatar upload 500 does not return database text", async () => {
+  const databaseText = 'relation "profiles_pkey" does not exist';
+  const memory = createMemorySupabase([profileRow()]);
+  const supabase = {
+    from: memory.supabase.from.bind(memory.supabase),
+    storage: {
+      from(bucket: string) {
+        const api = memory.supabase.storage.from(bucket);
+        return Object.assign(api, {
+          upload: () =>
+            Promise.resolve({
+              data: null,
+              error: { message: databaseText },
+            }),
+        });
+      },
+    },
+  } as unknown as ProfileClient;
+  const app = express();
+  app.use(
+    "/v1/profile",
+    createAvatarRouter({
+      auth: {
+        getUserFromAccessToken: (token) =>
+          Promise.resolve(token === "ok" ? testUser : null),
+      },
+      supabase,
+    }),
+  );
+  app.use(errorHandler);
+  const server = app.listen(0);
+  servers.push(server);
+  await once(server, "listening");
+  const address = server.address() as AddressInfo;
+  const image = await sharp({
+    create: {
+      width: 8,
+      height: 8,
+      channels: 3,
+      background: { r: 20, g: 40, b: 60 },
+    },
+  })
+    .jpeg()
+    .toBuffer();
+  const form = new FormData();
+  form.append("avatar", new Blob([new Uint8Array(image)]), "face.jpg");
+
+  const response = await fetch(
+    `http://127.0.0.1:${String(address.port)}/v1/profile/avatar`,
+    {
+      method: "POST",
+      headers: { Authorization: "Bearer ok" },
+      body: form,
+    },
+  );
+  const body = (await response.json()) as { error: string; requestId: string };
+
+  expect(response.status).toBe(500);
+  expect(body.error).toBe("Internal server error");
+  expect(body.requestId).toEqual(expect.any(String));
+  expect(JSON.stringify(body)).not.toContain("profiles_pkey");
+  expect(JSON.stringify(body)).not.toContain("relation");
 });

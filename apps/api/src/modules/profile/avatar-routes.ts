@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import multer from "multer";
+import { respondWithClientError } from "../../middleware/error.js";
 import type { ServerAuth } from "../../trpc/context.js";
 import { HttpError } from "../../utils/http-error.js";
 import { fetchGravatarImage, type FetchLike } from "./gravatar.js";
@@ -38,7 +39,7 @@ function sendHttpError(
     return;
   }
   if (error instanceof HttpError) {
-    res.status(error.status).json({ error: error.message });
+    respondWithClientError(res, error.status, error.message);
     return;
   }
   next(error);
