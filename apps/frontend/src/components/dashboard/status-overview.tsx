@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import type { Organization } from "@orvex/types";
 import { getPlan } from "@orvex/types/plans";
 import { Link } from "react-router";
@@ -29,11 +28,7 @@ import {
 } from "@/lib/console";
 import { orgPlanLabel } from "@/components/organization/org-avatar";
 import { useOrgLink } from "@/lib/use-org-link";
-
-const StatusChart = lazy(async () => {
-  const module = await import("./status-chart");
-  return { default: module.StatusChart };
-});
+import { StatusChart } from "./status-chart";
 
 export function StatusOverview({
   organization,
@@ -146,9 +141,7 @@ export function StatusOverview({
             }
             padded
           >
-            <Suspense fallback={<LoadingPanel rows={3} />}>
-              <StatusChart series={series} />
-            </Suspense>
+            <StatusChart series={series} />
           </ConsolePanel>
 
           <div className="grid gap-4 xl:grid-cols-2">
