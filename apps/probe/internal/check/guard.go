@@ -47,6 +47,14 @@ func isTeredo(ip net.IP) bool {
 	return ip != nil && ip.To4() == nil && ip[0] == 0x20 && ip[1] == 0x01 && ip[2] == 0 && ip[3] == 0
 }
 
+func isCGNAT(ip net.IP) bool {
+	v4 := ip.To4()
+	if v4 == nil {
+		return false
+	}
+	return v4[0] == 100 && v4[1]&0xc0 == 64
+}
+
 func compatibleIPv4(ip net.IP) net.IP {
 	ip = ip.To16()
 	if ip == nil || ip.To4() != nil {
@@ -67,7 +75,7 @@ func isBlockedProbeIP(ip net.IP) bool {
 	if ip == nil {
 		return true
 	}
-	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+	if ip.IsLoopback() || ip.IsUnspecified() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || isCGNAT(ip) {
 		return true
 	}
 	if ip.Equal(net.ParseIP("fd00:ec2::254")) ||
@@ -100,6 +108,10 @@ func rejectProbeTarget(host string) error {
 
 var lookupIPAddr = func(ctx context.Context, host string) ([]net.IPAddr, error) {
 	return net.DefaultResolver.LookupIPAddr(ctx, host)
+}
+
+var dialConn = func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error) {
+	return dialer.DialContext(ctx, network, address)
 }
 
 func vettedIPs(ctx context.Context, host string) ([]net.IP, error) {
@@ -139,7 +151,7 @@ func dialPinned(ctx context.Context, dialer *net.Dialer, network, host, port str
 	}
 	var last error
 	for _, ip := range ips {
-		conn, dialErr := dialer.DialContext(ctx, network, net.JoinHostPort(ip.String(), port))
+		conn, dialErr := dialConn(ctx, dialer, network, net.JoinHostPort(ip.String(), port))
 		if dialErr == nil {
 			return conn, nil
 		}

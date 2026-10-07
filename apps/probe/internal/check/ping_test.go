@@ -136,3 +136,10 @@ func TestPingHostUnreachable(t *testing.T) {
 		t.Fatalf("error = %q", deref(result.Error))
 	}
 }
+
+func deref(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
+}

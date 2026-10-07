@@ -33,6 +33,10 @@ func allowedMethod(method string) bool {
 	}
 }
 
+var checkRedirectTarget = guardResolved
+
+var transportDial = dialPinned
+
 func newHTTPClient(timeout time.Duration) *http.Client {
 	dialer := &net.Dialer{Timeout: timeout, KeepAlive: 0}
 	return &http.Client{
@@ -41,7 +45,7 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 			if len(via) >= 3 {
 				return errors.New("too many redirects")
 			}
-			return guardResolved(req.Context(), req.URL.Hostname())
+			return checkRedirectTarget(req.Context(), req.URL.Hostname())
 		},
 		Transport: &http.Transport{
 			Proxy: nil,
@@ -50,7 +54,7 @@ func newHTTPClient(timeout time.Duration) *http.Client {
 				if err != nil {
 					return nil, err
 				}
-				return dialPinned(ctx, dialer, network, host, port)
+				return transportDial(ctx, dialer, network, host, port)
 			},
 			TLSClientConfig:     &tls.Config{MinVersion: tls.VersionTLS12},
 			DisableKeepAlives:   true,
