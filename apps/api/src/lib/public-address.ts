@@ -122,7 +122,12 @@ function expandIPv6(address: string): number[] | null {
 }
 
 function ipv4FromPair(hi: number, lo: number): string {
-  return `${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`;
+  return [
+    String((hi >> 8) & 255),
+    String(hi & 255),
+    String((lo >> 8) & 255),
+    String(lo & 255),
+  ].join(".");
 }
 
 function embeddedPrivate(address: string): boolean {
