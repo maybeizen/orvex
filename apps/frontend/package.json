@@ -31,7 +31,7 @@
     "radix-ui": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-easy-crop": "^6.2.3",
+    "react-easy-crop": "^6.2.4",
     "react-router": "catalog:",
     "recharts": "catalog:",
     "sonner": "catalog:",
