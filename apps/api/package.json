@@ -33,11 +33,11 @@
     "cors": "catalog:",
     "express": "catalog:",
     "express-rate-limit": "catalog:",
-    "file-type": "^22.1.1",
+    "file-type": "^22.2.0",
     "helmet": "catalog:",
-    "multer": "^2.4.0",
+    "multer": "^2.5.0",
     "sharp": "^0.35.5",
-    "stripe": "^23.0.0",
+    "stripe": "^23.0.1",
     "zod": "catalog:"
   },
   "devDependencies": {
